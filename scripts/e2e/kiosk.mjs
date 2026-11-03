@@ -9,7 +9,7 @@ export default async function ({ browser, base, shot }) {
   const kiosk = await ctx.newPage()
   await kiosk.goto(`${base}#/sup/login`)
   await kiosk.getByLabel('ชื่อผู้คุม').fill('พี่เต้')
-  await kiosk.getByLabel('รหัสหน่วยงาน').fill('BLOOD69')
+  await kiosk.getByLabel('รหัสหน่วยงาน').fill('NUVOL69')
   await kiosk.getByRole('button', { name: 'เข้าใช้งาน' }).click()
   await kiosk.waitForURL(/#\/sup$/)
   await kiosk.goto(`${base}#/sup/a/test-blood/qr`)
@@ -29,8 +29,8 @@ export default async function ({ browser, base, shot }) {
   await student.getByRole('button', { name: 'รับชั่วโมง' }).click()
   await student.getByRole('heading', { name: 'ทดสอบ จอหน้างาน' }).waitFor({ timeout: 8000 })
 
-  await kiosk.locator('[data-feed]').getByText('ทดสอบ จอหน้างาน').waitFor({ timeout: 2000 })
-  await kiosk.locator('[data-value="1"]').waitFor({ timeout: 2000 })
+  await kiosk.locator('[data-feed]').getByText('ทดสอบ จอหน้างาน').waitFor({ timeout: 5000 })
+  await kiosk.locator('[data-value="1"]').waitFor({ timeout: 5000 })
   await kiosk.waitForTimeout(800)
   await shot(kiosk, 'kiosk-tablet-dark')
 

@@ -14,7 +14,7 @@ export default async function ({ browser, base, load, shot }) {
   await sup.getByLabel('รหัสหน่วยงาน').fill('nope')
   await sup.getByRole('button', { name: 'เข้าใช้งาน' }).click()
   await sup.getByText('ไม่พบรหัสหน่วยงานนี้').waitFor()
-  await sup.getByLabel('รหัสหน่วยงาน').fill('BLOOD69')
+  await sup.getByLabel('รหัสหน่วยงาน').fill('NUVOL69')
   await sup.getByRole('button', { name: 'เข้าใช้งาน' }).click()
   await sup.getByRole('link', { name: /บริจาคโลหิต ครั้งที่ 2\/2569/ }).click()
   await sup.getByRole('button', { name: 'เปิด QR' }).waitFor()
@@ -28,7 +28,7 @@ export default async function ({ browser, base, load, shot }) {
   await student.getByRole('heading', { name: 'ทดสอบ รายชื่อสด' }).waitFor({ timeout: 8000 })
 
   const row = sup.getByRole('button', { name: /ทดสอบ รายชื่อสด/ })
-  await row.waitFor({ timeout: 2000 })
+  await row.waitFor({ timeout: 5000 })
   await row.click()
   await sup.getByRole('dialog', { name: 'แก้ชั่วโมง' }).waitFor()
   await sup.getByLabel('ชั่วโมงที่ได้').fill('9')

@@ -9,12 +9,15 @@
     "preview": "vite preview --host",
     "test": "vitest run",
     "e2e": "node scripts/e2e/run.mjs",
+    "seed": "node scripts/seed-test.mjs",
+    "e2e:remote": "node scripts/seed-test.mjs && node scripts/e2e/run.mjs --remote",
     "deploy": "vite build && node scripts/deploy.mjs"
   },
   "dependencies": {
     "@fontsource-variable/anuphan": "^5.3.0",
     "@noble/hashes": "^2.4.0",
     "@phosphor-icons/react": "^2.1.10",
+    "@supabase/supabase-js": "^2.118.0",
     "motion": "^14.9.0",
     "qrcode": "^1.5.4",
     "react": "^19.3.1",
@@ -25,6 +28,7 @@
     "zustand": "^5.0.16"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.14",
     "@tailwindcss/vite": "^4.3.4",
     "@types/qrcode": "^1.5.6",
     "@types/react": "^19.3.0",

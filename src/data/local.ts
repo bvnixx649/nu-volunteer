@@ -3,7 +3,7 @@ import type { Activity, Credit, Org, Registration, Student } from './types'
 
 /**
  * Browser-only storage for building and demoing without a backend: one JSON blob in localStorage,
- * changes broadcast to other tabs. It does not reach other devices; that is what the Firestore
+ * changes broadcast to other tabs. It does not reach other devices; that is what the Supabase
  * implementation is for.
  */
 

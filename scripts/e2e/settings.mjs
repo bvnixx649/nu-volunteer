@@ -8,7 +8,7 @@ const site = { latitude: 16.7466, longitude: 100.1948 }
 const at = (dLat) => ({ latitude: site.latitude + dLat, longitude: site.longitude, accuracy: 10 })
 const decode = (token) => JSON.parse(Buffer.from(token.split('.')[0].replace(/-/g, '+').replace(/_/g, '/'), 'base64').toString('utf8'))
 
-export default async function ({ browser, base, shot }) {
+export default async function ({ browser, base, shot, mode }) {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, geolocation: site, permissions: ['geolocation'], locale: 'th-TH' })
   const page = await ctx.newPage()
   const problems = []
@@ -29,7 +29,7 @@ export default async function ({ browser, base, shot }) {
 
   await page.goto(`${base}#/sup/login`)
   await page.getByLabel('ชื่อผู้คุม').fill('พี่เต้')
-  await page.getByLabel('รหัสหน่วยงาน').fill('BLOOD69')
+  await page.getByLabel('รหัสหน่วยงาน').fill('NUVOL69')
   await page.getByRole('button', { name: 'เข้าใช้งาน' }).click()
   await page.getByRole('link', { name: /บริจาคโลหิต/ }).click()
   await page.getByRole('heading', { name: /บริจาคโลหิต/ }).waitFor()
@@ -119,7 +119,15 @@ export default async function ({ browser, base, shot }) {
     await p.getByRole('heading', { name: 'ณัฐวุฒิ แก้วประเสริฐ' }).waitFor({ timeout: 8000 })
     await p.close()
   }
-  const credits = () => page.evaluate(() => Object.values(JSON.parse(localStorage.getItem('nuv:db')).credits['test-blood'] ?? {}))
+  // Local mode keeps credits in the page's storage; remote mode reads them back from the project.
+  const credits = async () => {
+    if (mode !== 'remote') return page.evaluate(() => Object.values(JSON.parse(localStorage.getItem('nuv:db')).credits['test-blood'] ?? {}))
+    const { config, signedInClient } = await import('../lib/remote-db.mjs')
+    const { db } = await signedInClient(await config())
+    const { data, error } = await db.from('credits').select('*').eq('activity_id', 'test-blood')
+    if (error) throw new Error(error.message)
+    return data.map((c) => ({ studentId: c.student_id, flags: c.flags }))
+  }
   // The QR screen must have coordinates from the site fix, so claim from the same spot first.
   await ctx.setGeolocation(site)
   await claim('65010001', 0.0016)

@@ -25,7 +25,7 @@ export default async function ({ browser, base, shot }) {
 
   await page.goto(`${base}#/sup/login`)
   await page.getByLabel('ชื่อผู้คุม').fill('พี่เต้')
-  await page.getByLabel('รหัสหน่วยงาน').fill('BLOOD69')
+  await page.getByLabel('รหัสหน่วยงาน').fill('NUVOL69')
   await page.getByRole('button', { name: 'เข้าใช้งาน' }).click()
   await page.getByRole('link', { name: /เก็บขยะริมแม่น้ำน่าน/ }).click()
   await page.getByRole('heading', { name: 'เก็บขยะริมแม่น้ำน่าน' }).waitFor()
@@ -63,8 +63,9 @@ export default async function ({ browser, base, shot }) {
   await edit.getByRole('button', { name: 'ลบออกจากรายชื่อ' }).click()
   await edit.getByRole('button', { name: /กดอีกครั้งเพื่อลบคนนี้/ }).click()
   await page.getByRole('dialog').waitFor({ state: 'detached' })
-  expect((await page.getByRole('button', { name: /ปวีณา มาสาย/ }).count()) === 0, 'removed person is gone')
-  expect((await page.getByText('ไม่มา', { exact: true }).count()) === 0, 'no-show flag gone with the person')
+  // With a remote database the list refreshes a moment after the dialog closes, so wait for it instead of counting at once.
+  await page.getByRole('button', { name: /ปวีณา มาสาย/ }).waitFor({ state: 'detached', timeout: 8000 })
+  await page.getByText('ไม่มา', { exact: true }).waitFor({ state: 'detached', timeout: 8000 })
 
   // Submit: confirm sheet shows people and total hours (5+3+5 = 13) and the warning.
   await page.getByRole('button', { name: 'ส่งรายชื่อให้ศูนย์' }).click()

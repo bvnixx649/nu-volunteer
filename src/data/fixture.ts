@@ -5,7 +5,7 @@ import type { Activity, Credit, Registration } from './types'
 /**
  * Test data for development: two supervisor codes, one blood-donation activity running today and one
  * river clean-up that ended 2 hours ago (roster still open, one no-show) for trying the closing flow.
- * Loaded into local storage in dev only; scripts/seed-test.mjs will push the same data to Firestore.
+ * Loaded into local storage in dev only; supabase/seed-test.sql inserts the same data into Supabase.
  */
 export function FIXTURE(today = new Date()): Partial<LocalDb> {
   const at = (h: number) => new Date(today.getFullYear(), today.getMonth(), today.getDate(), h).getTime()
@@ -15,7 +15,7 @@ export function FIXTURE(today = new Date()): Partial<LocalDb> {
     title: 'บริจาคโลหิต ครั้งที่ 2/2569',
     categoryKey: 'blood',
     org: 'ศูนย์จิตอาสา กองกิจการนิสิต',
-    orgCode: 'BLOOD69',
+    orgCode: 'NUVOL69',
     poster: blood.posters[0],
     description: blood.description,
     place: 'อาคารอเนกประสงค์ มหาวิทยาลัยนเรศวร',
@@ -87,7 +87,7 @@ export function FIXTURE(today = new Date()): Partial<LocalDb> {
 
   return {
     orgs: {
-      BLOOD69: { code: 'BLOOD69', name: 'ศูนย์จิตอาสา กองกิจการนิสิต', admin: false },
+      NUVOL69: { code: 'NUVOL69', name: 'ศูนย์จิตอาสา กองกิจการนิสิต', admin: false },
       NUADMIN: { code: 'NUADMIN', name: 'ศูนย์จิตอาสา กองกิจการนิสิต', admin: true },
     },
     activities: { [activity.id]: activity, [done.id]: done },

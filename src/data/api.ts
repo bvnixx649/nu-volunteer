@@ -22,7 +22,7 @@ export type ClaimResult = { ok: true; credit: Credit } | { ok: false; reason: 'a
 
 /**
  * Everything the screens need from storage. Screens never touch a database directly,
- * so swapping this for Firestore (or anything else) means writing one more implementation.
+ * so swapping this for Supabase (or anything else) means writing one more implementation.
  */
 export interface Api {
   /** Milliseconds to add to Date.now() to get server time. */
@@ -51,9 +51,58 @@ export interface Api {
   submitRoster(activityId: string): Promise<void>
 }
 
-if (import.meta.env.DEV) seedIfEmpty(FIXTURE())
+/**
+ * The Supabase client is loaded on demand so the local build never ships it. Promise methods wait for
+ * the module; watchers subscribe once it arrives and can be cancelled before that.
+ */
+function lazyRemote(): Api {
+  let impl: Api | null = null
+  const loading = import('./remote').then((m) => (impl = m.createRemoteApi()))
+  const call =
+    <K extends keyof Api>(k: K) =>
+    async (...args: unknown[]) =>
+      ((await loading)[k] as (...a: unknown[]) => unknown)(...args)
+  const watch =
+    <K extends 'watchActivities' | 'watchActivity' | 'watchRegistrations' | 'watchCredits'>(k: K) =>
+    (...args: unknown[]): Unsub => {
+      let stop: Unsub | null = null
+      let cancelled = false
+      loading.then((a) => {
+        if (!cancelled) stop = (a[k] as (...x: unknown[]) => Unsub)(...args)
+      })
+      return () => {
+        cancelled = true
+        stop?.()
+      }
+    }
+  return {
+    serverOffset: () => impl?.serverOffset() ?? 0,
+    getStudent: call('getStudent'),
+    createStudent: call('createStudent'),
+    getOrg: call('getOrg'),
+    getActivity: call('getActivity'),
+    getCredit: call('getCredit'),
+    getRegistration: call('getRegistration'),
+    claim: call('claim'),
+    setHours: call('setHours'),
+    removeCredit: call('removeCredit'),
+    removeRegistration: call('removeRegistration'),
+    closeRoster: call('closeRoster'),
+    updateActivity: call('updateActivity'),
+    submitRoster: call('submitRoster'),
+    watchActivities: watch('watchActivities'),
+    watchActivity: watch('watchActivity'),
+    watchRegistrations: watch('watchRegistrations'),
+    watchCredits: watch('watchCredits'),
+  } as Api
+}
 
-export const api: Api = createLocalApi()
+// VITE_DATA is fixed at build time, so the unused branch (and its imports) is dropped from the bundle.
+const useSupabase = import.meta.env.VITE_DATA === 'supabase'
+
+if (import.meta.env.DEV && !useSupabase) seedIfEmpty(FIXTURE())
+
+export const api: Api = useSupabase ? lazyRemote() : createLocalApi()
 
 /** Server time now. */
 export const now = () => Date.now() + api.serverOffset()

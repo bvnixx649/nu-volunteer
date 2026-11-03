@@ -3,6 +3,9 @@ const expect = (cond, msg) => {
   if (!cond) throw new Error(msg)
 }
 
+/** Writes 600 rows straight into the page's localStorage, which only exists in local mode; run.mjs skips this spec with --remote. */
+export const localOnly = 'injects rows into local storage'
+
 export default async function ({ browser, base, load, shot }) {
   const { makeToken } = await load('/src/lib/qr.ts')
   const ctx = await browser.newContext({ viewport: { width: 360, height: 740 }, geolocation: { latitude: 16.7466, longitude: 100.1948 }, permissions: ['geolocation'] })
@@ -37,7 +40,7 @@ export default async function ({ browser, base, load, shot }) {
   })
   await page.goto(`${base}#/sup/login`)
   await page.getByLabel('ชื่อผู้คุม').fill('พี่เต้')
-  await page.getByLabel('รหัสหน่วยงาน').fill('BLOOD69')
+  await page.getByLabel('รหัสหน่วยงาน').fill('NUVOL69')
   await page.getByRole('button', { name: 'เข้าใช้งาน' }).click()
   await page.waitForURL(/#\/sup$/)
   const t0 = Date.now()

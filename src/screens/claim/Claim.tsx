@@ -101,7 +101,13 @@ export default function Claim() {
   }, [studentId, view.kind, run])
 
   const submit = async (id: string, name: string) => {
-    const r = await identify(id, name)
+    // Looking the student up needs the network too; without it nobody gets a ticket.
+    let r: Awaited<ReturnType<typeof identify>>
+    try {
+      r = await identify(id, name)
+    } catch {
+      return fail({ reason: 'offline' })
+    }
     if (r.kind === 'existing') return setView({ kind: 'confirm', student: r.student })
     setStudent(r.student.id)
     run(r.student)
