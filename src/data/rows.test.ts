@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fromActivityPatch, fromStudent, toActivity, toCredit, toRegistration } from './rows'
+import { fromActivityPatch, fromNewActivity, fromStudent, toActivity, toCredit, toRegistration } from './rows'
 
 const row = {
   id: 'a1', title: 't', category_key: 'blood', org: 'o', org_code: 'X', poster: '', description: '', place: 'p',
@@ -30,5 +30,21 @@ describe('rows', () => {
   it('maps writes back to columns', () => {
     expect(fromActivityPatch({ qrMode: 'static', radius: 200 })).toEqual({ qr_mode: 'static', radius: 200 })
     expect(fromStudent({ id: '1', name: 'n', createdAt: 0 })).toEqual({ id: '1', name: 'n', created_at: '1970-01-01T00:00:00.000Z' })
+  })
+
+  it('maps every editor field, splits the supervisor and turns a cleared field into null', () => {
+    expect(fromActivityPatch({ walkIn: false, start: 0, supervisor: { name: 'ก', phone: '055' }, opensAt: undefined, openChatUrl: undefined })).toEqual({
+      walk_in: false, start_at: '1970-01-01T00:00:00.000Z', supervisor_name: 'ก', supervisor_phone: '055', opens_at: null, open_chat_url: null,
+    })
+    expect(fromActivityPatch({})).toEqual({})
+  })
+
+  it('builds an insert row that leaves created_at and the counters to the database', () => {
+    const a = toActivity(row)
+    const { id, createdAt, regCount, creditCount, ...input } = a
+    void id, createdAt, regCount, creditCount
+    const out = fromNewActivity('abc', input)
+    expect(out).toMatchObject({ id: 'abc', title: 't', category_key: 'blood', walk_in: true, supervisor_name: 'ก', start_at: '2026-11-20T01:00:00.000Z' })
+    for (const k of ['created_at', 'reg_count', 'credit_count']) expect(k in out).toBe(false)
   })
 })

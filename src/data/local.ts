@@ -1,5 +1,6 @@
 import type { Api, ClaimInput, ClaimResult } from './api'
-import type { Activity, Credit, Org, Registration, Student } from './types'
+import { newId } from '../lib/id'
+import type { Activity, Credit, NewActivity, Org, Registration, Student } from './types'
 
 /**
  * Browser-only storage for building and demoing without a backend: one JSON blob in localStorage,
@@ -158,6 +159,14 @@ export function createLocalApi(): Api {
           delete db.credits[a][s]
           if (act) act.creditCount = Math.max(0, act.creditCount - 1)
         }
+      }),
+
+    createActivity: (input: NewActivity) =>
+      tx((db) => {
+        let id = newId()
+        while (db.activities[id]) id = newId()
+        db.activities[id] = { ...input, id, createdAt: Date.now(), regCount: 0, creditCount: 0 }
+        return id
       }),
 
     updateActivity: (a, patch) =>

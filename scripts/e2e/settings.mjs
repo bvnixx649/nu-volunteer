@@ -31,7 +31,7 @@ export default async function ({ browser, base, shot, mode }) {
   await page.getByLabel('ชื่อผู้คุม').fill('พี่เต้')
   await page.getByLabel('รหัสหน่วยงาน').fill('NUVOL69')
   await page.getByRole('button', { name: 'เข้าใช้งาน' }).click()
-  await page.getByRole('link', { name: /บริจาคโลหิต/ }).click()
+  await page.getByRole('link', { name: /บริจาคโลหิต/ }).first().click()
   await page.getByRole('heading', { name: /บริจาคโลหิต/ }).waitFor()
   await page.getByText('QR เปลี่ยนทุก 10 วิ ขอตำแหน่ง 150 ม.').waitFor()
   await noOverflow('manage')

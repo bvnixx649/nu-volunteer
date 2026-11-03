@@ -1,0 +1,72 @@
+import { CaretLeft, CaretRight } from '@phosphor-icons/react'
+import { dayKey, monthGrid, TH_MONTHS, TH_WEEKDAYS } from '../../../lib/home'
+
+type Props = {
+  /** First day of the month shown: the year and month are what count. */
+  year: number
+  month: number
+  onMonth: (year: number, month: number) => void
+  busy: Set<string>
+  selected?: string
+  onSelect: (key?: string) => void
+  now: number
+}
+
+/** A compact month: a dot under days that have activities, today ringed, tap a day to filter the list. */
+export function MonthCalendar({ year, month, onMonth, busy, selected, onSelect, now }: Props) {
+  const today = dayKey(now)
+  const step = (d: number) => {
+    const next = new Date(year, month + d, 1)
+    onMonth(next.getFullYear(), next.getMonth())
+  }
+  return (
+    <section>
+      <div className="mb-3 flex items-center justify-between">
+        <h2 className="text-lg font-semibold">
+          {TH_MONTHS[month]} {year + 543}
+        </h2>
+        <div className="flex gap-1">
+          <button onClick={() => step(-1)} aria-label="เดือนก่อน" className="pressable grid size-11 place-items-center rounded-full text-muted hover:bg-surface-2">
+            <CaretLeft size={20} />
+          </button>
+          <button onClick={() => step(1)} aria-label="เดือนถัดไป" className="pressable grid size-11 place-items-center rounded-full text-muted hover:bg-surface-2">
+            <CaretRight size={20} />
+          </button>
+        </div>
+      </div>
+      <div className="rounded-[var(--radius-card)] bg-surface p-3 shadow-soft">
+        <div className="grid grid-cols-7 pb-1 text-center text-sm text-muted">
+          {TH_WEEKDAYS.map((w) => (
+            <span key={w} className="py-1.5">
+              {w}
+            </span>
+          ))}
+        </div>
+        <div className="grid grid-cols-7 gap-y-1">
+          {monthGrid(year, month)
+            .flat()
+            .map((c, i) => {
+              if (!c) return <span key={i} />
+              const has = busy.has(c.key)
+              const on = selected === c.key
+              return (
+                <button
+                  key={c.key}
+                  disabled={!has}
+                  aria-pressed={has ? on : undefined}
+                  aria-label={has ? `วันที่ ${c.day} มีกิจกรรม` : undefined}
+                  onClick={() => onSelect(on ? undefined : c.key)}
+                  className={`pressable relative mx-auto flex size-11 flex-col items-center justify-center rounded-full num ${
+                    on ? 'bg-accent-strong font-semibold text-on-accent' : has ? 'font-semibold' : 'text-muted'
+                  } ${c.key === today && !on ? 'ring-2 ring-accent' : ''}`}
+                >
+                  {c.day}
+                  {has && <span className={`absolute bottom-1.5 size-1 rounded-full ${on ? 'bg-on-accent' : 'bg-accent'}`} />}
+                </button>
+              )
+            })}
+        </div>
+      </div>
+    </section>
+  )
+}

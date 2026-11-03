@@ -33,7 +33,7 @@ begin
     cap_limit, capacity, walk_in, qr_mode, loc_mode, radius, qr_interval, supervisor_name, supervisor_phone,
     chat_enabled, created_at, reg_count, credit_count
   ) values (
-    'test-ended', 'เก็บขยะริมแม่น้ำน่าน', 'environment', 'ศูนย์จิตอาสา กองกิจการนิสิต', 'NUVOL69', './posters/river.jpg',
+    'test-ended', 'เก็บขยะริมแม่น้ำน่าน', 'bottle', 'ศูนย์จิตอาสา กองกิจการนิสิต', 'NUVOL69', './posters/river.jpg',
     'สิ่งที่ต้องเตรียม: ชุดที่เปื้อนได้ หมวก และขวดน้ำ
 อุปกรณ์ทำงานมีให้ที่จุดนัดพบ',
     'ท่าน้ำหน้ามหาวิทยาลัยนเรศวร', 16.7466, 100.1948, ended - interval '5 hours', ended, 5,

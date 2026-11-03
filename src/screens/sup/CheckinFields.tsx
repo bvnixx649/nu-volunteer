@@ -5,10 +5,10 @@ import type { Activity } from '../../data/types'
 import { Segmented } from '../../ui/Segmented'
 import { Switch } from '../../ui/Switch'
 
-/** The four check-in settings an activity carries. */
-export type CheckinDraft = Pick<Activity, 'qrMode' | 'qrInterval' | 'locMode' | 'radius'>
+/** The check-in settings an activity carries, plus whether it takes people who did not sign up. */
+export type CheckinDraft = Pick<Activity, 'qrMode' | 'qrInterval' | 'locMode' | 'radius' | 'walkIn'>
 
-type Props = { value: CheckinDraft; onChange: (v: CheckinDraft) => void }
+type Props = { value: CheckinDraft; onChange: (v: CheckinDraft) => void; /** The create flow asks walk-in on its own step. */ hideWalkIn?: boolean }
 
 type OptionProps = { selected: boolean; icon: ReactNode; title: string; hint: string; onClick: () => void; children?: ReactNode }
 
@@ -28,8 +28,8 @@ function Option({ selected, icon, title, hint, onClick, children }: OptionProps)
   )
 }
 
-/** QR and location settings. Shared by the settings sheet and, later, the create-activity page. */
-export function CheckinFields({ value, onChange }: Props) {
+/** QR, location and walk-in settings. Shared by the settings sheet and the create-activity flow. */
+export function CheckinFields({ value, onChange, hideWalkIn }: Props) {
   const set = (patch: Partial<CheckinDraft>) => onChange({ ...value, ...patch })
   const dynamic = value.qrMode === 'dynamic'
   const locOn = value.locMode === 'on'
@@ -81,6 +81,20 @@ export function CheckinFields({ value, onChange }: Props) {
           )}
         </div>
       </section>
+
+      {!hideWalkIn && (
+        <section className="flex flex-col gap-3">
+          <h3 className="font-semibold">คนที่ไม่ได้ลงชื่อไว้</h3>
+          <div className="rounded-[var(--radius-field)] bg-surface px-4 ring-1 ring-line">
+            <Switch
+              checked={value.walkIn}
+              onChange={(v) => set({ walkIn: v })}
+              label="รับ walk-in"
+              hint={value.walkIn ? 'สแกนรับชั่วโมงได้เลย ขึ้นป้าย มาเพิ่ม ในรายชื่อ' : 'สแกนได้เฉพาะคนที่ลงชื่อไว้'}
+            />
+          </div>
+        </section>
+      )}
 
       {!dynamic && !locOn && (
         <p className="flex gap-2.5 rounded-[var(--radius-field)] bg-bad-soft px-4 py-3 text-sm font-medium text-bad">

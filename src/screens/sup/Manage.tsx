@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
-import { CaretLeft, CaretRight, FileXls, GearSix, QrCode, UserPlus } from '@phosphor-icons/react'
+import { CaretLeft, CaretRight, FileXls, GearSix, PencilSimple, QrCode, UserPlus } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { api, now } from '../../data/api'
 import type { Activity, Credit, Registration } from '../../data/types'
@@ -132,6 +132,7 @@ export default function Manage() {
           {!editable && <p className="mt-3 text-sm text-muted">ส่งรายชื่อแล้ว แก้ไม่ได้</p>}
           <div className="mt-4 -mb-2 divide-y divide-line border-t border-line">
             <Row icon={<GearSix size={22} />} disabled={!editable} onClick={() => setSettings(true)} title="ตั้งค่าการเช็คชื่อ" detail={checkinSummary(activity)} />
+            {editable && <Row icon={<PencilSimple size={22} />} onClick={() => nav(`/sup/edit/${id}`)} title="แก้ไขกิจกรรม" detail="ชื่อ รูป วันเวลา สถานที่ และการรับคน" />}
             {started && <Row icon={<FileXls size={22} />} onClick={exportXlsx} title="โหลด Excel" detail="รายชื่อพร้อมชั่วโมงรายคน" />}
           </div>
         </section>

@@ -27,7 +27,7 @@ export default async function ({ browser, base, shot }) {
   await page.getByLabel('ชื่อผู้คุม').fill('พี่เต้')
   await page.getByLabel('รหัสหน่วยงาน').fill('NUVOL69')
   await page.getByRole('button', { name: 'เข้าใช้งาน' }).click()
-  await page.getByRole('link', { name: /เก็บขยะริมแม่น้ำน่าน/ }).click()
+  await page.getByRole('link', { name: /เก็บขยะริมแม่น้ำน่าน/ }).first().click()
   await page.getByRole('heading', { name: 'เก็บขยะริมแม่น้ำน่าน' }).waitFor()
 
   // Stage bar: six steps, step 4 is current.

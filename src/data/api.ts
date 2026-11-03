@@ -1,4 +1,4 @@
-import type { Activity, Credit, CreditFlag, Org, Registration, Student } from './types'
+import type { Activity, ActivityEdit, Credit, CreditFlag, NewActivity, Org, Registration, Student } from './types'
 import { createLocalApi, seedIfEmpty } from './local'
 import { FIXTURE } from './fixture'
 
@@ -45,8 +45,10 @@ export interface Api {
   removeRegistration(activityId: string, studentId: string): Promise<void>
   /** Sets closedAt to server time unless it is already set. */
   closeRoster(activityId: string): Promise<void>
-  /** Changes the check-in settings. The caller checks canEdit; settings of a sent roster should not change. */
-  updateActivity(id: string, patch: Partial<Pick<Activity, 'qrMode' | 'qrInterval' | 'locMode' | 'radius'>>): Promise<void>
+  /** Creates an activity with a short random id, server time as createdAt and both counters at 0. Returns the id. */
+  createActivity(a: NewActivity): Promise<string>
+  /** Changes any field the editor offers. The caller checks canEdit; a sent roster should not change. A key set to undefined clears that optional field. */
+  updateActivity(id: string, patch: ActivityEdit): Promise<void>
   /** Sets submittedAt unless already set, and closedAt too if the roster was still open. */
   submitRoster(activityId: string): Promise<void>
 }
@@ -88,6 +90,7 @@ function lazyRemote(): Api {
     removeCredit: call('removeCredit'),
     removeRegistration: call('removeRegistration'),
     closeRoster: call('closeRoster'),
+    createActivity: call('createActivity'),
     updateActivity: call('updateActivity'),
     submitRoster: call('submitRoster'),
     watchActivities: watch('watchActivities'),

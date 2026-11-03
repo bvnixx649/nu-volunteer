@@ -40,21 +40,20 @@ export function FIXTURE(today = new Date()): Partial<LocalDb> {
 
   const h = 3600_000
   const ended = today.getTime() - 2 * h
-  const env = CATEGORIES.environment
   const done: Activity = {
     ...activity,
     id: 'test-ended',
     title: 'เก็บขยะริมแม่น้ำน่าน',
-    categoryKey: 'environment',
-    poster: env.posters[0],
-    description: env.description,
+    categoryKey: 'bottle',
+    poster: './posters/river.jpg',
+    description: 'สิ่งที่ต้องเตรียม: ชุดที่เปื้อนได้ หมวก และขวดน้ำ\nอุปกรณ์ทำงานมีให้ที่จุดนัดพบ',
     place: 'ท่าน้ำหน้ามหาวิทยาลัยนเรศวร',
     start: ended - 5 * h,
     end: ended,
-    hours: env.hours,
-    capLimit: env.capLimit,
-    capacity: env.capacity,
-    walkIn: env.walkIn,
+    hours: 5,
+    capLimit: true,
+    capacity: 50,
+    walkIn: false,
     createdAt: ended - 72 * h,
     regCount: 4,
     creditCount: 3,

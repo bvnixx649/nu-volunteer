@@ -7,7 +7,7 @@ import { Button } from '../../ui/Button'
 import { Sheet } from '../../ui/Sheet'
 import { CheckinFields, type CheckinDraft } from './CheckinFields'
 
-const draftOf = (a: Activity): CheckinDraft => ({ qrMode: a.qrMode, ...checkinOf(a) })
+const draftOf = (a: Activity): CheckinDraft => ({ qrMode: a.qrMode, walkIn: a.walkIn, ...checkinOf(a) })
 
 /** Edit QR and location settings of one activity. Saves with one button. */
 export function CheckinSettingsSheet({ open, activity, onClose }: { open: boolean; activity: Activity; onClose: () => void }) {

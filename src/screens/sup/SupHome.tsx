@@ -1,22 +1,53 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { CaretRight, SignOut } from '@phosphor-icons/react'
-import { api } from '../../data/api'
+import { Plus, SignOut } from '@phosphor-icons/react'
+import { api, now as serverNow } from '../../data/api'
 import type { Activity } from '../../data/types'
-import { thDate, thTime } from '../../lib/format'
+import { thDate } from '../../lib/format'
+import { busyDays, groupByStatus, liveNow, onDay, todos, visibleTo, yearStats } from '../../lib/home'
+import { Button } from '../../ui/Button'
 import { useDevice } from '../../store'
+import { ActivityGroups } from './home/ActivityGroups'
+import { LiveCards } from './home/LiveCards'
+import { MonthCalendar } from './home/MonthCalendar'
+import { TodoList } from './home/TodoList'
+import { YearStats } from './home/YearStats'
 
-/** Interim supervisor home: the org's activities, newest first. The full home is P1. */
+/** Supervisor home: what to do next, the calendar, activity-year numbers, and activities by status. */
 export default function SupHome() {
   const { sup, clearSup } = useDevice()
   const [list, setList] = useState<Activity[] | null>(null)
+  const [tick, setTick] = useState(0)
+  const [cal, setCal] = useState(() => {
+    const d = new Date(serverNow())
+    return { year: d.getFullYear(), month: d.getMonth() }
+  })
+  const [day, setDay] = useState<string>()
   useEffect(() => api.watchActivities(setList), [])
-  if (!sup) return <Navigate to="/sup/login" replace />
+  // Stages change with the clock, so look again every 30 seconds.
+  useEffect(() => {
+    const t = setInterval(() => setTick((n) => n + 1), 30_000)
+    return () => clearInterval(t)
+  }, [])
 
-  const mine = (list ?? []).filter((a) => sup.admin || a.orgCode === sup.orgCode).sort((a, b) => b.start - a.start)
+  const now = useMemo(() => serverNow(), [list, tick]) // eslint-disable-line react-hooks/exhaustive-deps
+  const mine = useMemo(() => (sup && list ? visibleTo(list, sup) : []), [list, sup])
+  const view = useMemo(() => {
+    const shown = day ? onDay(mine, day) : mine
+    return {
+      live: liveNow(mine, now),
+      todo: todos(mine, now),
+      busy: busyDays(mine),
+      stats: yearStats(mine, now),
+      groups: groupByStatus(shown, now),
+    }
+  }, [mine, now, day])
+
+  if (!sup) return <Navigate to="/sup/login" replace />
+  const dayStart = day ? new Date(`${day}T00:00:00`).getTime() : 0
 
   return (
-    <main className="mx-auto max-w-2xl px-5 pt-[calc(2rem+env(safe-area-inset-top,0px))] pb-10">
+    <main className="mx-auto max-w-2xl px-5 pt-[calc(2rem+env(safe-area-inset-top,0px))] pb-12 min-[900px]:max-w-5xl">
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-muted">{sup.orgName}</p>
@@ -27,24 +58,44 @@ export default function SupHome() {
         </button>
       </div>
 
-      <h2 className="mt-10 mb-3 text-lg font-semibold">กิจกรรม</h2>
-      {list && !mine.length && <p className="rounded-[var(--radius-card)] bg-surface p-6 text-muted">ยังไม่มีกิจกรรมของหน่วยงานนี้</p>}
-      <ul className="flex flex-col gap-3">
-        {mine.map((a) => (
-          <li key={a.id}>
-            <Link to={`/sup/a/${a.id}`} className="pressable flex items-center gap-4 rounded-[var(--radius-card)] bg-surface p-4 shadow-soft">
-              <img src={a.poster} alt="" className="size-16 shrink-0 rounded-2xl object-cover" />
-              <div className="min-w-0 flex-1">
-                <p className="line-clamp-2 font-semibold">{a.title}</p>
-                <p className="num mt-1 text-sm text-muted">
-                  {thDate(a.start)} {thTime(a.start)} ถึง {thTime(a.end)} น.
-                </p>
-              </div>
-              <CaretRight size={20} className="shrink-0 text-muted" />
-            </Link>
-          </li>
-        ))}
-      </ul>
+      <div className="mt-8 grid gap-y-10 min-[900px]:grid-cols-[minmax(0,1fr)_22rem] min-[900px]:gap-x-12">
+        <div className="flex flex-col gap-10">
+          <Link
+            to="/sup/new"
+            className="pressable inline-flex min-h-14 items-center justify-center gap-2 rounded-full bg-accent-strong px-7 text-[17px] font-semibold text-on-accent shadow-soft"
+          >
+            <Plus size={22} weight="bold" />
+            สร้างกิจกรรม
+          </Link>
+          <LiveCards list={view.live} showOrg={sup.admin} />
+          <TodoList rows={view.todo} showOrg={sup.admin} />
+        </div>
+
+        <div className="flex flex-col gap-10 min-[900px]:row-span-2 min-[900px]:self-start">
+          <MonthCalendar
+            year={cal.year}
+            month={cal.month}
+            onMonth={(year, month) => setCal({ year, month })}
+            busy={view.busy}
+            selected={day}
+            onSelect={setDay}
+            now={now}
+          />
+          {list && <YearStats stats={view.stats} now={now} />}
+        </div>
+
+        <div>
+          {day && (
+            <div className="mb-4 flex items-center justify-between gap-3">
+              <p className="num font-semibold">กิจกรรมวันที่ {thDate(dayStart)}</p>
+              <Button variant="ghost" onClick={() => setDay(undefined)}>
+                ดูทั้งหมด
+              </Button>
+            </div>
+          )}
+          <ActivityGroups groups={view.groups} showOrg={sup.admin} />
+        </div>
+      </div>
     </main>
   )
 }

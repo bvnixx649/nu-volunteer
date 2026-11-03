@@ -8,6 +8,7 @@ const Login = lazy(() => import('./screens/sup/Login'))
 const SupHome = lazy(() => import('./screens/sup/SupHome'))
 const Manage = lazy(() => import('./screens/sup/Manage'))
 const QrScreen = lazy(() => import('./screens/sup/QrScreen'))
+const Editor = lazy(() => import('./screens/sup/Editor'))
 
 const Kit = import.meta.env.DEV ? lazy(() => import('./screens/dev/Kit')) : null
 
@@ -19,6 +20,8 @@ export default function App() {
           <Route path="/claim" element={<Claim />} />
           <Route path="/sup/login" element={<Login />} />
           <Route path="/sup" element={<SupHome />} />
+          <Route path="/sup/new" element={<Editor />} />
+          <Route path="/sup/edit/:id" element={<Editor />} />
           <Route path="/sup/a/:id" element={<Manage />} />
           <Route path="/sup/a/:id/qr" element={<QrScreen />} />
           {Kit && <Route path="/kit" element={<Kit />} />}

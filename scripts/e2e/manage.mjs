@@ -16,7 +16,7 @@ export default async function ({ browser, base, load, shot }) {
   await sup.getByText('ไม่พบรหัสหน่วยงานนี้').waitFor()
   await sup.getByLabel('รหัสหน่วยงาน').fill('NUVOL69')
   await sup.getByRole('button', { name: 'เข้าใช้งาน' }).click()
-  await sup.getByRole('link', { name: /บริจาคโลหิต ครั้งที่ 2\/2569/ }).click()
+  await sup.getByRole('link', { name: /บริจาคโลหิต ครั้งที่ 2\/2569/ }).first().click()
   await sup.getByRole('button', { name: 'เปิด QR' }).waitFor()
 
   const student = await ctx.newPage()

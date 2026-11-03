@@ -1,5 +1,6 @@
 import type { Api, ClaimInput, ClaimResult, Unsub } from './api'
-import { fromActivityPatch, fromStudent, toActivity, toCredit, toOrg, toRegistration, toStudent } from './rows'
+import { newId } from '../lib/id'
+import { fromActivityPatch, fromNewActivity, fromStudent, toActivity, toCredit, toOrg, toRegistration, toStudent } from './rows'
 import { ready, supabase } from './supabase'
 
 /**
@@ -149,6 +150,11 @@ export function createRemoteApi(): Api {
     },
     async closeRoster(a) {
       await rpc('close_roster', { p_activity: a })
+    },
+    async createActivity(a) {
+      const id = newId()
+      await must(supabase.from('activities').insert(fromNewActivity(id, a)))
+      return id
     },
     async updateActivity(id, patch) {
       const row = fromActivityPatch(patch)

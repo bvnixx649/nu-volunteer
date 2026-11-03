@@ -81,6 +81,26 @@ describe('edits', () => {
   })
 })
 
+describe('createActivity', () => {
+  it('stores the activity under a new short id with counters at 0', async () => {
+    const { id, createdAt, regCount, creditCount, ...input } = activity
+    void id, createdAt, regCount, creditCount
+    const a = await api.createActivity({ ...input, title: 'ใหม่' })
+    const b = await api.createActivity(input)
+    expect(a).toMatch(/^[0-9a-z]{10}$/)
+    expect(b).not.toBe(a)
+    expect(await api.getActivity(a)).toMatchObject({ id: a, title: 'ใหม่', regCount: 0, creditCount: 0, hours: 6 })
+    expect((await api.getActivity(a))?.createdAt).toBeGreaterThan(0)
+  })
+
+  it('updates any editor field and clears optional ones', async () => {
+    await api.updateActivity('a1', { title: 'ชื่อใหม่', walkIn: false, supervisor: { name: 'ข', phone: '1' }, opensAt: 5 })
+    expect(await api.getActivity('a1')).toMatchObject({ title: 'ชื่อใหม่', walkIn: false, supervisor: { name: 'ข', phone: '1' }, opensAt: 5 })
+    await api.updateActivity('a1', { opensAt: undefined })
+    expect((await api.getActivity('a1'))?.opensAt).toBeUndefined()
+  })
+})
+
 describe('watch', () => {
   it('calls back with the new credit after a claim', async () => {
     const seen: Credit[][] = []

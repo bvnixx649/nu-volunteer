@@ -1,4 +1,4 @@
-import type { Activity, Credit, CreditFlag, Org, Registration, Student } from './types'
+import type { Activity, ActivityEdit, Credit, CreditFlag, NewActivity, Org, Registration, Student } from './types'
 
 /** Database rows (snake_case, timestamptz as ISO strings) and the one place they become the camelCase types (ms numbers). */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -79,10 +79,48 @@ export const toCredit = (r: Row): Credit =>
     reason: opt(r.reason),
   })
 
-type ActivityPatch = Partial<Pick<Activity, 'qrMode' | 'qrInterval' | 'locMode' | 'radius'>>
+const iso = (v: number | undefined) => (v === undefined ? null : new Date(v).toISOString())
 
-/** Column values for the check-in settings an updateActivity call may change. */
-export const fromActivityPatch = (p: ActivityPatch): Row =>
-  defined({ qr_mode: p.qrMode, qr_interval: p.qrInterval, loc_mode: p.locMode, radius: p.radius })
+/** Column values per Activity field. A key whose value is undefined becomes null, which is how an optional field is cleared. */
+const COLUMNS: { [K in keyof NewActivity]-?: (v: NewActivity[K]) => Row } = {
+  title: (v) => ({ title: v }),
+  categoryKey: (v) => ({ category_key: v }),
+  org: (v) => ({ org: v }),
+  orgCode: (v) => ({ org_code: v }),
+  poster: (v) => ({ poster: v }),
+  description: (v) => ({ description: v }),
+  place: (v) => ({ place: v }),
+  lat: (v) => ({ lat: v ?? null }),
+  lng: (v) => ({ lng: v ?? null }),
+  start: (v) => ({ start_at: iso(v) }),
+  end: (v) => ({ end_at: iso(v) }),
+  hours: (v) => ({ hours: v }),
+  capLimit: (v) => ({ cap_limit: v }),
+  capacity: (v) => ({ capacity: v }),
+  walkIn: (v) => ({ walk_in: v }),
+  qrMode: (v) => ({ qr_mode: v }),
+  locMode: (v) => ({ loc_mode: v }),
+  radius: (v) => ({ radius: v }),
+  qrInterval: (v) => ({ qr_interval: v }),
+  supervisor: (v) => ({ supervisor_name: v.name, supervisor_phone: v.phone }),
+  chatEnabled: (v) => ({ chat_enabled: v }),
+  openChatUrl: (v) => ({ open_chat_url: v ?? null }),
+  opensAt: (v) => ({ opens_at: iso(v) }),
+  cancelDays: (v) => ({ cancel_days: v ?? null }),
+  closedAt: (v) => ({ closed_at: iso(v) }),
+  submittedAt: (v) => ({ submitted_at: iso(v) }),
+  recordedAt: (v) => ({ recorded_at: iso(v) }),
+  hidden: (v) => ({ hidden: v ?? null }),
+  hideUntilOpen: (v) => ({ hide_until_open: v ?? null }),
+}
+
+const columns = (p: Partial<NewActivity>): Row =>
+  Object.assign({}, ...(Object.keys(p) as (keyof NewActivity)[]).filter((k) => k in COLUMNS).map((k) => (COLUMNS[k] as (v: unknown) => Row)(p[k])))
+
+/** Column values for the fields an updateActivity call may change. */
+export const fromActivityPatch = (p: ActivityEdit): Row => columns(p)
+
+/** A full insert row. created_at and the counters come from the column defaults. */
+export const fromNewActivity = (id: string, a: NewActivity): Row => ({ id, ...columns(a) })
 
 export const fromStudent = (s: Student): Row => ({ id: s.id, name: s.name, created_at: new Date(s.createdAt).toISOString() })

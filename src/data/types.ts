@@ -1,4 +1,4 @@
-export type CategoryKey = 'blood' | 'environment' | 'ceremony' | 'camp' | 'repair' | 'recycle' | 'staff' | 'other'
+export type CategoryKey = 'blood' | 'setup' | 'bottle'
 export type QrMode = 'dynamic' | 'static'
 export type LocMode = 'on' | 'off'
 export type CreditFlag = 'location' | 'device'
@@ -79,3 +79,9 @@ export interface Credit {
   editedAt?: number
   reason?: string
 }
+
+/** What createActivity takes: everything but the id, the server time and the counters. */
+export type NewActivity = Omit<Activity, 'id' | 'createdAt' | 'regCount' | 'creditCount'>
+
+/** Fields the editor and the settings sheet may change. A key present with value undefined clears an optional field. */
+export type ActivityEdit = Partial<Omit<NewActivity, 'org' | 'orgCode' | 'closedAt' | 'submittedAt' | 'recordedAt' | 'hidden'>>

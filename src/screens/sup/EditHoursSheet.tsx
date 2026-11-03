@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { api } from '../../data/api'
-import { CATEGORIES, COMMON_REASONS } from '../../data/categories'
+import { categoryOf, COMMON_REASONS } from '../../data/categories'
 import type { Activity } from '../../data/types'
 import { HOUR_CHIPS } from '../../config'
 import { validHours, type RosterRow } from '../../lib/roster'
@@ -32,7 +32,7 @@ export function EditHoursSheet({ row, activity, by, onClose }: Props) {
     if (!row) return
     setInput(String(row.credit?.hours ?? full))
     const r = row.credit?.reason ?? ''
-    const known = [...COMMON_REASONS, ...CATEGORIES[activity.categoryKey].reasons].includes(r)
+    const known = [...COMMON_REASONS, ...categoryOf(activity.categoryKey).reasons].includes(r)
     setReason(r && !known ? OTHER : r)
     setOther(r && !known ? r : '')
     setConfirmRemove(false)
@@ -44,7 +44,7 @@ export function EditHoursSheet({ row, activity, by, onClose }: Props) {
   const needsReason = hours !== null && hours < full
   const canSave = hours !== null && (!needsReason || !!finalReason) && !busy
   const chips = [...new Set([0, ...HOUR_CHIPS.filter((h) => h < full), full])]
-  const reasons = [...COMMON_REASONS, ...CATEGORIES[activity.categoryKey].reasons, OTHER]
+  const reasons = [...COMMON_REASONS, ...categoryOf(activity.categoryKey).reasons, OTHER]
 
   const save = async () => {
     if (!row || hours === null) return

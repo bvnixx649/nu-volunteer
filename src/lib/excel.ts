@@ -1,4 +1,4 @@
-import { CATEGORIES } from '../data/categories'
+import { categoryOf } from '../data/categories'
 import type { Activity, Credit, Registration } from '../data/types'
 import { thDate, thTime } from './format'
 import { rosterRows } from './roster'
@@ -22,7 +22,7 @@ export function supRows(activity: Activity, regs: Registration[], credits: Credi
       รหัสนิสิต: r.studentId,
       ชื่อ: r.name,
       กิจกรรม: activity.title,
-      หมวด: CATEGORIES[activity.categoryKey].label,
+      หมวด: categoryOf(activity.categoryKey).label,
       วันที่: thDate(activity.start),
       ชั่วโมง: c ? c.hours : 0,
       สถานะ: !c ? 'ไม่มา' : r.reg?.walkIn ? 'มาเพิ่ม' : 'ได้ชั่วโมง',
