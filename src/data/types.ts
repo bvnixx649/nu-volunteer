@@ -1,6 +1,6 @@
 export type CategoryKey = 'blood' | 'environment' | 'ceremony' | 'camp' | 'repair' | 'recycle' | 'staff' | 'other'
 export type QrMode = 'dynamic' | 'static'
-export type LocMode = 'strict' | 'flex' | 'off'
+export type LocMode = 'on' | 'off'
 export type CreditFlag = 'location' | 'device'
 
 export interface Student {
@@ -34,6 +34,10 @@ export interface Activity {
   walkIn: boolean
   qrMode: QrMode
   locMode: LocMode
+  /** Metres from the QR screen that count as at the activity. */
+  radius: number
+  /** Seconds between dynamic QR codes. */
+  qrInterval: number
   supervisor: { name: string; phone: string }
   chatEnabled: boolean
   openChatUrl?: string

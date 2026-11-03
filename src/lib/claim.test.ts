@@ -39,33 +39,36 @@ describe('registration', () => {
 })
 
 describe('location', () => {
-  const at = (locMode: Activity['locMode']) => ({ ...activity, locMode })
-  it('strict: fails far away with distance and radius', () => {
-    const r = run({ activity: at('strict'), fix: far })
-    expect(r).toMatchObject({ ok: false, reason: 'far', radius: 170 })
-    expect(!r.ok && r.distance).toBeGreaterThan(390)
-  })
-  it('strict: passes nearby and records distance', () => {
-    const r = run({ activity: at('strict'), fix: near })
+  const at = (locMode: Activity['locMode'], radius?: number) => ({ ...activity, locMode, radius }) as Activity
+  it('on: passes nearby and records distance', () => {
+    const r = run({ activity: at('on'), fix: near })
     expect(r.ok && r.flags).toEqual([])
     expect(r.ok && r.distance).toBeLessThan(30)
     expect(r.ok && r.accuracy).toBe(10)
   })
-  it('strict: fails when location is denied', () => {
-    expect(run({ activity: at('strict'), fix: 'denied' })).toMatchObject({ ok: false, reason: 'locDenied' })
-  })
-  it('flex: passes far away with a location flag', () => {
-    const r = run({ activity: at('flex'), fix: far })
+  it('on: passes far away with a location flag and the distance', () => {
+    const r = run({ activity: at('on'), fix: far })
     expect(r.ok && r.flags).toEqual(['location'])
+    expect(r.ok && r.distance).toBeGreaterThan(390)
   })
-  it('flex: passes with a flag when denied', () => {
-    expect(run({ activity: at('flex'), fix: 'denied' })).toEqual({ ok: true, flags: ['location'] })
+  it('on: passes with a flag when denied', () => {
+    expect(run({ activity: at('on'), fix: 'denied' })).toEqual({ ok: true, flags: ['location'] })
   })
   it('off: passes with no fix and no flag', () => {
     expect(run({ activity: at('off'), fix: null })).toEqual({ ok: true, flags: [] })
   })
-  it('flex: a QR without coordinates cannot be checked, so it passes with a flag', () => {
+  it('on: a QR without coordinates cannot be checked, so it passes with a flag', () => {
     const verified: Verified = { ok: true, ref: 'R', p: { v: 2, a: 'a1', h: 6, w: 1 } }
-    expect(run({ activity: at('flex'), fix: near, verified })).toEqual({ ok: true, flags: ['location'], accuracy: 10 })
+    expect(run({ activity: at('on'), fix: near, verified })).toEqual({ ok: true, flags: ['location'], accuracy: 10 })
+  })
+  // About 180 m north of the site: inside 150 + 10 + 10 only with a wider radius.
+  const mid = { lat: site.lat + 0.0016, lng: site.lng, acc: 10, at: 0 }
+  it('uses the activity radius', () => {
+    expect(run({ activity: at('on', 150), fix: mid })).toMatchObject({ ok: true, flags: ['location'] })
+    expect(run({ activity: at('on', 200), fix: mid })).toMatchObject({ ok: true, flags: [] })
+  })
+  it('falls back to 150 m and on for data saved before the fields existed', () => {
+    expect(run({ activity: { ...activity, locMode: 'flex' } as never, fix: mid })).toMatchObject({ flags: ['location'] })
+    expect(run({ activity: { ...activity, locMode: 'flex' } as never, fix: near })).toMatchObject({ flags: [] })
   })
 })

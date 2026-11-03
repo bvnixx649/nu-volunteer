@@ -160,6 +160,12 @@ export function createLocalApi(): Api {
         }
       }),
 
+    updateActivity: (a, patch) =>
+      tx((db) => {
+        const act = db.activities[a]
+        if (act) Object.assign(act, patch)
+      }),
+
     closeRoster: (a) =>
       tx((db) => {
         const act = db.activities[a]

@@ -144,6 +144,7 @@ export function StageBar({ activity, regs, credits }: Props) {
           <Stat value={total} label="ชั่วโมงรวม" />
         </div>
         <p className="mt-4 font-medium text-bad">ส่งแล้วแก้รายชื่อและชั่วโมงไม่ได้อีก</p>
+        <p className="mt-2 text-muted">การส่งจะแจ้งศูนย์จิตอาสาว่ารายชื่อพร้อมให้บันทึกแล้ว</p>
         <Button size="lg" className="mt-6 w-full" loading={busy} onClick={() => run((id) => api.submitRoster(id), 'ส่งรายชื่อให้ศูนย์แล้ว')}>
           ส่งรายชื่อ
         </Button>

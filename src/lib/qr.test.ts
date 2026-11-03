@@ -21,6 +21,26 @@ describe('dynamic token', () => {
   it('rejects garbage', () => expect(verifyToken('nope', now)).toEqual({ ok: false, reason: 'invalid' }))
 })
 
+describe('dynamic token with a 15 s interval', () => {
+  const t = makeToken(base, 'dynamic', now, 15)
+  it('carries the interval', () => {
+    const v = verifyToken(t, now)
+    expect(v.ok && v.p.i).toBe(15)
+  })
+  it('passes at about 55 seconds', () => expect(verifyToken(t, now + 55_000).ok).toBe(true))
+  it('fails at about 75 seconds', () => expect(verifyToken(t, now + 75_000)).toEqual({ ok: false, reason: 'expired' }))
+  it('rejects a token from 40 seconds in the future', () => expect(verifyToken(t, now - 40_000)).toEqual({ ok: false, reason: 'expired' }))
+})
+
+describe('token without an interval', () => {
+  const t = makeToken(base, 'dynamic', now, 10)
+  it('has no i field and means 10 s, so old printed codes keep working', () => {
+    const v = verifyToken(t, now + 60_000)
+    expect(v.ok && v.p.i).toBeUndefined()
+    expect(verifyToken(t, now + 70_001)).toEqual({ ok: false, reason: 'expired' })
+  })
+})
+
 describe('static token', () => {
   const at = (h: number, m: number) => new Date(2026, 10, 20, h, m).getTime()
   const activity = { start: at(10, 0), end: at(16, 0) }

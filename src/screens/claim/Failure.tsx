@@ -1,18 +1,16 @@
 import { motion } from 'motion/react'
 import { WarningCircle, CheckCircle } from '@phosphor-icons/react'
 import { Button } from '../../ui/Button'
-import { CLAIM_COPY, fillCopy, type FailReason } from '../../lib/claim'
+import { CLAIM_COPY, type FailReason } from '../../lib/claim'
 
 type Props = {
   reason: FailReason | 'offline'
-  distance?: number
-  radius?: number
   onRetry: () => void
   onShowTicket?: () => void
 }
 
 /** Says what went wrong in plain words and what to do next. */
-export function Failure({ reason, distance, radius, onRetry, onShowTicket }: Props) {
+export function Failure({ reason, onRetry, onShowTicket }: Props) {
   const copy = CLAIM_COPY[reason]
   const already = reason === 'already'
   const Icon = already ? CheckCircle : WarningCircle
@@ -27,8 +25,8 @@ export function Failure({ reason, distance, radius, onRetry, onShowTicket }: Pro
       <span className={`grid size-14 place-items-center rounded-full ${already ? 'bg-ok-soft text-ok' : 'bg-bad-soft text-bad'}`}>
         <Icon size={30} weight="fill" />
       </span>
-      <h2 className="text-2xl leading-snug font-bold">{fillCopy(copy.title, { distance, radius })}</h2>
-      {copy.action && <p className="text-lg text-muted">{fillCopy(copy.action, { distance, radius })}</p>}
+      <h2 className="text-2xl leading-snug font-bold">{copy.title}</h2>
+      {copy.action && <p className="text-lg text-muted">{copy.action}</p>}
       <div className="mt-4 w-full">
         {already ? (
           <Button size="lg" className="w-full" onClick={onShowTicket}>

@@ -133,6 +133,13 @@ describe('roster', () => {
     expect(await api.getActivity('a1')).toMatchObject({ regCount: 0, creditCount: 0 })
   })
 
+  it('updates check-in settings and leaves other fields alone', async () => {
+    await api.updateActivity('a1', { qrInterval: 15, radius: 200, locMode: 'off' })
+    expect(await api.getActivity('a1')).toMatchObject({ qrInterval: 15, radius: 200, locMode: 'off', hours: 6 })
+    await api.updateActivity('nope', { radius: 300 })
+    expect(await api.getActivity('nope')).toBeNull()
+  })
+
   it('closes the roster once and keeps the first time', async () => {
     await api.closeRoster('a1')
     const first = (await api.getActivity('a1'))?.closedAt

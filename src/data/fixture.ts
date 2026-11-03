@@ -29,6 +29,8 @@ export function FIXTURE(today = new Date()): Partial<LocalDb> {
     walkIn: blood.walkIn,
     qrMode: blood.qrMode,
     locMode: blood.locMode,
+    radius: blood.radius,
+    qrInterval: blood.qrInterval,
     supervisor: { name: 'ศูนย์จิตอาสา', phone: '055961234' },
     chatEnabled: false,
     createdAt: at(0),

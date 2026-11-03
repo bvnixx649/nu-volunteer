@@ -1,7 +1,7 @@
 import { hmac } from '@noble/hashes/hmac.js'
 import { sha256 } from '@noble/hashes/sha2.js'
 import { bytesToHex, utf8ToBytes } from '@noble/hashes/utils.js'
-import { QR_AHEAD, QR_BACK, QR_WINDOW_MS, STATIC_SLACK_MS } from '../config'
+import { QR_AHEAD, QR_INTERVAL_DEFAULT, qrBackWindows, qrWindowMs, STATIC_SLACK_MS } from '../config'
 import type { Activity, QrMode } from '../data/types'
 
 // Signed on the client so several screens can show QR codes without talking to each other.
@@ -14,6 +14,8 @@ export interface QrPayload {
   h: number
   w?: number
   s?: 1
+  /** Seconds per window. Missing means 10. */
+  i?: number
   la?: number
   lo?: number
   ac?: number
@@ -29,11 +31,14 @@ const b64url = (bytes: Uint8Array) => {
 const fromB64url = (s: string) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), (c) => c.charCodeAt(0))
 const sign = (body: string) => b64url(hmac(sha256, SECRET, utf8ToBytes(body)).slice(0, 12))
 
-export const windowOf = (t: number) => Math.floor(t / QR_WINDOW_MS)
+export const windowOf = (t: number, interval = QR_INTERVAL_DEFAULT) => Math.floor(t / qrWindowMs(interval))
 
 /** `now` is server time: Date.now() + api.serverOffset(). */
-export function makeToken(p: Omit<QrPayload, 'v' | 'w' | 's'>, mode: QrMode, now: number) {
-  const payload: QrPayload = mode === 'static' ? { v: 2, ...p, s: 1 } : { v: 2, ...p, w: windowOf(now) }
+export function makeToken(p: Omit<QrPayload, 'v' | 'w' | 's' | 'i'>, mode: QrMode, now: number, interval = QR_INTERVAL_DEFAULT) {
+  const payload: QrPayload =
+    mode === 'static'
+      ? { v: 2, ...p, s: 1 }
+      : { v: 2, ...p, w: windowOf(now, interval), ...(interval !== QR_INTERVAL_DEFAULT && { i: interval }) }
   const body = b64url(utf8ToBytes(JSON.stringify(payload)))
   return `${body}.${sign(body)}`
 }
@@ -51,8 +56,9 @@ export function verifyToken(token: string, now: number, activity?: Pick<Activity
     if (activity && now < activity.start - STATIC_SLACK_MS) return { ok: false, reason: 'early' }
     if (activity && now > activity.end + STATIC_SLACK_MS) return { ok: false, reason: 'late' }
   } else {
-    const cur = windowOf(now)
-    if (typeof p.w !== 'number' || p.w < cur - QR_BACK || p.w > cur + QR_AHEAD) return { ok: false, reason: 'expired' }
+    const interval = typeof p.i === 'number' && p.i > 0 ? p.i : QR_INTERVAL_DEFAULT
+    const cur = windowOf(now, interval)
+    if (typeof p.w !== 'number' || p.w < cur - qrBackWindows(interval) || p.w > cur + QR_AHEAD) return { ok: false, reason: 'expired' }
   }
   return { ok: true, p, ref: bytesToHex(sha256(utf8ToBytes(sig))).slice(0, 8).toUpperCase() }
 }

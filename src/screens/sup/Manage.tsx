@@ -1,12 +1,13 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
-import { CaretLeft, FileXls, QrCode, UserPlus } from '@phosphor-icons/react'
+import { CaretLeft, CaretRight, FileXls, GearSix, QrCode, UserPlus } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { api, now } from '../../data/api'
 import type { Activity, Credit, Registration } from '../../data/types'
 import { thDate, thTime } from '../../lib/format'
 import { downloadSupXlsx } from '../../lib/excel'
 import { rosterRows, type RosterRow } from '../../lib/roster'
+import { checkinSummary } from '../../lib/checkin'
 import { canEdit, closedAt, stage } from '../../lib/stage'
 import { useDevice } from '../../store'
 import { Button } from '../../ui/Button'
@@ -14,8 +15,23 @@ import { Counter } from '../../ui/Counter'
 import { Roster, Flags } from './Roster'
 import { EditHoursSheet } from './EditHoursSheet'
 import { AddPersonSheet } from './AddPersonSheet'
+import { CheckinSettingsSheet } from './CheckinSettingsSheet'
 import { PullToQr } from './PullToQr'
 import { StageBar } from './StageBar'
+
+/** A tappable list row inside a card: icon, title with a detail line, chevron. */
+function Row({ icon, title, detail, onClick, disabled }: { icon: ReactNode; title: string; detail: string; onClick: () => void; disabled?: boolean }) {
+  return (
+    <button type="button" onClick={onClick} disabled={disabled} className="pressable flex w-full items-center gap-3.5 py-3.5 text-left disabled:opacity-45">
+      <span className="text-muted">{icon}</span>
+      <span className="min-w-0 flex-1">
+        <span className="block font-semibold">{title}</span>
+        <span className="num block truncate text-sm text-muted">{detail}</span>
+      </span>
+      <CaretRight size={18} className="shrink-0 text-muted" />
+    </button>
+  )
+}
 
 const useWide = () => {
   const q = '(min-width: 900px)'
@@ -46,6 +62,7 @@ export default function Manage() {
   const [selectedId, setSelectedId] = useState<string>()
   const [editing, setEditing] = useState<string>()
   const [adding, setAdding] = useState(false)
+  const [settings, setSettings] = useState(false)
 
   useEffect(() => api.watchActivity(id, setActivity), [id])
   useEffect(() => api.watchRegistrations(id, setRegs), [id])
@@ -113,11 +130,10 @@ export default function Manage() {
             </Button>
           </div>
           {!editable && <p className="mt-3 text-sm text-muted">ส่งรายชื่อแล้ว แก้ไม่ได้</p>}
-          {started && (
-            <Button variant="secondary" className="mt-3 w-full" onClick={exportXlsx}>
-              <FileXls size={20} /> โหลด Excel
-            </Button>
-          )}
+          <div className="mt-4 -mb-2 divide-y divide-line border-t border-line">
+            <Row icon={<GearSix size={22} />} disabled={!editable} onClick={() => setSettings(true)} title="ตั้งค่าการเช็คชื่อ" detail={checkinSummary(activity)} />
+            {started && <Row icon={<FileXls size={22} />} onClick={exportXlsx} title="โหลด Excel" detail="รายชื่อพร้อมชั่วโมงรายคน" />}
+          </div>
         </section>
 
         <div className="mt-8 grid gap-6 min-[900px]:grid-cols-[1fr_360px]">
@@ -155,6 +171,7 @@ export default function Manage() {
       </main>
 
       <EditHoursSheet row={find(editing)} activity={activity} by={sup.name} onClose={() => setEditing(undefined)} />
+      <CheckinSettingsSheet open={settings} activity={activity} onClose={() => setSettings(false)} />
       <AddPersonSheet open={adding} activity={activity} by={sup.name} onClose={() => setAdding(false)} />
     </PullToQr>
   )

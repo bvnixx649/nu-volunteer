@@ -4,7 +4,8 @@ import QRCode from 'qrcode'
 import { DownloadSimple, Printer, X } from '@phosphor-icons/react'
 import { api, now } from '../../data/api'
 import type { Activity, Credit } from '../../data/types'
-import { QR_WINDOW_MS } from '../../config'
+import { qrWindowMs } from '../../config'
+import { checkinOf } from '../../lib/checkin'
 import { claimUrl, makeToken, windowOf } from '../../lib/qr'
 import { watchFix, type Fix, type GeoError } from '../../lib/geo'
 import { keepAwake } from '../../lib/wake'
@@ -13,14 +14,15 @@ import { Counter } from '../../ui/Counter'
 import { QrCode } from './QrCode'
 import { LiveFeed } from './LiveFeed'
 
-/** Ticks once per QR window, in server time. */
-function useWindow(enabled: boolean) {
-  const [w, setW] = useState(() => windowOf(now()))
+/** The current QR window in server time. Re-renders once per window, and at once when the interval changes. */
+function useWindow(enabled: boolean, interval: number) {
+  const [, setTick] = useState(0)
+  const w = windowOf(now(), interval)
   useEffect(() => {
     if (!enabled) return
-    const t = setInterval(() => setW(windowOf(now())), 250)
+    const t = setInterval(() => windowOf(now(), interval) !== w && setTick((n) => n + 1), 250)
     return () => clearInterval(t)
-  }, [enabled])
+  }, [enabled, interval, w])
   return w
 }
 
@@ -43,7 +45,8 @@ export default function QrScreen() {
   useEffect(() => api.watchCredits(id, setCredits), [id])
   useEffect(() => keepAwake(), [])
 
-  const checksLocation = !!activity && activity.locMode !== 'off'
+  const { locMode, qrInterval: interval } = checkinOf(activity ?? {})
+  const checksLocation = !!activity && locMode === 'on'
   useEffect(() => {
     if (!checksLocation) return
     return watchFix(
@@ -56,14 +59,14 @@ export default function QrScreen() {
   }, [checksLocation])
 
   const dynamic = activity?.qrMode !== 'static'
-  const w = useWindow(dynamic)
+  const w = useWindow(dynamic, interval)
   // A static QR only changes once, when the first GPS fix arrives.
   const coords = fix && checksLocation ? { la: +fix.lat.toFixed(6), lo: +fix.lng.toFixed(6), ac: Math.round(fix.acc) } : null
   const coordKey = dynamic ? JSON.stringify(coords) : coords ? 'fixed' : 'none'
   const token = useMemo(
-    () => (activity ? makeToken({ a: activity.id, h: activity.hours, ...coords }, activity.qrMode, w * QR_WINDOW_MS) : ''),
+    () => (activity ? makeToken({ a: activity.id, h: activity.hours, ...coords }, activity.qrMode, w * qrWindowMs(interval), interval) : ''),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [activity?.id, activity?.hours, activity?.qrMode, w, coordKey],
+    [activity?.id, activity?.hours, activity?.qrMode, w, interval, coordKey],
   )
 
   if (!sup) return <Navigate to="/sup/login" replace />
@@ -72,7 +75,7 @@ export default function QrScreen() {
 
   const url = claimUrl(token)
   const today = credits.filter((c) => sameDay(c.at, now())).length
-  const remaining = QR_WINDOW_MS - (now() % QR_WINDOW_MS)
+  const remaining = qrWindowMs(interval) - (now() % qrWindowMs(interval))
 
   const download = async () => {
     const a = document.createElement('a')
@@ -108,7 +111,7 @@ export default function QrScreen() {
 
           {dynamic ? (
             <div className="h-1.5 w-full max-w-[min(100%,68dvh)] overflow-hidden rounded-full bg-[#ece9e5]" aria-hidden>
-              <div key={w} className="h-full origin-left rounded-full bg-[#e8590c]" style={{ animation: `drain ${remaining}ms linear forwards` }} />
+              <div key={`${interval}-${w}`} data-interval={interval} className="h-full origin-left rounded-full bg-[#e8590c]" style={{ animation: `drain ${remaining}ms linear forwards` }} />
             </div>
           ) : (
             <div className="flex gap-3 print:hidden">
@@ -121,7 +124,7 @@ export default function QrScreen() {
             </div>
           )}
           <p className="text-center text-[15px] text-[#6b6862] print:hidden">
-            {dynamic ? 'QR เปลี่ยนทุก 10 วินาที สแกนด้วยกล้องมือถือได้เลย' : 'QR นี้ใช้ได้ตลอดช่วงกิจกรรม'}
+            {dynamic ? `QR เปลี่ยนทุก ${interval} วินาที สแกนด้วยกล้องมือถือได้เลย` : 'QR นี้ใช้ได้ตลอดช่วงกิจกรรม'}
             {gps && (
               <>
                 <br />

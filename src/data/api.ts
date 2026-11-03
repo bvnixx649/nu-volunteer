@@ -45,6 +45,8 @@ export interface Api {
   removeRegistration(activityId: string, studentId: string): Promise<void>
   /** Sets closedAt to server time unless it is already set. */
   closeRoster(activityId: string): Promise<void>
+  /** Changes the check-in settings. The caller checks canEdit; settings of a sent roster should not change. */
+  updateActivity(id: string, patch: Partial<Pick<Activity, 'qrMode' | 'qrInterval' | 'locMode' | 'radius'>>): Promise<void>
   /** Sets submittedAt unless already set, and closedAt too if the roster was still open. */
   submitRoster(activityId: string): Promise<void>
 }

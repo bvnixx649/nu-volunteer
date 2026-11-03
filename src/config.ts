@@ -1,14 +1,20 @@
-/** A dynamic QR changes this often. */
-export const QR_WINDOW_MS = 10_000
-/** A dynamic QR stays valid for this many windows after it is shown (about 60 s)... */
-export const QR_BACK = 6
+/** A dynamic QR changes every 10 or 15 seconds, the supervisor picks. Tokens without an interval mean 10. */
+export const QR_INTERVALS = [10, 15]
+export const QR_INTERVAL_DEFAULT = 10
+/** A dynamic QR stays valid for about this long after it is shown, whatever the interval. */
+export const QR_LIFETIME_S = 60
 /** ...and this many windows ahead, for clocks that run slightly fast. */
 export const QR_AHEAD = 1
+/** Length of one QR window in ms. */
+export const qrWindowMs = (interval = QR_INTERVAL_DEFAULT) => interval * 1000
+/** How many windows back a dynamic QR is still accepted (6 for 10 s, 4 for 15 s). */
+export const qrBackWindows = (interval = QR_INTERVAL_DEFAULT) => Math.ceil(QR_LIFETIME_S / interval)
 /** A static QR works from this long before start until this long after end. */
 export const STATIC_SLACK_MS = 30 * 60_000
 
-/** Students pass within this radius of the QR screen, plus each side's GPS accuracy up to ACC_CAP_M. */
-export const RADIUS_M = 150
+/** Students pass within the activity's radius of the QR screen, plus each side's GPS accuracy up to ACC_CAP_M. */
+export const RADIUS_OPTIONS = [150, 200, 300]
+export const RADIUS_DEFAULT = 150
 export const ACC_CAP_M = 100
 
 /** Quick-pick hours. Any whole number 1 to 99 can be typed. */

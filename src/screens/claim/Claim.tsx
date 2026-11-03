@@ -19,7 +19,7 @@ type View =
   | { kind: 'confirm'; student: Student }
   | { kind: 'checking'; stage: Stage }
   | { kind: 'success'; credit: Credit }
-  | { kind: 'fail'; reason: FailReason | 'offline'; distance?: number; radius?: number; credit?: Credit }
+  | { kind: 'fail'; reason: FailReason | 'offline'; credit?: Credit }
 
 /** The page a phone camera opens from the supervisor's QR. Everything happens here, no sign-up first. */
 export default function Claim() {
@@ -88,7 +88,7 @@ export default function Claim() {
     [payload, token, deviceId],
   )
 
-  function fail(f: { reason: FailReason | 'offline'; distance?: number; radius?: number; credit?: Credit }) {
+  function fail(f: { reason: FailReason | 'offline'; credit?: Credit }) {
     haptic.error()
     setView({ kind: 'fail', ...f })
   }
@@ -160,8 +160,6 @@ export default function Claim() {
           {view.kind === 'fail' && (
             <Failure
               reason={view.reason}
-              distance={view.distance}
-              radius={view.radius}
               onRetry={() => (student ? run(student) : setView({ kind: 'form' }))}
               onShowTicket={() => view.credit && setView({ kind: 'success', credit: view.credit })}
             />

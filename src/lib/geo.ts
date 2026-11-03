@@ -1,4 +1,4 @@
-import { ACC_CAP_M, RADIUS_M } from '../config'
+import { ACC_CAP_M, RADIUS_DEFAULT } from '../config'
 
 export interface Fix {
   lat: number
@@ -17,7 +17,8 @@ export function distanceM(a: { lat: number; lng: number }, b: { lat: number; lng
   return 2 * R * Math.asin(Math.sqrt(s))
 }
 
-export const allowedRadius = (supAcc = 0, stuAcc = 0) => RADIUS_M + Math.min(ACC_CAP_M, supAcc) + Math.min(ACC_CAP_M, stuAcc)
+/** The activity's radius plus each side's GPS accuracy, capped. */
+export const allowedRadius = (supAcc = 0, stuAcc = 0, radius = RADIUS_DEFAULT) => radius + Math.min(ACC_CAP_M, supAcc) + Math.min(ACC_CAP_M, stuAcc)
 
 const toFix = (p: GeolocationPosition): Fix => ({ lat: p.coords.latitude, lng: p.coords.longitude, acc: p.coords.accuracy, at: p.timestamp })
 const toErr = (e: GeolocationPositionError): GeoError => (e.code === 1 ? 'denied' : e.code === 3 ? 'timeout' : 'unavailable')
