@@ -144,7 +144,7 @@ function Flow({ sup, saved }: { sup: SupSession; saved: Activity | null }) {
       saved = await api.createTemplate(input)
       setTemplates((l) => [...l, saved])
       setDraft((d) => applyTemplate(d, saved, touched.current))
-      toast.success('เพิ่มเทมเพลตแล้ว')
+      toast.success('เพิ่มกิจกรรมแล้ว')
     }
     setForm((f) => ({ ...f, open: false }))
   }

@@ -56,7 +56,7 @@ type Props = {
 /** Create or edit a supervisor-made template. The body remounts per template so the form starts from the right values. */
 export function TemplateForm({ open, onClose, editing, who, onSave }: Props) {
   return (
-    <Sheet open={open} onClose={onClose} title={editing ? 'แก้ไขเทมเพลต' : 'เพิ่มเทมเพลต'}>
+    <Sheet open={open} onClose={onClose} title={editing ? 'แก้ไขเทมเพลต' : 'เพิ่มกิจกรรม'}>
       <Body key={editing?.id ?? 'new'} editing={editing} who={who} onSave={onSave} />
     </Sheet>
   )

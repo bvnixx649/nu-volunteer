@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { create } from 'zustand'
-import { CalendarBlank, CaretRight, ListBullets, QrCode } from '@phosphor-icons/react'
+import { CalendarBlank, CaretRight, CloudSlash, ListBullets, QrCode } from '@phosphor-icons/react'
 import { now as serverNow } from '../data/api'
 import { useMine } from '../data/mine'
 import { CATEGORIES, CATEGORY_KEYS } from '../data/categories'
@@ -11,6 +11,8 @@ import { SOON_DAYS } from '../config'
 import { buildFeed, liveForScan, type When, WHEN } from '../lib/student'
 import { busyDays, dayKey } from '../lib/home'
 import { thDate, thTime } from '../lib/format'
+import { sendPending, usePending } from '../lib/pending'
+import { Button } from '../ui/Button'
 import { Chip } from '../ui/Chip'
 import { CountUp } from '../ui/CountUp'
 import { LinkButton } from '../ui/LinkButton'
@@ -39,6 +41,8 @@ function Skeleton() {
 export default function Home() {
   const { student, activities, regs, credits, loaded, failed } = useMine()
   const ui = useUi()
+  const pending = usePending()
+  const [sending, setSending] = useState(false)
   const now = serverNow()
   const [cal, setCal] = useState(() => {
     const d = new Date(now)
@@ -65,6 +69,24 @@ export default function Home() {
   return (
     <main className="mx-auto max-w-lg px-5 pt-[calc(1.5rem+env(safe-area-inset-top,0px))]">
       <h1 className="text-3xl leading-tight font-bold tracking-tight break-words">{firstName ? `สวัสดี ${firstName}` : 'จิตอาสา มน.'}</h1>
+
+      {pending.length > 0 && (
+        <section className="mt-5 flex items-center gap-3 rounded-[var(--radius-card)] bg-warn-soft p-4" aria-label="การสแกนรอส่ง">
+          <CloudSlash size={26} weight="fill" className="shrink-0 text-warn" />
+          <p className="num min-w-0 flex-1 font-semibold text-warn">มีการสแกนรอส่ง {pending.length} รายการ</p>
+          <Button
+            variant="secondary"
+            loading={sending}
+            onClick={async () => {
+              setSending(true)
+              await sendPending(true)
+              setSending(false)
+            }}
+          >
+            ส่งตอนนี้
+          </Button>
+        </section>
+      )}
 
       <Link to="/me" className="pressable mt-5 flex items-end justify-between gap-4 rounded-[var(--radius-card)] bg-surface p-5 shadow-soft">
         <div>

@@ -110,7 +110,15 @@ export function createLocalApi(): Api {
         const { id, name } = input.student
         if (credits[id]) return { ok: false, reason: 'already', credit: credits[id] }
 
-        const at = Date.now()
+        // Same rule as the claim function in schema.sql: a kept scan counts only if its time is believable.
+        const nowMs = Date.now()
+        const s = input.scannedAt
+        const late =
+          s !== undefined &&
+          s <= nowMs + 60_000 &&
+          s >= nowMs - 48 * 3600_000 &&
+          (!activity || (s >= activity.start - 3600_000 && s <= activity.end + 24 * 3600_000))
+        const at = late ? s : nowMs
         const credit: Credit = {
           studentId: id,
           name,
@@ -118,7 +126,7 @@ export function createLocalApi(): Api {
           fullHours: activity?.hours ?? input.hours,
           at,
           method: input.method,
-          flags: [...input.flags],
+          flags: late ? [...input.flags, 'offline'] : [...input.flags],
           ...(input.distance !== undefined && { distance: input.distance }),
           ...(input.accuracy !== undefined && { accuracy: input.accuracy }),
           ...(input.deviceId && { deviceId: input.deviceId }),

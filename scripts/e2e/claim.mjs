@@ -71,7 +71,7 @@ export default async function ({ browser, base, load, shot }) {
   await page.getByLabel('รหัสนิสิต').fill('65010003')
   await page.getByLabel('ชื่อ-นามสกุล').fill('ทดสอบ ไม่มีเน็ต')
   await page.getByRole('button', { name: 'รับชั่วโมง' }).click()
-  await page.getByText('บันทึกไม่ได้เพราะไม่มีอินเทอร์เน็ต').waitFor({ timeout: 8000 })
+  await page.getByText('บันทึกการสแกนไว้ในเครื่องแล้ว').waitFor({ timeout: 8000 })
   expect(!(await page.getByRole('heading', { name: 'ทดสอบ ไม่มีเน็ต' }).count()), 'offline claim must not reach success')
   await shot(page, 'claim-offline')
   await ctx.setOffline(false)

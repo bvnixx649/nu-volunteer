@@ -17,6 +17,7 @@ export function supRows(activity: Activity, regs: Registration[], credits: Credi
       c?.reason,
       c?.flags.includes('location') && (c.distance !== undefined ? `อยู่นอกพื้นที่ ${Math.round(c.distance)} ม.` : 'อยู่นอกพื้นที่'),
       c?.flags.includes('device') && 'เครื่องซ้ำ',
+      c?.flags.includes('offline') && 'ส่งภายหลัง',
     ].filter(Boolean)
     return {
       ลำดับ: i + 1,

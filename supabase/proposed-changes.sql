@@ -1,3 +1,13 @@
+-- 4 พ.ย. 2569 (applied to schema.sql, NOT proposed): claim takes p_scanned_at, so a scan the phone kept while offline is stored with its
+-- real time and the flag 'offline'. It is already in schema.sql and MUST be run on an existing database before the app can send kept scans
+-- (normal claims keep working without it). Run the whole schema.sql (safe to repeat), or exactly these statements, in this order:
+--   1. drop function if exists claim(text, text, text, double precision, text, text[], double precision, double precision, text, text, text);
+--   2. the whole `create or replace function claim( ... p_by text, p_scanned_at timestamptz default null ) returns jsonb ... end $$;`
+--      block from schema.sql (search "create or replace function claim")
+--   3. revoke execute on all functions in schema public from public, anon;
+--      grant execute on all functions in schema public to authenticated;
+--      (the grant must come after step 2, otherwise the new function is not callable by signed-in users)
+
 -- 4 พ.ย. 2569 (applied to schema.sql, NOT proposed): supervisor-made templates added a table and a column to schema.sql,
 --   create table if not exists templates (id text primary key, org_code text not null, title text not null, poster text not null default '',
 --     description text not null default '', hours double precision not null, settings jsonb not null default '{}',

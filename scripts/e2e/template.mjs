@@ -37,7 +37,7 @@ export default async function ({ browser, base, shot: rawShot }) {
   // The add button: a circle of about 64px, centred under the cards, with its label.
   await page.goto(`${base}#/sup/new`)
   await h1('เลือกเทมเพลต')
-  const add = page.getByRole('button', { name: 'เพิ่มเทมเพลต', exact: true })
+  const add = page.getByRole('button', { name: 'เพิ่มกิจกรรม', exact: true })
   await add.waitFor()
   const box = await add.boundingBox()
   expect(Math.abs(box.width - 64) <= 1 && Math.abs(box.height - 64) <= 1, `add button is ${box.width}x${box.height}`)
@@ -46,12 +46,12 @@ export default async function ({ browser, base, shot: rawShot }) {
   expect(box.y > lastCard.y + lastCard.height, 'add button sits under the cards')
   const radius = await add.evaluate((el) => getComputedStyle(el).borderRadius)
   expect(parseFloat(radius) >= 32, `add button is round (${radius})`)
-  expect((await page.getByText('เพิ่มเทมเพลต', { exact: true }).count()) >= 1, 'label shown')
+  expect((await page.getByText('เพิ่มกิจกรรม', { exact: true }).count()) >= 1, 'label shown')
   await shot('1-picker')
 
   // Create: validation first, then the uploaded photo, hours and a capacity limit.
   await add.click()
-  const form = page.getByRole('dialog', { name: 'เพิ่มเทมเพลต' })
+  const form = page.getByRole('dialog', { name: 'เพิ่มกิจกรรม' })
   await form.waitFor()
   await form.getByRole('button', { name: 'บันทึกเทมเพลต' }).click()
   await form.getByText('ใส่ชื่อเทมเพลต').waitFor()
@@ -72,7 +72,7 @@ export default async function ({ browser, base, shot: rawShot }) {
   await card.waitFor()
   expect((await card.getAttribute('aria-pressed')) === 'true', 'new template is preselected')
   await h1('เลือกเทมเพลต')
-  expect((await page.getByRole('button', { name: 'เพิ่มเทมเพลต', exact: true }).count()) === 1, 'add button still there')
+  expect((await page.getByRole('button', { name: 'เพิ่มกิจกรรม', exact: true }).count()) === 1, 'add button still there')
   await shot('3-card')
   let db = await stored()
   const tpls = Object.values(db.templates)

@@ -157,14 +157,14 @@ export function StepCategory({ d, templates, onPick, onPickTemplate, onAdd, onMe
       <div className="mt-8 flex flex-col items-center gap-2">
         <button
           type="button"
-          aria-label="เพิ่มเทมเพลต"
+          aria-label="เพิ่มกิจกรรม"
           onClick={onAdd}
           className="pressable grid size-16 place-items-center rounded-full bg-accent-soft text-accent"
         >
           <Plus size={28} weight="bold" />
         </button>
         <span aria-hidden className="text-sm text-muted">
-          เพิ่มเทมเพลต
+          เพิ่มกิจกรรม
         </span>
       </div>
     </>

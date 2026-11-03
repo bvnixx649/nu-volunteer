@@ -168,10 +168,16 @@ $$;
 -- Writes the credit unless one exists, bumps credit_count, and registers walk-ins. Returns
 -- {ok, credit}; ok is false with the existing credit when the student already has one.
 -- Locking the activity row first lines up simultaneous claims one after another.
+-- Adding p_scanned_at makes a new overload, so the old 11-argument version is dropped first (otherwise both would exist).
+drop function if exists claim(text, text, text, double precision, text, text[], double precision, double precision, text, text, text);
+-- p_scanned_at: when a phone kept the scan while offline and sends it later, this is the real scan time.
+-- Null behaves exactly as before. A value counts only if it is not in the future (1 minute of slack), not older than
+-- 48 hours, and within [start_at - 1 hour, end_at + 24 hours] of the activity; otherwise clock_timestamp() is used.
+-- A counted value is stored in credits.at and the credit gets the flag 'offline'.
 create or replace function claim(
   p_activity text, p_student text, p_name text, p_hours double precision, p_method text,
   p_flags text[], p_distance double precision, p_accuracy double precision,
-  p_device text, p_ref text, p_by text
+  p_device text, p_ref text, p_by text, p_scanned_at timestamptz default null
 ) returns jsonb
 language plpgsql as $$
 declare
@@ -179,8 +185,19 @@ declare
   c credits;
   reg registrations;
   v_flags text[] := coalesce(p_flags, '{}');
+  v_now timestamptz := clock_timestamp();
+  v_at timestamptz := v_now;
 begin
   select * into act from activities where id = p_activity for update;
+
+  if p_scanned_at is not null
+     and p_scanned_at <= v_now + interval '1 minute'
+     and p_scanned_at >= v_now - interval '48 hours'
+     and (act.id is null or (p_scanned_at >= act.start_at - interval '1 hour' and p_scanned_at <= act.end_at + interval '24 hours'))
+  then
+    v_at := p_scanned_at;
+    if not ('offline' = any (v_flags)) then v_flags := array_append(v_flags, 'offline'); end if;
+  end if;
 
   select * into c from credits where activity_id = p_activity and student_id = p_student;
   if found then
@@ -196,7 +213,7 @@ begin
   end if;
 
   insert into credits (activity_id, student_id, name, hours, full_hours, at, method, distance, accuracy, flags, device_id, ref, edited_by)
-  values (p_activity, p_student, p_name, p_hours, coalesce(act.hours, p_hours), clock_timestamp(), p_method,
+  values (p_activity, p_student, p_name, p_hours, coalesce(act.hours, p_hours), v_at, p_method,
           p_distance, p_accuracy, v_flags, p_device, p_ref, p_by)
   on conflict (activity_id, student_id) do nothing
   returning * into c;

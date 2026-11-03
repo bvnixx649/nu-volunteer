@@ -35,6 +35,8 @@ export type ClaimInput = {
   ref?: string
   /** Supervisor name when they add someone by hand. */
   by?: string
+  /** Server-time ms of the scan, set only when a phone sends a scan it kept while offline. */
+  scannedAt?: number
 }
 
 export type RegisterResult = 'ok' | 'full' | 'already'

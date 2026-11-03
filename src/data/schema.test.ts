@@ -86,6 +86,67 @@ describe('claim', () => {
   })
 })
 
+describe('claim with p_scanned_at (a scan kept offline and sent later)', () => {
+  const claimAt = async (student: string, at: string | null, device = `dev-${student}`) =>
+    (
+      await db.query<{ claim: ClaimOut & { credit: Credit & { at: string } } }>('select claim($1,$2,$3,6,$4,$5,null,null,$6,$7,null,$8)', [
+        'a1', student, `นิสิต ${student}`, 'qr', [], device, 'R1', at,
+      ])
+    ).rows[0].claim
+  const ago = (ms: number) => new Date(Date.now() - ms).toISOString()
+
+  it('leaves exactly one claim function, so the old 11-argument overload is gone', async () => {
+    const n = (await db.query<{ n: number }>(`select count(*)::int n from pg_proc where proname = 'claim'`)).rows[0].n
+    expect(n).toBe(1)
+  })
+
+  it('behaves as before when the parameter is null', async () => {
+    const before = Date.now()
+    const r = await claimAt('65000030', null)
+    expect(r.ok).toBe(true)
+    expect(r.credit.flags).toEqual([])
+    expect(Date.parse(r.credit.at)).toBeGreaterThanOrEqual(before - 1000)
+  })
+
+  it('stores a valid scan time and adds the offline flag', async () => {
+    const t = ago(20 * 60_000)
+    const r = await claimAt('65000031', t)
+    expect(r.ok).toBe(true)
+    expect(Date.parse(r.credit.at)).toBe(Date.parse(t))
+    expect(r.credit.flags).toEqual(['offline'])
+    const reg = (await db.query<{ at: string }>(`select at from registrations where student_id = '65000031'`)).rows[0]
+    expect(new Date(reg.at).getTime()).toBe(Date.parse(t))
+  })
+
+  it('keeps the offline flag next to the device flag', async () => {
+    await claimAt('65000032', null, 'shared')
+    const r = await claimAt('65000033', ago(60_000), 'shared')
+    expect([...r.credit.flags].sort()).toEqual(['device', 'offline'])
+  })
+
+  it('falls back to now, without the flag, when the time is not believable', async () => {
+    const before = Date.now()
+    const future = await claimAt('65000034', new Date(Date.now() + 10 * 60_000).toISOString())
+    const tooOld = await claimAt('65000035', ago(49 * 3600_000))
+    // The activity started now, so a scan from 2 hours ago is before start_at - 1 hour.
+    const beforeStart = await claimAt('65000036', ago(2 * 3600_000))
+    for (const r of [future, tooOld, beforeStart]) {
+      expect(r.ok).toBe(true)
+      expect(r.credit.flags).toEqual([])
+      expect(Date.parse(r.credit.at)).toBeGreaterThanOrEqual(before - 1000)
+    }
+  })
+
+  it('still refuses a duplicate and keeps the first credit time', async () => {
+    const first = await claimAt('65000037', ago(5 * 60_000))
+    const second = await claimAt('65000037', ago(60_000))
+    expect(second.ok).toBe(false)
+    expect(second.credit.at).toBe(first.credit.at)
+    expect(await count('credits')).toBe(1)
+    expect((await act()).credit_count).toBe(1)
+  })
+})
+
 describe('bottle exchange columns', () => {
   it('stores bottles per hour on the activity and bottles on the credit, null for everything else', async () => {
     expect((await db.query<{ items_per_hour: number | null }>(`select items_per_hour from activities where id = 'a1'`)).rows[0].items_per_hour).toBeNull()

@@ -67,6 +67,35 @@ describe('claim', () => {
   })
 })
 
+describe('claim with scannedAt (kept offline, sent later)', () => {
+  beforeEach(() => {
+    const t = Date.now()
+    resetLocal({ activities: { a1: { ...activity, start: t - 3600_000, end: t + 3600_000 } } })
+  })
+
+  it('stores the real scan time and flags the credit', async () => {
+    const scannedAt = Date.now() - 20 * 60_000
+    const r = await api.claim({ ...input('65000040'), scannedAt })
+    expect(r.ok && r.credit).toMatchObject({ at: scannedAt, flags: ['offline'] })
+    expect(await api.getRegistration('a1', '65000040')).toMatchObject({ at: scannedAt, walkIn: true })
+  })
+
+  it('uses now, without the flag, for a time that is in the future, too old or outside the activity', async () => {
+    const before = Date.now()
+    for (const [i, scannedAt] of [Date.now() + 600_000, Date.now() - 49 * 3600_000, Date.now() - 3 * 3600_000].entries()) {
+      const r = await api.claim({ ...input(`6500005${i}`, `dev-${i}`), scannedAt })
+      expect(r.ok && r.credit.flags).toEqual([])
+      expect(r.ok && r.credit.at).toBeGreaterThanOrEqual(before)
+    }
+  })
+
+  it('still refuses a second claim', async () => {
+    await api.claim({ ...input('65000060'), scannedAt: Date.now() - 60_000 })
+    const again = await api.claim({ ...input('65000060'), scannedAt: Date.now() - 30_000 })
+    expect(again.ok).toBe(false)
+  })
+})
+
 describe('edits', () => {
   it('lowers hours with a reason and remembers who did it', async () => {
     await api.claim(input('65000008'))

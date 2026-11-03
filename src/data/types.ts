@@ -1,7 +1,8 @@
 export type CategoryKey = 'blood' | 'setup' | 'bottle' | 'other'
 export type QrMode = 'dynamic' | 'static'
 export type LocMode = 'on' | 'off'
-export type CreditFlag = 'location' | 'device'
+/** 'offline': the phone kept the scan and sent it later; `at` is the real scan time. */
+export type CreditFlag = 'location' | 'device' | 'offline'
 
 /** Device-notification switches, stored per student. `enabled` is the master switch. */
 export interface NotifyPrefs {

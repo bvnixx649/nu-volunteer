@@ -1,0 +1,20 @@
+# The free Supabase plan pauses a project after 7 days without requests. One small call a day keeps it awake.
+name: Keep Supabase awake
+
+on:
+  schedule:
+    - cron: '17 1 * * *'
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sign in anonymously and ask the server for its time
+        env:
+          URL: https://khavsmhheuabbkoybknm.supabase.co
+          KEY: sb_publishable_fwzsGRELcgZv6LboOYp1wg_WTv7-AZB
+        run: |
+          token=$(curl -sf -X POST "$URL/auth/v1/signup" -H "apikey: $KEY" -H "Content-Type: application/json" -d '{}' | jq -r .access_token)
+          test -n "$token" && test "$token" != null
+          curl -sf -X POST "$URL/rest/v1/rpc/server_now" -H "apikey: $KEY" -H "Authorization: Bearer $token" -H "Content-Type: application/json" -d '{}'

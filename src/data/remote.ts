@@ -148,6 +148,7 @@ export function createRemoteApi(): Api {
         p_device: input.deviceId || null,
         p_ref: input.ref || null,
         p_by: input.by || null,
+        ...(input.scannedAt !== undefined && { p_scanned_at: new Date(input.scannedAt).toISOString() }),
       })
       if (error) {
         if (isNetwork(error)) return { ok: false, reason: 'offline' }

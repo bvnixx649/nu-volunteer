@@ -9,6 +9,10 @@ import Me from './screens/student/Me'
 import Inbox from './screens/student/Inbox'
 import ActivityDetail from './screens/student/ActivityDetail'
 import StudentRoster from './screens/roster/StudentRoster'
+import { startPendingSync } from './lib/pending'
+
+// Kept scans are retried from any screen, so this starts with the app and not with a particular route.
+startPendingSync()
 
 // Students arrive on /claim over mobile data, so supervisor screens load only when someone opens them.
 const Login = lazy(() => import('./screens/sup/Login'))

@@ -5,6 +5,7 @@ const tones = {
   noShow: 'bg-surface-2 text-muted',
   location: 'bg-warn-soft text-warn',
   device: 'bg-bad-soft text-bad',
+  offline: 'bg-warn-soft text-warn',
   edited: 'bg-accent-soft text-accent-strong',
 }
 

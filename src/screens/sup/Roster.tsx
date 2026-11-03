@@ -33,6 +33,7 @@ export function Flags({ row, closed }: { row: RosterRow; closed?: boolean }) {
         <Flag kind="location">{c.distance !== undefined ? `อยู่นอกพื้นที่ ${Math.round(c.distance)} ม.` : 'อยู่นอกพื้นที่'}</Flag>
       )}
       {c?.flags.includes('device') && <Flag kind="device">เครื่องซ้ำ</Flag>}
+      {c?.flags.includes('offline') && <Flag kind="offline">ส่งภายหลัง</Flag>}
       {c?.reason && <Flag kind="edited">{c.reason}</Flag>}
     </>
   )
