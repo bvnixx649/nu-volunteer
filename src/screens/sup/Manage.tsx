@@ -144,8 +144,8 @@ export default function Manage() {
               <Button size="lg" variant={ended ? 'secondary' : 'primary'} onClick={openQr}>
                 <QrCode size={22} weight="bold" /> เปิด QR
               </Button>
-              <Button size="lg" variant="secondary" disabled={!editable} onClick={() => setAdding(true)} aria-label="เพิ่มรายชื่อ">
-                <UserPlus size={22} />
+              <Button size="lg" variant="secondary" className="px-5" disabled={!editable} onClick={() => setAdding(true)}>
+                <UserPlus size={22} /> เพิ่มคน
               </Button>
             </div>
           )}

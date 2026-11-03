@@ -1,5 +1,5 @@
 import { useState, type FormEvent } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { api } from '../../data/api'
 import { useDevice } from '../../store'
 import { Button } from '../../ui/Button'
@@ -21,18 +21,19 @@ export default function Login() {
     setBusy(true)
     const org = await api.getOrg(code.trim().toUpperCase()).catch(() => null)
     setBusy(false)
-    if (!org) return setError('ไม่พบรหัสหน่วยงานนี้')
+    if (!org) return setError('รหัสไม่ถูกต้อง')
     setSup({ name: name.trim(), orgCode: org.code, orgName: org.name, admin: org.admin })
     nav('/sup', { replace: true })
   }
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col px-5 pt-[calc(2.5rem+env(safe-area-inset-top,0px))] pb-8">
-      <h1 className="mt-3 mb-10 text-3xl font-bold tracking-tight">โหมดผู้ดูแลกิจกรรม</h1>
+      <h1 className="mt-3 text-3xl font-bold tracking-tight">เข้าสู่ระบบ</h1>
+      <p className="mt-2 mb-10 text-muted">สำหรับผู้ดูแลกิจกรรม</p>
       <form onSubmit={submit} noValidate className="flex flex-col gap-5">
         <Field label="ชื่อผู้ดูแล" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
         <Field
-          label="รหัสหน่วยงาน"
+          label="รหัส"
           autoCapitalize="characters"
           autoCorrect="off"
           autoComplete="off"
@@ -48,6 +49,9 @@ export default function Login() {
           เข้าใช้งาน
         </Button>
       </form>
+      <Link to="/welcome" className="mt-auto pt-10 text-center font-medium text-muted underline underline-offset-4">
+        สำหรับนิสิต
+      </Link>
     </main>
   )
 }

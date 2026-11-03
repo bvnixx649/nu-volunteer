@@ -57,7 +57,7 @@ export default async function ({ browser, base, load, shot }) {
     await page.goto('about:blank')
     await page.goto(url)
     await page.getByText('ได้รับชั่วโมงกิจกรรมนี้แล้ว').waitFor({ timeout: 8000 })
-    await page.getByRole('button', { name: 'ดูบัตร' }).click()
+    await page.getByRole('button', { name: 'ดูชั่วโมงที่ได้รับ' }).click()
     await page.getByRole('heading', { name: 'ณัฐวุฒิ แก้วประเสริฐ' }).waitFor()
     await ctx.close()
   }

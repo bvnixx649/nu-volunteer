@@ -10,10 +10,10 @@ import { phase } from '../../lib/student'
 import { LinkButton } from '../../ui/LinkButton'
 import { Segmented } from '../../ui/Segmented'
 
-function Row({ a, i, children }: { a: Activity; i: number; children: ReactNode }) {
+function Row({ a, i, to, children }: { a: Activity; i: number; to?: string; children: ReactNode }) {
   return (
     <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1], delay: Math.min(i, 8) * 0.04 }}>
-      <Link to={`/a/${a.id}`} className="pressable flex gap-4 rounded-[var(--radius-card)] bg-surface p-3 shadow-soft">
+      <Link to={to ?? `/a/${a.id}`} className="pressable flex gap-4 rounded-[var(--radius-card)] bg-surface p-3 shadow-soft">
         <img src={a.poster} alt="" loading="lazy" className="size-20 shrink-0 rounded-2xl bg-surface-2 object-cover" />
         <div className="flex min-w-0 flex-1 flex-col gap-1 py-0.5">{children}</div>
       </Link>
@@ -63,11 +63,11 @@ export default function Mine() {
             upcoming.map((a, i) => {
               const live = phase(a, t) === 'live'
               return (
-                <Row key={a.id} a={a} i={i}>
-                  <p className="num text-sm font-semibold text-accent-strong">{live ? 'กำลังดำเนินอยู่' : `${relDay(a.start, t)} ${thTime(a.start)} น.`}</p>
+                <Row key={a.id} a={a} i={i} to={live ? '/scan' : undefined}>
+                  <p className="num text-sm font-semibold text-accent">{live ? 'กำลังดำเนินอยู่' : `${relDay(a.start, t)} ${thTime(a.start)} น.`}</p>
                   <p className="line-clamp-2 leading-snug font-semibold">{a.title}</p>
                   {live ? (
-                    <span className="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-accent-strong">
+                    <span className="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-accent">
                       <QrCode size={18} weight="bold" /> แตะเพื่อสแกนรับชั่วโมง
                     </span>
                   ) : (

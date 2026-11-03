@@ -215,7 +215,7 @@ export default function ActivityDetail() {
             <div className="flex flex-wrap gap-2">
               <span className="inline-flex h-7 items-center rounded-full bg-surface-2 px-3 text-sm font-medium">{categoryOf(a.categoryKey).label}</span>
               {ph === 'live' && (
-                <span className="inline-flex h-7 items-center gap-2 rounded-full bg-accent-soft px-3 text-sm font-medium text-accent-strong">
+                <span className="inline-flex h-7 items-center gap-2 rounded-full bg-accent-soft px-3 text-sm font-medium text-accent">
                   <span className="size-2 animate-pulse rounded-full bg-accent" /> กำลังดำเนินอยู่
                 </span>
               )}
@@ -234,7 +234,7 @@ export default function ActivityDetail() {
             <Fact icon={<MapPin size={22} />}>
               <p className="font-semibold">{a.place || 'ยังไม่ระบุสถานที่'}</p>
               {a.lat != null && a.lng != null && (
-                <a className="font-medium text-accent-strong" href={`https://www.google.com/maps/search/?api=1&query=${a.lat},${a.lng}`} target="_blank" rel="noreferrer">
+                <a className="font-medium text-accent" href={`https://www.google.com/maps/search/?api=1&query=${a.lat},${a.lng}`} target="_blank" rel="noreferrer">
                   เปิดใน Google Maps
                 </a>
               )}
@@ -242,7 +242,7 @@ export default function ActivityDetail() {
             {ph === 'upcoming' && !bottle && (
               <Fact icon={<CalendarX size={22} />}>
                 {scheduled && (
-                  <p className="font-semibold text-accent-strong">
+                  <p className="font-semibold text-accent">
                     เปิดรับสมัคร {thDate(a.opensAt!)} {thTime(a.opensAt!)} น.
                   </p>
                 )}
@@ -311,7 +311,7 @@ export default function ActivityDetail() {
                     onClick={() => (registered || credit ? nav(`/a/${a.id}/chat`) : toast('ลงทะเบียนก่อนจึงเข้าห้องแชทได้'))}
                     className="pressable flex w-full items-center gap-4 px-5 py-4 text-left"
                   >
-                    <span className="text-accent-strong">{registered || credit ? <ChatCircleDots size={24} weight="fill" /> : <LockSimple size={24} weight="fill" />}</span>
+                    <span className="text-accent">{registered || credit ? <ChatCircleDots size={24} weight="fill" /> : <LockSimple size={24} weight="fill" />}</span>
                     <span className="min-w-0 flex-1">
                       <span className="block font-semibold">ห้องแชทกิจกรรม</span>
                       <span className="block text-sm text-muted">{registered || credit ? 'ผู้ดูแลและผู้เข้าร่วม' : 'เฉพาะผู้ลงทะเบียน'}</span>
@@ -366,7 +366,7 @@ export default function ActivityDetail() {
         <div className="mx-auto flex max-w-lg items-center gap-4 px-5 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
           <div className="min-w-0 flex-1">
             <p className="num text-2xl leading-tight font-bold">{credit ? `ได้รับ ${fmtHours(credit.hours)} ชม.` : bottle ? `สูงสุด ${fmtHours(a.hours)} ชม.` : `+${fmtHours(a.hours)} ชม.`}</p>
-            <p className={`truncate text-sm ${scheduled ? 'font-semibold text-accent-strong' : 'text-muted'}`}>{status}</p>
+            <p className={`truncate text-sm ${scheduled ? 'font-semibold text-accent' : 'text-muted'}`}>{status}</p>
           </div>
           {credit ? (
             <LinkButton to={`/a/${a.id}/roster`} variant="primary">

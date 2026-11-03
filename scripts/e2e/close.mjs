@@ -25,7 +25,7 @@ export default async function ({ browser, base, shot }) {
 
   await page.goto(`${base}#/sup/login`)
   await page.getByLabel('ชื่อผู้ดูแล').fill('พี่เต้')
-  await page.getByLabel('รหัสหน่วยงาน').fill('NUVOL69')
+  await page.getByLabel('รหัส', { exact: true }).fill('NUVOL69')
   await page.getByRole('button', { name: 'เข้าใช้งาน' }).click()
   await page.getByRole('link', { name: /เก็บขยะริมแม่น้ำน่าน/ }).first().click()
   await page.getByRole('heading', { name: 'เก็บขยะริมแม่น้ำน่าน' }).waitFor()
@@ -81,7 +81,7 @@ export default async function ({ browser, base, shot }) {
 
   // Locked: reason shown, add disabled, rows no longer open the edit sheet.
   await page.getByText('ส่งรายชื่อแล้ว แก้ไม่ได้').waitFor()
-  expect(await page.getByRole('button', { name: 'เพิ่มรายชื่อ' }).isDisabled(), 'add person is disabled after submit')
+  expect(await page.getByRole('button', { name: 'เพิ่มคน' }).isDisabled(), 'add person is disabled after submit')
   await page.getByRole('button', { name: /สมชาย ใจดี/ }).click()
   await page.waitForTimeout(500)
   expect((await page.getByRole('dialog').count()) === 0, 'edit sheet stays closed after submit')

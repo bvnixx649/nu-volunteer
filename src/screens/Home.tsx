@@ -96,7 +96,7 @@ export default function Home() {
             <span className="font-semibold text-muted">ชั่วโมง</span>
           </p>
         </div>
-        <span className="flex items-center gap-1 pb-1 text-sm font-medium text-accent-strong">
+        <span className="flex items-center gap-1 pb-1 text-sm font-medium text-accent">
           ดู Transcript <CaretRight size={16} weight="bold" />
         </span>
       </Link>
@@ -110,7 +110,7 @@ export default function Home() {
           className="mt-4 rounded-[var(--radius-card)] bg-accent-soft p-5"
           aria-label="กิจกรรมที่กำลังดำเนินอยู่"
         >
-          <p className="flex items-center gap-2 text-sm font-semibold text-accent-strong">
+          <p className="flex items-center gap-2 text-sm font-semibold text-accent">
             <span className="size-2 animate-pulse rounded-full bg-accent" /> กำลังดำเนินอยู่ ถึง {thTime(a.end)} น.
           </p>
           <Link to={`/a/${a.id}`} className="mt-2 line-clamp-2 block text-lg leading-snug font-semibold">
@@ -169,7 +169,7 @@ export default function Home() {
       {filtered && ui.view === 'list' && (
         <p className="num mt-3 text-sm text-muted">
           พบ {feed.items.length} กิจกรรม{' '}
-          <button className="font-semibold text-accent-strong" onClick={() => ui.set({ when: 'all', seatsOnly: false, category: null })}>
+          <button className="font-semibold text-accent" onClick={() => ui.set({ when: 'all', seatsOnly: false, category: null })}>
             ล้างตัวกรอง
           </button>
         </p>

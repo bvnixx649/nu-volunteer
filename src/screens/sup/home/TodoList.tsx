@@ -14,7 +14,7 @@ export function TodoList({ rows, showOrg }: { rows: Todo[]; showOrg: boolean }) 
           return (
             <li key={`${t.activity.id}-${t.kind}`}>
               <Link to={`/sup/a/${t.activity.id}`} className="pressable flex items-center gap-4 rounded-[var(--radius-card)] bg-surface p-4 shadow-soft">
-                <span className={`grid size-11 shrink-0 place-items-center rounded-full ${t.overdue ? 'bg-bad-soft text-bad' : 'bg-accent-soft text-accent-strong'}`}>
+                <span className={`grid size-11 shrink-0 place-items-center rounded-full ${t.overdue ? 'bg-bad-soft text-bad' : 'bg-accent-soft text-accent'}`}>
                   <Icon size={22} weight="bold" />
                 </span>
                 <div className="min-w-0 flex-1">

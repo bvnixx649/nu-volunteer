@@ -6,7 +6,7 @@ const tones = {
   location: 'bg-warn-soft text-warn',
   device: 'bg-bad-soft text-bad',
   offline: 'bg-warn-soft text-warn',
-  edited: 'bg-accent-soft text-accent-strong',
+  edited: 'bg-accent-soft text-accent',
 }
 
 export function Flag({ kind, children }: { kind: keyof typeof tones; children: ReactNode }) {

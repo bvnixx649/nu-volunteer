@@ -9,7 +9,7 @@ export default async function ({ browser, base, shot }) {
   const kiosk = await ctx.newPage()
   await kiosk.goto(`${base}#/sup/login`)
   await kiosk.getByLabel('ชื่อผู้ดูแล').fill('พี่เต้')
-  await kiosk.getByLabel('รหัสหน่วยงาน').fill('NUVOL69')
+  await kiosk.getByLabel('รหัส', { exact: true }).fill('NUVOL69')
   await kiosk.getByRole('button', { name: 'เข้าใช้งาน' }).click()
   await kiosk.waitForURL(/#\/sup$/)
   await kiosk.goto(`${base}#/sup/a/test-blood/qr`)

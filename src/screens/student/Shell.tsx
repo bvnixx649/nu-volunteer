@@ -7,7 +7,10 @@ import { useDevice } from '../../store'
 export function RequireStudent() {
   const studentId = useDevice((s) => s.studentId)
   const { pathname } = useLocation()
+  const sup = useDevice((s) => s.sup)
   useMineSync()
+  // The bare site address is the supervisors' way in; students arrive through a QR link or /welcome.
+  if (!studentId && pathname === '/') return <Navigate to={sup ? '/sup' : '/sup/login'} replace />
   if (!studentId) return <Navigate to={`/welcome?next=${encodeURIComponent(pathname)}`} replace />
   return <Outlet />
 }
@@ -34,7 +37,7 @@ export function Tabs() {
         <ul className="mx-auto grid max-w-lg grid-cols-4">
           {TABS.map(({ to, label, Icon, end }) => (
             <li key={to}>
-              <NavLink to={to} end={end} className={({ isActive }) => `pressable flex min-h-16 flex-col items-center justify-center gap-1 text-xs font-medium ${isActive ? 'text-accent-strong' : 'text-muted'}`}>
+              <NavLink to={to} end={end} className={({ isActive }) => `pressable flex min-h-16 flex-col items-center justify-center gap-1 text-xs font-medium ${isActive ? 'text-accent' : 'text-muted'}`}>
                 {({ isActive }) => (
                   <>
                     <span className="relative">

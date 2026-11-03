@@ -46,43 +46,58 @@ export function EditHoursSheet({ row, activity, by, onClose }: Props) {
   const chips = [...new Set([0, ...HOUR_CHIPS.filter((h) => h < full), full])]
   const reasons = [...COMMON_REASONS, ...categoryOf(activity.categoryKey).reasons, OTHER]
 
-  const save = async () => {
-    if (!row || hours === null) return
+  // Every change confirms with a toast: the sheet closes and the row may be off screen in a long roster.
+  const act = async (fn: () => Promise<string | void>) => {
     setBusy(true)
     try {
-      if (credit) await api.setHours(activity.id, row.studentId, hours, needsReason ? finalReason : '', by)
-      else {
-        const r = await api.claim({ activityId: activity.id, student: { id: row.studentId, name: row.name }, hours, method: 'manual', flags: [], by })
-        if (!r.ok && r.reason === 'offline') return toast.error('บันทึกไม่ได้เพราะไม่มีอินเทอร์เน็ต')
-        if (needsReason) await api.setHours(activity.id, row.studentId, hours, finalReason, by)
-      }
+      const done = await fn()
+      if (done) toast.success(done)
       onClose()
+    } catch {
+      toast.error('บันทึกไม่ได้ ลองอีกครั้ง')
     } finally {
       setBusy(false)
     }
   }
 
-  const remove = async () => {
+  const save = () =>
+    act(async () => {
+      if (!row || hours === null) return
+      if (credit) await api.setHours(activity.id, row.studentId, hours, needsReason ? finalReason : '', by)
+      else {
+        const r = await api.claim({ activityId: activity.id, student: { id: row.studentId, name: row.name }, hours, method: 'manual', flags: [], by })
+        if (!r.ok && r.reason === 'offline') throw new Error('offline')
+        if (needsReason) await api.setHours(activity.id, row.studentId, hours, finalReason, by)
+      }
+      return `${row.name} ได้ ${hours} ชั่วโมง`
+    })
+
+  const remove = () => {
     if (!row) return
     if (!confirmRemove) return setConfirmRemove(true)
-    await api.removeCredit(activity.id, row.studentId)
-    onClose()
+    act(async () => {
+      await api.removeCredit(activity.id, row.studentId)
+      return `ยกเลิกชั่วโมงของ ${row.name} แล้ว`
+    })
   }
 
-  const drop = async () => {
+  const drop = () => {
     if (!row) return
     if (!confirmDrop) return setConfirmDrop(true)
-    await api.removeRegistration(activity.id, row.studentId)
-    onClose()
+    act(async () => {
+      await api.removeRegistration(activity.id, row.studentId)
+      return `ลบ ${row.name} ออกจากรายชื่อแล้ว`
+    })
   }
 
   return (
     <Sheet open={!!row} onClose={onClose} title={credit ? 'แก้ชั่วโมง' : 'ให้ชั่วโมง'}>
       {row && (
         <div className="flex flex-col gap-6">
-          <p className="num -mt-2 text-muted">
-            {row.name} {row.studentId}
-          </p>
+          <div className="rounded-[var(--radius-field)] bg-surface-2 px-4 py-3">
+            <p className="text-lg leading-snug font-semibold break-words">{row.name}</p>
+            <p className="num text-muted">{row.studentId}</p>
+          </div>
           <div className="flex flex-col gap-3">
             <Field
               label="ชั่วโมงที่ได้"
@@ -116,16 +131,20 @@ export function EditHoursSheet({ row, activity, by, onClose }: Props) {
           )}
 
           <Button size="lg" className="w-full" disabled={!canSave} loading={busy} onClick={save}>
-            บันทึก
+            {credit ? 'บันทึก' : hours !== null ? `ให้ ${hours} ชั่วโมง` : 'ให้ชั่วโมง'}
           </Button>
-          {credit && (
-            <Button variant="danger" className="w-full" onClick={remove}>
-              {confirmRemove ? 'กดอีกครั้งเพื่อยกเลิกชั่วโมง' : 'ยกเลิกชั่วโมง'}
+
+          {/* Destructive actions sit apart from the save button so a hurried tap cannot land on them. */}
+          <div className="mt-2 flex flex-col gap-3 border-t border-line pt-6">
+            {credit && (
+              <Button variant="danger" className="w-full" disabled={busy} onClick={remove}>
+                {confirmRemove ? 'กดอีกครั้งเพื่อยกเลิกชั่วโมง' : 'ยกเลิกชั่วโมง'}
+              </Button>
+            )}
+            <Button variant="danger" className="w-full" disabled={busy} onClick={drop}>
+              {confirmDrop ? 'กดอีกครั้งเพื่อลบรายชื่อ' : 'ลบออกจากรายชื่อ'}
             </Button>
-          )}
-          <Button variant="danger" className="w-full" onClick={drop}>
-            {confirmDrop ? 'กดอีกครั้งเพื่อลบรายชื่อ' : 'ลบออกจากรายชื่อ'}
-          </Button>
+          </div>
         </div>
       )}
     </Sheet>

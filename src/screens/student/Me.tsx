@@ -109,7 +109,7 @@ export default function Me() {
               ภาคการศึกษาที่ {semesterNumber(t)} เริ่มใหม่ {thDate(semesterEnd(t))}
             </p>
           </div>
-          <p className={`num text-4xl leading-none font-bold ${left <= 1 ? 'text-accent-strong' : ''}`}>
+          <p className={`num text-4xl leading-none font-bold ${left <= 1 ? 'text-accent' : ''}`}>
             {left}
             <span className="text-lg font-semibold text-muted">/{STRIKE_LIMIT}</span>
           </p>
@@ -132,7 +132,7 @@ export default function Me() {
                     <p className="num text-sm text-muted">
                       {thDate(x.at)} {x.kind === 'late' ? 'ยกเลิกหลังกำหนด' : 'ลงทะเบียนแต่ไม่มา'}
                     </p>
-                    {!x.waived && <p className="text-sm font-medium text-accent-strong">แจ้งเหตุผลกับผู้ดูแล</p>}
+                    {!x.waived && <p className="text-sm font-medium text-accent">แจ้งเหตุผลกับผู้ดูแล</p>}
                   </div>
                   {x.waived ? <Chip tone="bg-ok-soft text-ok">คืนสิทธิ์แล้ว</Chip> : <Chip tone="bg-bad-soft text-bad">-1</Chip>}
                 </Link>
@@ -148,7 +148,7 @@ export default function Me() {
 
       <div className="mt-4 divide-y divide-line overflow-hidden rounded-[var(--radius-card)] bg-surface shadow-soft">
         <Menu icon={<Bell size={24} />} label="การแจ้งเตือน" onClick={() => nav('/settings/notify')} />
-        <Menu icon={<ShieldCheck size={24} />} label="โหมดผู้ดูแลกิจกรรม" hint={sup ? sup.orgName : 'ใช้รหัสจากศูนย์จิตอาสา'} onClick={() => nav(sup ? '/sup' : '/sup/login')} />
+        <Menu icon={<ShieldCheck size={24} />} label="สำหรับผู้ดูแลกิจกรรม" hint={sup ? sup.orgName : 'ใช้รหัสจากศูนย์จิตอาสา'} onClick={() => nav(sup ? '/sup' : '/sup/login')} />
         <Menu icon={<SignOut size={24} />} label="ออกจากระบบ" danger onClick={() => setConfirm(true)} />
       </div>
 

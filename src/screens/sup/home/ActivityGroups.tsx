@@ -18,7 +18,7 @@ function Row({ a, group, showOrg }: { a: Activity; group: Group['key']; showOrg:
       </div>
       <p className="shrink-0 text-right">
         <span className="num block text-xl leading-none font-bold">{people.toLocaleString('th-TH')}</span>
-        <span className="text-xs text-muted">{group === 'upcoming' ? 'ลงทะเบียน' : 'คน'}</span>
+        <span className="text-xs text-muted">{group === 'upcoming' ? 'ลงทะเบียน' : 'ได้ชั่วโมง'}</span>
       </p>
       <CaretRight size={20} className="shrink-0 text-muted" />
     </Link>

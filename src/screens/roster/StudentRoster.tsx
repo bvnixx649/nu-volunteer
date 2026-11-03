@@ -106,7 +106,7 @@ export default function StudentRoster() {
                       <span className="num">{c.studentId}</span>
                       <span className="line-clamp-2 break-words">{c.name}</span>
                       <span className="num text-right">{fmtHours(c.hours)}</span>
-                      <span className={`num text-right ${mine ? 'text-accent-strong' : 'text-muted'}`}>{thTime(c.at)}</span>
+                      <span className={`num text-right ${mine ? 'text-accent' : 'text-muted'}`}>{thTime(c.at)}</span>
                     </li>
                   )
                 })}

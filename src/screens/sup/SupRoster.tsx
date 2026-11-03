@@ -69,7 +69,7 @@ export default function SupRoster() {
               {rows.map((r) => (
                 <tr key={r['รหัสนิสิต']} className={r['สถานะ'] === 'ไม่มา' ? 'text-muted' : ''}>
                   {SUP_COLUMNS.map((h) => (
-                    <td key={h} className={`px-3 py-2.5 ${NUMERIC.has(h) || h === 'รหัสนิสิต' || h === 'เวลายืนยัน' || h === 'วันที่' ? 'num whitespace-nowrap' : ''} ${NUMERIC.has(h) ? 'text-right' : ''}`}>
+                    <td key={h} className={`px-3 py-2.5 ${NUMERIC.has(h) || h === 'รหัสนิสิต' || h === 'เวลายืนยัน' || h === 'วันที่' ? 'num whitespace-nowrap' : h === 'ชื่อ' ? 'whitespace-nowrap' : ''} ${NUMERIC.has(h) ? 'text-right' : ''}`}>
                       {r[h]}
                     </td>
                   ))}

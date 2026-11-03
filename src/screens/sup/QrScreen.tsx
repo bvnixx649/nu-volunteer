@@ -125,7 +125,8 @@ export default function QrScreen() {
               </button>
             </div>
           )}
-          <p className="text-center text-[15px] text-[#6b6862] print:hidden">
+          <p className="text-center text-xl font-semibold md:text-2xl">สแกนด้วยกล้องมือถือเพื่อรับ {activity.hours} ชั่วโมง</p>
+          <p className="-mt-2 text-center text-[15px] text-[#6b6862] print:hidden">
             {dynamic ? `QR เปลี่ยนทุก ${interval} วินาที` : 'QR นี้ใช้ได้ตลอดช่วงกิจกรรม'}
             {gps && (
               <>

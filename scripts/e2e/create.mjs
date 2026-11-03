@@ -31,7 +31,7 @@ export default async function ({ browser, base, shot }) {
 
   await page.goto(`${base}#/sup/login`)
   await page.getByLabel('ชื่อผู้ดูแล').fill('พี่เต้')
-  await page.getByLabel('รหัสหน่วยงาน').fill('NUVOL69')
+  await page.getByLabel('รหัส', { exact: true }).fill('NUVOL69')
   await page.getByRole('button', { name: 'เข้าใช้งาน' }).click()
   await page.waitForURL(/#\/sup$/)
 

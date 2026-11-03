@@ -33,7 +33,7 @@ const whole = (s: string) => /^\d+$/.test(s.trim())
 
 function templateErrors(f: Form): Record<string, string> {
   const e: Record<string, string> = {}
-  if (!f.title.trim()) e.title = 'ใส่ชื่อเทมเพลต'
+  if (!f.title.trim()) e.title = 'ใส่ชื่อกิจกรรม'
   if (!f.poster) e.poster = 'เลือกรูปปก'
   if (!f.hours.trim()) e.hours = 'ใส่จำนวนชั่วโมง'
   else if (!whole(f.hours) || +f.hours < 1 || +f.hours > 99) e.hours = 'ใส่ตัวเลข 1 ถึง 99'
@@ -140,7 +140,7 @@ function Body({ editing, who, onSave }: Pick<Props, 'editing' | 'who' | 'onSave'
         {errors.poster && <p className="text-sm text-bad">{errors.poster}</p>}
       </div>
 
-      <Field label="ชื่อเทมเพลต" value={f.title} onChange={(e) => set({ title: e.target.value })} error={errors.title} autoComplete="off" />
+      <Field label="ชื่อกิจกรรม" value={f.title} onChange={(e) => set({ title: e.target.value })} error={errors.title} autoComplete="off" />
 
       <div className="flex flex-col gap-3">
         <Field label="ชั่วโมงต่อคน" type="number" inputMode="numeric" min={1} max={99} value={f.hours} onChange={(e) => set({ hours: num(e.target.value) })} error={errors.hours} />

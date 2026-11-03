@@ -31,7 +31,7 @@ function RosterRow({ n, c, own }: { n: number; c: Credit; own?: boolean }) {
       <span className="num">{n}</span>
       <span className="num">{c.studentId}</span>
       <span className="truncate">{c.name}</span>
-      <span className={`num ${own ? 'text-accent-strong' : ''}`}>{thTime(c.at)}</span>
+      <span className={`num ${own ? 'text-accent' : ''}`}>{thTime(c.at)}</span>
     </li>
   )
 }

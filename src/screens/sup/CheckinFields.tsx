@@ -17,7 +17,7 @@ function Option({ selected, icon, title, hint, onClick, children }: OptionProps)
   return (
     <div className={`rounded-[var(--radius-field)] ring-1 transition-colors duration-200 ${selected ? 'bg-accent-soft/50 ring-2 ring-accent' : 'bg-surface ring-line'}`}>
       <button type="button" role="radio" aria-checked={selected} onClick={onClick} className="pressable flex w-full gap-3 px-4 py-3.5 text-left">
-        <span className={`mt-0.5 shrink-0 ${selected ? 'text-accent-strong' : 'text-muted'}`}>{icon}</span>
+        <span className={`mt-0.5 shrink-0 ${selected ? 'text-accent' : 'text-muted'}`}>{icon}</span>
         <span>
           <span className="block text-[16px] font-semibold">{title}</span>
           <span className="mt-0.5 block text-sm text-muted">{hint}</span>

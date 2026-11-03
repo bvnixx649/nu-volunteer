@@ -39,7 +39,7 @@ export function ActivityCard({ a, registered, credited, now, index = 0 }: { a: A
         <img src={a.poster} alt="" loading="lazy" className="size-24 shrink-0 rounded-2xl bg-surface-2 object-cover" />
         <div className="flex min-w-0 flex-1 flex-col gap-1.5 py-0.5">
           <div className="flex items-baseline justify-between gap-2">
-            <p className="num truncate text-sm font-semibold text-accent-strong">
+            <p className="num truncate text-sm font-semibold text-accent">
               {relDay(a.start, now)} {thTime(a.start)} น.
             </p>
             <p className="num shrink-0 text-sm font-bold">{a.itemsPerHour ? `สูงสุด ${fmtHours(a.hours)}` : `+${fmtHours(a.hours)}`} ชม.</p>

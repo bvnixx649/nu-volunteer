@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { MagnifyingGlass } from '@phosphor-icons/react'
 import type { Credit, Registration } from '../../data/types'
 import { rosterRows, type RosterFilter, type RosterRow } from '../../lib/roster'
@@ -46,9 +46,20 @@ export function Roster({ regs, credits, selected, closed, onSelect }: Props) {
   const all = useMemo(() => rosterRows(regs, credits, 'all', ''), [regs, credits])
   const rows = useMemo(() => rosterRows(regs, credits, filter, q), [regs, credits, filter, q])
   const count = (f: RosterFilter) => rosterRows(regs, credits, f, '').length
+  const bar = useRef<HTMLDivElement>(null)
+  const list = useRef<HTMLDivElement>(null)
+  // Typing or filtering deep in a long roster: bring the top of the results up under the sticky bar.
+  useEffect(() => {
+    const top = list.current?.getBoundingClientRect().top ?? 0
+    const below = bar.current?.getBoundingClientRect().height ?? 0
+    if (top < below) window.scrollBy({ top: top - below })
+  }, [q, filter])
 
   return (
-    <section className="flex min-w-0 flex-col gap-4">
+    <section className="flex min-w-0 flex-col gap-3" aria-label="รายชื่อ">
+      <h2 className="text-lg font-semibold">รายชื่อ</h2>
+      {/* Stays on screen while scrolling a long roster, so a name can be looked up from anywhere in the list. */}
+      <div ref={bar} className="sticky top-0 z-10 -mx-5 flex flex-col gap-3 bg-bg/95 px-5 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] pb-3 backdrop-blur-xl min-[900px]:mx-0 min-[900px]:px-0">
       <label className="flex h-12 items-center gap-3 rounded-full bg-surface px-4 ring-1 ring-line focus-within:ring-2 focus-within:ring-accent">
         <MagnifyingGlass size={20} className="text-muted" />
         <input
@@ -59,14 +70,16 @@ export function Roster({ regs, credits, selected, closed, onSelect }: Props) {
           className="min-w-0 flex-1 bg-transparent outline-none placeholder:text-muted"
         />
       </label>
-      <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5">
+      <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 min-[900px]:mx-0 min-[900px]:px-0">
         {FILTERS.map((f) => (
           <Chip key={f.key} selected={filter === f.key} onClick={() => setFilter(f.key)}>
             {f.label} <span className="num ml-1 opacity-70">{f.key === 'all' ? all.length : count(f.key)}</span>
           </Chip>
         ))}
       </div>
+      </div>
 
+      <div ref={list} className="-mt-3" aria-hidden />
       {!rows.length ? (
         <p className="rounded-[var(--radius-card)] bg-surface px-5 py-8 text-center text-muted">
           {all.length ? 'ไม่พบรายชื่อที่ตรงกัน' : 'ยังไม่มีรายชื่อ'}

@@ -203,7 +203,7 @@ export default function Claim() {
               <p className="line-clamp-2 font-semibold">{title || 'กิจกรรมจิตอาสา'}</p>
             )}
           </div>
-          <p className="num shrink-0 rounded-full bg-accent-soft px-3 py-1.5 font-bold text-accent-strong">{payload.h} ชม.</p>
+          <p className="num shrink-0 rounded-full bg-accent-soft px-3 py-1.5 font-bold text-accent">{payload.h} ชม.</p>
         </header>
       )}
 
@@ -246,6 +246,7 @@ export default function Claim() {
           {view.kind === 'fail' && (
             <Failure
               reason={view.reason}
+              student={student}
               onRetry={() => (student ? run(student) : setView({ kind: 'form' }))}
               onShowTicket={() => view.credit && setView({ kind: 'success', credit: view.credit })}
             />

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
 import { Plus, SignOut } from '@phosphor-icons/react'
 import { api, now as serverNow } from '../../data/api'
@@ -23,6 +23,12 @@ export default function SupHome() {
     return { year: d.getFullYear(), month: d.getMonth() }
   })
   const [day, setDay] = useState<string>()
+  const listRef = useRef<HTMLDivElement>(null)
+  // On a phone the list sits below the calendar, so picking a day brings the filtered list into view.
+  const pickDay = (key?: string) => {
+    setDay(key)
+    if (key) requestAnimationFrame(() => listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }
   useEffect(() => api.watchActivities(setList), [])
   // Stages change with the clock, so look again every 30 seconds.
   useEffect(() => {
@@ -53,13 +59,13 @@ export default function SupHome() {
           <p className="text-muted">{sup.orgName}</p>
           <h1 className="mt-1 text-3xl font-bold tracking-tight">สวัสดี {sup.name}</h1>
         </div>
-        <button onClick={clearSup} className="pressable flex items-center gap-1.5 rounded-full px-3 py-2 text-muted" aria-label="ออกจากโหมดผู้ดูแล">
+        <button onClick={clearSup} className="pressable flex items-center gap-1.5 rounded-full px-3 py-2 text-muted" aria-label="ออกจากระบบ">
           <SignOut size={20} />
         </button>
       </div>
 
       <div className="mt-8 grid gap-y-10 min-[900px]:grid-cols-[minmax(0,1fr)_22rem] min-[900px]:gap-x-12">
-        <div className="flex flex-col gap-10">
+        <div className="flex flex-col gap-10 min-[900px]:col-start-1 min-[900px]:row-start-1">
           <Link
             to="/sup/new"
             className="pressable inline-flex min-h-14 items-center justify-center gap-2 rounded-full bg-accent-strong px-7 text-[17px] font-semibold text-on-accent shadow-soft"
@@ -71,30 +77,40 @@ export default function SupHome() {
           <TodoList rows={view.todo} showOrg={sup.admin} />
         </div>
 
-        <div className="flex flex-col gap-10 min-[900px]:row-span-2 min-[900px]:self-start">
+        <div className="min-[900px]:col-start-2 min-[900px]:row-start-1">
           <MonthCalendar
             year={cal.year}
             month={cal.month}
             onMonth={(year, month) => setCal({ year, month })}
             busy={view.busy}
             selected={day}
-            onSelect={setDay}
+            onSelect={pickDay}
             now={now}
           />
-          {list && <YearStats stats={view.stats} now={now} />}
         </div>
 
-        <div>
+        <div ref={listRef} className="scroll-mt-4 min-[900px]:col-start-1 min-[900px]:row-start-2">
           {day && (
             <div className="mb-4 flex items-center justify-between gap-3">
-              <p className="num font-semibold">กิจกรรมวันที่ {thDate(dayStart)}</p>
-              <Button variant="ghost" onClick={() => setDay(undefined)}>
+              <p className="num text-lg font-semibold">กิจกรรมวันที่ {thDate(dayStart)}</p>
+              <Button variant="secondary" onClick={() => setDay(undefined)}>
                 ดูทั้งหมด
               </Button>
             </div>
           )}
           <ActivityGroups groups={view.groups} showOrg={sup.admin} />
+          {list && !view.groups.length && (day || !mine.length) && (
+            <p className="rounded-[var(--radius-card)] bg-surface px-5 py-8 text-center text-muted">
+              {day ? 'ไม่มีกิจกรรมอื่นในวันนี้' : 'ยังไม่มีกิจกรรม กดสร้างกิจกรรมเพื่อเริ่ม'}
+            </p>
+          )}
         </div>
+
+        {list && (
+          <div className="min-[900px]:col-start-2 min-[900px]:row-start-2 min-[900px]:self-start">
+            <YearStats stats={view.stats} now={now} />
+          </div>
+        )}
       </div>
     </main>
   )

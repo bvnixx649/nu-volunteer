@@ -11,10 +11,10 @@ export default async function ({ browser, base, load, shot }) {
 
   await sup.goto(`${base}#/sup/login`)
   await sup.getByLabel('ชื่อผู้ดูแล').fill('พี่เต้')
-  await sup.getByLabel('รหัสหน่วยงาน').fill('nope')
+  await sup.getByLabel('รหัส', { exact: true }).fill('nope')
   await sup.getByRole('button', { name: 'เข้าใช้งาน' }).click()
-  await sup.getByText('ไม่พบรหัสหน่วยงานนี้').waitFor()
-  await sup.getByLabel('รหัสหน่วยงาน').fill('NUVOL69')
+  await sup.getByText('รหัสไม่ถูกต้อง').waitFor()
+  await sup.getByLabel('รหัส', { exact: true }).fill('NUVOL69')
   await sup.getByRole('button', { name: 'เข้าใช้งาน' }).click()
   await sup.getByRole('link', { name: /บริจาคโลหิต ครั้งที่ 2\/2569/ }).first().click()
   await sup.getByRole('button', { name: 'เปิด QR' }).waitFor()
