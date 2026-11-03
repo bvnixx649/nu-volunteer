@@ -26,15 +26,15 @@ export function InstallCard() {
 
   const install = async () => {
     if (mode !== 'prompt') return setHelp(true)
-    if (await promptInstall()) toast.success('ติดตั้งแล้ว เปิดได้จากหน้าจอโฮม')
+    if (await promptInstall()) toast.success('ติดตั้งแล้ว')
   }
 
   return (
     <>
       <section className="flex items-center gap-4 rounded-[var(--radius-card)] bg-surface p-4 shadow-soft">
         <div className="min-w-0 flex-1">
-          <p className="font-semibold">ติดตั้งแอพลงเครื่อง</p>
-          <p className="text-sm text-muted">เปิดจากหน้าจอโฮมได้ทันที ไม่ต้องหาลิงก์</p>
+          <p className="font-semibold">ติดตั้งแอปลงเครื่อง</p>
+          <p className="text-sm text-muted">เปิดจากหน้าจอโฮม</p>
         </div>
         <Button onClick={install}>ติดตั้ง</Button>
       </section>
@@ -43,7 +43,7 @@ export function InstallCard() {
         <div className="flex flex-col gap-5">
           {mode === 'in-app' ? (
             <>
-              <p className="text-muted">เปิดจากในแอพ LINE หรือ Facebook จะติดตั้งไม่ได้</p>
+              <p className="text-muted">ติดตั้งไม่ได้จากแอป LINE หรือ Facebook</p>
               <Button size="lg" className="w-full" onClick={openInBrowser}>
                 เปิดใน{isIOS ? ' Safari' : ' Chrome'}
               </Button>
@@ -51,7 +51,7 @@ export function InstallCard() {
           ) : mode === 'ios' ? (
             <>
               <Step n={1} icon={<Export size={22} />} title="แตะปุ่มแชร์">
-                ถ้าไม่เห็นปุ่มแชร์ ให้แตะปุ่ม ... ที่แถบด้านล่างก่อน
+                ไม่เห็นปุ่มแชร์ ให้แตะ ... ที่แถบล่างก่อน
               </Step>
               <Step n={2} icon={<PlusSquare size={22} />} title='เลือก "เพิ่มไปยังหน้าจอโฮม"' />
               <Step n={3} icon={<DownloadSimple size={22} />} title='แตะ "เพิ่ม" ที่มุมขวาบน' />

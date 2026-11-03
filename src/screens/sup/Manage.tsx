@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
-import { CaretLeft, CaretRight, FileXls, GearSix, ListChecks, PencilSimple, QrCode, UserPlus } from '@phosphor-icons/react'
+import { CaretLeft, CaretRight, FileXls, GearSix, ListChecks, PencilSimple, QrCode, Recycle, UserPlus } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { api, now } from '../../data/api'
 import type { Activity, Credit, Registration } from '../../data/types'
 import { thDate, thTime } from '../../lib/format'
 import { downloadSupXlsx } from '../../lib/excel'
+import { isBottle } from '../../lib/bottle'
 import { rosterRows, type RosterRow } from '../../lib/roster'
 import { checkinSummary } from '../../lib/checkin'
 import { canEdit, closedAt, stage } from '../../lib/stage'
@@ -15,6 +16,7 @@ import { Counter } from '../../ui/Counter'
 import { Roster, Flags } from './Roster'
 import { EditHoursSheet } from './EditHoursSheet'
 import { AddPersonSheet } from './AddPersonSheet'
+import { BottleSheet } from './BottleSheet'
 import { CheckinSettingsSheet } from './CheckinSettingsSheet'
 import { PullToQr } from './PullToQr'
 import { StageBar } from './StageBar'
@@ -62,6 +64,7 @@ export default function Manage() {
   const [selectedId, setSelectedId] = useState<string>()
   const [editing, setEditing] = useState<string>()
   const [adding, setAdding] = useState(false)
+  const [bottles, setBottles] = useState(false)
   const [settings, setSettings] = useState(false)
 
   useEffect(() => api.watchActivity(id, setActivity), [id])
@@ -79,6 +82,7 @@ export default function Manage() {
   const selected = find(selectedId)
   const editable = canEdit(activity)
   const closed = !!closedAt(activity, now())
+  const bottle = isBottle(activity)
   const st = stage(activity)
   const started = st !== 'scheduled' && st !== 'open'
   /** After the end, closing and sending the roster take over as the main action. */
@@ -97,7 +101,7 @@ export default function Manage() {
   }
 
   return (
-    <PullToQr enabled={isLive(activity)} onOpen={openQr}>
+    <PullToQr enabled={isLive(activity) && !bottle} onOpen={openQr}>
       <main className="mx-auto max-w-6xl px-5 pt-4 pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))]">
         <Link to="/sup" className="pressable -ml-2 inline-flex items-center gap-1 rounded-full px-2 py-2 text-muted">
           <CaretLeft size={18} /> กิจกรรมทั้งหมด
@@ -116,23 +120,39 @@ export default function Manage() {
               <p className="mt-2 text-muted">คนได้ชั่วโมงแล้ว</p>
             </div>
             <p className="num pb-1 text-right text-sm text-muted">
-              {activity.capLimit ? `ลงชื่อ ${activity.regCount} จาก ${activity.capacity} คน` : `ลงชื่อ ${activity.regCount} คน`}
-              <br />
-              ได้คนละ {activity.hours} ชั่วโมง
+              {bottle ? (
+                <>
+                  {activity.itemsPerHour} ขวด ได้ 1 ชั่วโมง
+                  <br />
+                  สูงสุด {activity.hours} ชั่วโมงต่อคน
+                </>
+              ) : (
+                <>
+                  {activity.capLimit ? `ลงทะเบียน ${activity.regCount} จาก ${activity.capacity} คน` : `ลงทะเบียน ${activity.regCount} คน`}
+                  <br />
+                  ได้คนละ {activity.hours} ชั่วโมง
+                </>
+              )}
             </p>
           </div>
-          <div className="mt-5 grid grid-cols-[1fr_auto] gap-3">
-            <Button size="lg" variant={ended ? 'secondary' : 'primary'} onClick={openQr}>
-              <QrCode size={22} weight="bold" /> เปิด QR
+          {bottle ? (
+            <Button size="lg" className="mt-5 w-full" disabled={!editable} onClick={() => setBottles(true)}>
+              <Recycle size={22} weight="bold" /> บันทึกขวด
             </Button>
-            <Button size="lg" variant="secondary" disabled={!editable} onClick={() => setAdding(true)} aria-label="เพิ่มคนเอง">
-              <UserPlus size={22} />
-            </Button>
-          </div>
+          ) : (
+            <div className="mt-5 grid grid-cols-[1fr_auto] gap-3">
+              <Button size="lg" variant={ended ? 'secondary' : 'primary'} onClick={openQr}>
+                <QrCode size={22} weight="bold" /> เปิด QR
+              </Button>
+              <Button size="lg" variant="secondary" disabled={!editable} onClick={() => setAdding(true)} aria-label="เพิ่มรายชื่อ">
+                <UserPlus size={22} />
+              </Button>
+            </div>
+          )}
           {!editable && <p className="mt-3 text-sm text-muted">ส่งรายชื่อแล้ว แก้ไม่ได้</p>}
           <div className="mt-4 -mb-2 divide-y divide-line border-t border-line">
-            <Row icon={<GearSix size={22} />} disabled={!editable} onClick={() => setSettings(true)} title="ตั้งค่าการเช็คชื่อ" detail={checkinSummary(activity)} />
-            {editable && <Row icon={<PencilSimple size={22} />} onClick={() => nav(`/sup/edit/${id}`)} title="แก้ไขกิจกรรม" detail="ชื่อ รูป วันเวลา สถานที่ และการรับคน" />}
+            {!bottle && <Row icon={<GearSix size={22} />} disabled={!editable} onClick={() => setSettings(true)} title="ตั้งค่าการเช็คชื่อ" detail={checkinSummary(activity)} />}
+            {editable && <Row icon={<PencilSimple size={22} />} onClick={() => nav(`/sup/edit/${id}`)} title="แก้ไขกิจกรรม" detail="ชื่อ รูป วันเวลา และสถานที่" />}
             <Row icon={<ListChecks size={22} />} onClick={() => nav(`/sup/a/${id}/roster`)} title="ตรวจสอบรายชื่อ" detail="ตารางเดียวกับไฟล์ Excel" />
             {started && <Row icon={<FileXls size={22} />} onClick={exportXlsx} title="โหลด Excel" detail="รายชื่อพร้อมชั่วโมงรายคน" />}
           </div>
@@ -146,7 +166,7 @@ export default function Manage() {
                 <div className="flex flex-col gap-3">
                   <p className="text-xl font-semibold">{selected.name}</p>
                   <p className="num text-muted">{selected.studentId}</p>
-                  <p className="num text-4xl font-bold">{selected.credit ? `${selected.credit.hours} ชม.` : 'ยังไม่สแกน'}</p>
+                  <p className="num text-4xl font-bold">{selected.credit ? `${selected.credit.hours} ชม.` : 'ยังไม่ได้ชั่วโมง'}</p>
                   {selected.credit && (
                     <p className="num text-sm text-muted">
                       สแกน {thTime(selected.credit.at)} น.
@@ -165,7 +185,7 @@ export default function Manage() {
                   )}
                 </div>
               ) : (
-                <p className="text-muted">เลือกชื่อทางซ้ายเพื่อดูรายละเอียดหรือแก้ชั่วโมง</p>
+                <p className="text-muted">เลือกรายชื่อทางซ้าย</p>
               )}
             </aside>
           )}
@@ -174,6 +194,7 @@ export default function Manage() {
 
       <EditHoursSheet row={find(editing)} activity={activity} by={sup.name} onClose={() => setEditing(undefined)} />
       <CheckinSettingsSheet open={settings} activity={activity} onClose={() => setSettings(false)} />
+      <BottleSheet open={bottles} activity={activity} by={sup.name} onClose={() => setBottles(false)} />
       <AddPersonSheet open={adding} activity={activity} by={sup.name} onClose={() => setAdding(false)} />
     </PullToQr>
   )

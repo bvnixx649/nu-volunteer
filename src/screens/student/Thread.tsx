@@ -77,7 +77,7 @@ export function Thread({ fallback, title, subtitle, intro, empty, messages, quic
               {m.name && (
                 <p className="mt-3 mb-1 ml-1 text-sm text-muted">
                   {m.name}
-                  {m.sup && <span className="font-semibold text-accent-strong"> ผู้คุม</span>}
+                  {m.sup && <span className="font-semibold text-accent-strong"> ผู้ดูแล</span>}
                 </p>
               )}
               <div className={`mt-1 flex ${m.mine ? 'justify-end' : ''}`}>

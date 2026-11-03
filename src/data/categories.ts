@@ -10,6 +10,8 @@ export interface CategoryPreset {
   locMode: LocMode
   radius: number
   qrInterval: number
+  /** Bottle exchange: bottles that make one hour. `hours` is then the most one person can get. */
+  itemsPerHour?: number
   /** Extra reasons for cutting someone's hours, on top of COMMON_REASONS. */
   reasons: string[]
   description: string
@@ -49,12 +51,12 @@ export const CATEGORIES: Record<CategoryKey, CategoryPreset> = {
     radius: 150,
     qrInterval: 10,
     reasons: [],
-    description: 'สิ่งที่ต้องเตรียม: ชุดสุภาพที่ยกของได้ และขวดน้ำ\nงานจัดโต๊ะ เก้าอี้ ป้าย และเก็บสถานที่หลังจบงาน\nมาตรงเวลาเพื่อแบ่งหน้าที่',
-    posters: p('openhouse', 'orient', 'grad'),
+    description: 'หน้าที่: จัดโต๊ะ เก้าอี้ เวที ป้าย และเก็บสถานที่หลังจบงาน\nสิ่งที่ต้องเตรียม: ชุดสุภาพที่ยกของได้ และขวดน้ำ\nมาตรงเวลาเพื่อแบ่งหน้าที่',
+    posters: p('setup', 'setup-2', 'setup-3', 'setup-4'),
   },
   bottle: {
-    label: 'เก็บขวด',
-    hours: 1,
+    label: 'แลกขวด',
+    hours: 5,
     capLimit: false,
     capacity: 0,
     walkIn: true,
@@ -62,9 +64,10 @@ export const CATEGORIES: Record<CategoryKey, CategoryPreset> = {
     locMode: 'off',
     radius: 150,
     qrInterval: 10,
-    reasons: ['คิดตามจำนวนชิ้น'],
-    description: 'นำขวดพลาสติกที่ล้างแล้วมาส่งที่จุดรับ\nผู้คุมนับจำนวนและให้ชั่วโมงตามจำนวนชิ้น\nสแกน QR ที่ติดไว้ตรงจุดรับได้เลย',
-    posters: p('river', 'river-meet', 'tree'),
+    itemsPerHour: 20,
+    reasons: ['นับขวดใหม่'],
+    description: 'นำขวดพลาสติกที่ล้างสะอาดแล้วมาที่จุดรับในเวลากิจกรรม\nเจ้าหน้าที่นับขวดและบันทึกชั่วโมงให้ที่โต๊ะ ไม่ต้องสแกน QR',
+    posters: p('bottle', 'bottle-2', 'bottle-3'),
   },
 }
 

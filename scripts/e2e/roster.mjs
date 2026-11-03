@@ -12,7 +12,7 @@ export default async function ({ browser, base, shot }) {
   page.on('console', (m) => m.type() === 'error' && problems.push(m.text()))
 
   await page.goto(`${base}#/sup/login`)
-  await page.getByLabel('ชื่อผู้คุม').fill('พี่เต้')
+  await page.getByLabel('ชื่อผู้ดูแล').fill('พี่เต้')
   await page.getByLabel('รหัสหน่วยงาน').fill('NUVOL69')
   await page.getByRole('button', { name: 'เข้าใช้งาน' }).click()
   await page.getByRole('heading', { name: 'สวัสดี พี่เต้' }).waitFor()
@@ -24,7 +24,7 @@ export default async function ({ browser, base, shot }) {
   expect(JSON.stringify(heads) === JSON.stringify(HEADERS), `headers: ${heads}`)
   expect((await page.locator('tbody tr').count()) === 4, 'four people in the fixture')
   const body = await page.locator('tbody').innerText()
-  expect(body.includes('ไม่มา') && body.includes('มาเพิ่ม') && body.includes('กลับก่อน'), 'status and note columns are filled')
+  expect(body.includes('ไม่มา') && body.includes('ไม่ได้ลงทะเบียน') && body.includes('กลับก่อน'), 'status and note columns are filled')
   const w = await page.evaluate(() => document.documentElement.scrollWidth)
   expect(w <= 390, `page is ${w}px wide`)
   await page.waitForTimeout(300)

@@ -86,6 +86,8 @@ export interface Activity {
   start: number
   end: number
   hours: number
+  /** Bottle exchange only: how many bottles make one hour. `hours` is then the most one person can get. */
+  itemsPerHour?: number
   capLimit: boolean
   capacity: number
   walkIn: boolean
@@ -128,6 +130,8 @@ export interface Credit {
   name: string
   hours: number
   fullHours: number
+  /** Bottle exchange only: how many bottles the hours were counted from. */
+  items?: number
   at: number
   method: 'qr' | 'manual'
   distance?: number

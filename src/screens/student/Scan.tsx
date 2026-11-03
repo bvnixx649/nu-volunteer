@@ -65,7 +65,7 @@ export default function Scan() {
       <main className="mx-auto flex min-h-dvh max-w-md flex-col px-5 pt-[calc(2rem+env(safe-area-inset-top,0px))] pb-8">
         <h1 className="text-3xl leading-tight font-bold tracking-tight">{state === 'denied' ? 'เปิดกล้องไม่ได้' : 'สแกนด้วยกล้องมือถือ'}</h1>
         <p className="mt-3 text-lg text-muted">
-          {state === 'denied' ? 'อนุญาตให้เว็บใช้กล้องในการตั้งค่าของเบราว์เซอร์ หรือ' : 'เบราว์เซอร์นี้สแกนในแอพไม่ได้'} เปิดกล้องปกติของเครื่อง แล้วสแกน QR จากจอผู้คุม ระบบจะพาไปรับชั่วโมงเอง
+          {state === 'denied' ? 'อนุญาตให้ใช้กล้องในตั้งค่าเบราว์เซอร์ หรือ' : 'เบราว์เซอร์นี้สแกนในแอปไม่ได้'} เปิดกล้องของเครื่องแล้วสแกน QR จากจอผู้ดูแล
         </p>
         <Button size="lg" variant="secondary" className="mt-auto w-full" onClick={back}>
           กลับ
@@ -84,7 +84,7 @@ export default function Scan() {
         <X size={24} weight="bold" />
       </button>
       <p className="absolute inset-x-0 bottom-[calc(3rem+env(safe-area-inset-bottom,0px))] px-8 text-center text-lg font-semibold">
-        {bad ? 'QR นี้ไม่ใช่ของจิตอาสา มน.' : state === 'starting' ? 'กำลังเปิดกล้อง' : 'ส่องไปที่ QR บนจอผู้คุม'}
+        {bad ? 'QR นี้ไม่ใช่ของจิตอาสา มน.' : state === 'starting' ? 'กำลังเปิดกล้อง' : 'หันกล้องไปที่ QR'}
       </p>
     </main>
   )

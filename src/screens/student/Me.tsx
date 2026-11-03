@@ -86,10 +86,10 @@ export default function Me() {
                     <div className="min-w-0 flex-1">
                       <p className="line-clamp-2 leading-snug">{a?.title ?? 'กิจกรรมจิตอาสา'}</p>
                       <p className="num mt-1 text-sm text-muted">
-                        {thDate(c.at)} {c.method === 'manual' ? 'ยืนยันโดยผู้คุม' : 'สแกน QR'}
+                        {thDate(c.at)} {c.items !== undefined ? `แลกขวด ${c.items} ขวด` : c.method === 'manual' ? 'ยืนยันโดยผู้ดูแล' : 'สแกน QR'}
                       </p>
                       <div className="mt-2">
-                        {a?.recordedAt ? <Chip tone="bg-ok-soft text-ok">บันทึกลงระบบแล้ว</Chip> : a?.submittedAt ? <Chip tone="bg-warn-soft text-warn">รอศูนย์บันทึก</Chip> : <Chip tone="bg-surface-2 text-muted">รอผู้คุมส่งรายชื่อ</Chip>}
+                        {a?.recordedAt ? <Chip tone="bg-ok-soft text-ok">บันทึกลงระบบแล้ว</Chip> : a?.submittedAt ? <Chip tone="bg-warn-soft text-warn">รอศูนย์บันทึก</Chip> : <Chip tone="bg-surface-2 text-muted">รอส่งรายชื่อ</Chip>}
                       </div>
                     </div>
                     <p className="num text-lg font-bold">+{fmtHours(c.hours)}</p>
@@ -104,9 +104,9 @@ export default function Me() {
       <section className={`${card} mt-4`}>
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-xl font-semibold">เครดิตการเข้าร่วม</h2>
+            <h2 className="text-xl font-semibold">สิทธิ์ยกเลิก</h2>
             <p className="mt-1 text-sm text-muted">
-              ภาคการศึกษาที่ {semesterNumber(t)} รีเซ็ต {thDate(semesterEnd(t))}
+              ภาคการศึกษาที่ {semesterNumber(t)} เริ่มใหม่ {thDate(semesterEnd(t))}
             </p>
           </div>
           <p className={`num text-4xl leading-none font-bold ${left <= 1 ? 'text-accent-strong' : ''}`}>
@@ -120,7 +120,7 @@ export default function Me() {
           ))}
         </div>
         <p className="mt-4 text-sm text-muted">
-          {left === 0 ? 'เครดิตหมดแล้ว สมัครกิจกรรมใหม่ไม่ได้จนถึงภาคการศึกษาหน้า' : 'ยกเลิกหลังกำหนดหรือไม่มาจะถูกหัก 1 ครั้ง ถ้าหมดจะสมัครกิจกรรมไม่ได้จนจบภาค'}
+          {left === 0 ? 'สิทธิ์หมดแล้ว ลงทะเบียนไม่ได้จนจบภาค' : 'ยกเลิกหลังกำหนดหรือไม่มา จะถูกหักสิทธิ์ 1 ครั้ง'}
         </p>
         {strikes.length > 0 && (
           <ul className="mt-3 divide-y divide-line border-t border-line">
@@ -132,9 +132,9 @@ export default function Me() {
                     <p className="num text-sm text-muted">
                       {thDate(x.at)} {x.kind === 'late' ? 'ยกเลิกหลังกำหนด' : 'ลงทะเบียนแต่ไม่มา'}
                     </p>
-                    {!x.waived && <p className="text-sm font-medium text-accent-strong">แตะเพื่อแจ้งเหตุผลกับผู้คุม</p>}
+                    {!x.waived && <p className="text-sm font-medium text-accent-strong">แจ้งเหตุผลกับผู้ดูแล</p>}
                   </div>
-                  {x.waived ? <Chip tone="bg-ok-soft text-ok">คืนแล้ว</Chip> : <Chip tone="bg-bad-soft text-bad">-1</Chip>}
+                  {x.waived ? <Chip tone="bg-ok-soft text-ok">คืนสิทธิ์แล้ว</Chip> : <Chip tone="bg-bad-soft text-bad">-1</Chip>}
                 </Link>
               </li>
             ))}
@@ -148,13 +148,13 @@ export default function Me() {
 
       <div className="mt-4 divide-y divide-line overflow-hidden rounded-[var(--radius-card)] bg-surface shadow-soft">
         <Menu icon={<Bell size={24} />} label="การแจ้งเตือน" onClick={() => nav('/settings/notify')} />
-        <Menu icon={<ShieldCheck size={24} />} label="โหมดผู้คุมกิจกรรม" hint={sup ? sup.orgName : 'ใช้รหัสจากศูนย์จิตอาสา'} onClick={() => nav(sup ? '/sup' : '/sup/login')} />
+        <Menu icon={<ShieldCheck size={24} />} label="โหมดผู้ดูแลกิจกรรม" hint={sup ? sup.orgName : 'ใช้รหัสจากศูนย์จิตอาสา'} onClick={() => nav(sup ? '/sup' : '/sup/login')} />
         <Menu icon={<SignOut size={24} />} label="ออกจากระบบ" danger onClick={() => setConfirm(true)} />
       </div>
 
       <Sheet open={confirm} onClose={() => setConfirm(false)} title="ออกจากระบบ">
         <div className="flex flex-col gap-4">
-          <p className="text-muted">ชั่วโมงที่สะสมไว้ยังอยู่ เข้าใหม่ได้ด้วยรหัสนิสิตและชื่อ</p>
+          <p className="text-muted">ชั่วโมงสะสมยังอยู่ เข้าใหม่ได้ด้วยรหัสนิสิตและชื่อ</p>
           <Button
             size="lg"
             variant="danger"

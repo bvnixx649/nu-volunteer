@@ -23,7 +23,7 @@ export function LiveFeed({ credits }: { credits: Credit[] }) {
           </motion.li>
         ))}
       </AnimatePresence>
-      {!latest.length && <li className="rounded-2xl bg-[#f4f2ef] px-5 py-6 text-lg text-[#6b6862]">ชื่อคนที่สแกนจะขึ้นที่นี่</li>}
+      {!latest.length && <li className="rounded-2xl bg-[#f4f2ef] px-5 py-6 text-lg text-[#6b6862]">ยังไม่มีผู้สแกน</li>}
     </ul>
   )
 }

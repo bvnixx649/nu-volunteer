@@ -1,3 +1,8 @@
+-- 4 พ.ย. 2569 (applied to schema.sql, NOT proposed): bottle exchange added two columns to schema.sql,
+--   alter table activities add column if not exists items_per_hour integer;
+--   alter table credits add column if not exists items integer;
+-- Run these two lines (or the whole schema.sql, it is safe to repeat) on any existing database before using the bottle category.
+
 -- Proposed changes to supabase/schema.sql, NOT applied. The student side works without any of them
 -- (it uses the schema as it is). Each block says what it would improve; take what you need.
 
@@ -35,7 +40,7 @@
 -- create or replace function notice_on_announcement() returns trigger language plpgsql as $$
 -- begin
 --   insert into notices (student_id, kind, title, body, activity_id)
---   select r.student_id, 'announce', 'ประกาศจากผู้คุม', left(new.text, 140), new.activity_id
+--   select r.student_id, 'announce', 'ประกาศจากผู้ดูแล', left(new.text, 140), new.activity_id
 --   from registrations r where r.activity_id = new.activity_id and r.cancelled_at is null;
 --   return new;
 -- end $$;
@@ -46,7 +51,7 @@
 -- begin
 --   if new.from_sup then
 --     insert into notices (student_id, kind, title, body, activity_id, "to")
---     values (new.student_id, 'chat', 'ผู้คุมตอบข้อความ', left(new.text, 140), new.activity_id, '/a/' || new.activity_id || '/dm');
+--     values (new.student_id, 'chat', 'ผู้ดูแลตอบข้อความ', left(new.text, 140), new.activity_id, '/a/' || new.activity_id || '/dm');
 --   end if;
 --   return new;
 -- end $$;

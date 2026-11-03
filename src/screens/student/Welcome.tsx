@@ -36,7 +36,7 @@ export default function Welcome() {
       {confirm ? (
         <div className="flex flex-col gap-4">
           <h1 className="text-3xl leading-tight font-bold tracking-tight">ใช่ {confirm.name} ไหม</h1>
-          <p className="num text-muted">รหัส {confirm.id} ลงชื่อไว้ในระบบแล้ว</p>
+          <p className="num text-muted">พบรหัส {confirm.id} ในระบบ</p>
           <Button size="lg" className="mt-4 w-full" onClick={() => enter(confirm.id)}>
             ใช่ เข้าใช้งาน
           </Button>
@@ -47,7 +47,7 @@ export default function Welcome() {
       ) : (
         <>
           <h1 className="text-3xl leading-tight font-bold tracking-tight">เก็บชั่วโมงจิตอาสา</h1>
-          <p className="mt-3 mb-10 text-lg text-muted">กรอกรหัสนิสิตกับชื่อ ครั้งเดียวพอ เครื่องนี้จำไว้ให้</p>
+          <p className="mt-3 mb-10 text-lg text-muted">กรอกรหัสนิสิตและชื่อเพื่อเริ่มใช้งาน</p>
           <IdentityForm onSubmit={submit} submitLabel="เริ่มใช้งาน" />
           {error && <p className="mt-4 text-bad">{error}</p>}
         </>

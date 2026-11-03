@@ -6,13 +6,14 @@ import { fmtHours, relDay, thTime } from '../../lib/format'
 
 /** Seat bar for limited activities, a head count for the rest. Yellow past 70 percent, red past 90 (SPEC 13). */
 export function Seats({ a }: { a: Activity }) {
-  if (!a.capLimit) return <p className="num text-sm text-muted">ลงชื่อแล้ว {a.regCount} คน</p>
+  if (a.itemsPerHour) return <p className="num text-sm text-muted">{a.itemsPerHour} ขวด = 1 ชม.</p>
+  if (!a.capLimit) return <p className="num text-sm text-muted">ลงทะเบียนแล้ว {a.regCount} คน</p>
   const fill = a.capacity ? Math.min(1, a.regCount / a.capacity) : 1
   const left = Math.max(0, a.capacity - a.regCount)
   const tone = fill > SEAT_RED ? 'bg-bad' : fill > SEAT_YELLOW ? 'bg-warn' : 'bg-ok'
   return (
     <div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-surface-2" role="img" aria-label={`ลงชื่อแล้ว ${a.regCount} จาก ${a.capacity} คน`}>
+      <div className="h-1.5 overflow-hidden rounded-full bg-surface-2" role="img" aria-label={`ลงทะเบียนแล้ว ${a.regCount} จาก ${a.capacity} คน`}>
         <motion.div
           className={`h-full origin-left rounded-full ${tone}`}
           initial={{ transform: 'scaleX(0)' }}
@@ -41,7 +42,7 @@ export function ActivityCard({ a, registered, credited, now, index = 0 }: { a: A
             <p className="num truncate text-sm font-semibold text-accent-strong">
               {relDay(a.start, now)} {thTime(a.start)} น.
             </p>
-            <p className="num shrink-0 text-sm font-bold">+{fmtHours(a.hours)} ชม.</p>
+            <p className="num shrink-0 text-sm font-bold">{a.itemsPerHour ? `สูงสุด ${fmtHours(a.hours)}` : `+${fmtHours(a.hours)}`} ชม.</p>
           </div>
           <p className="line-clamp-2 leading-snug font-semibold">{a.title}</p>
           <div className="mt-auto">

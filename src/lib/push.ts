@@ -24,7 +24,7 @@ export async function enablePush(student: Student, patchStudent: (p: Partial<Stu
     toast.success('เปิดการแจ้งเตือนแล้ว')
   } else if (r === 'unsupported') {
     await saveNotify(student, { enabled: true }, patchStudent)
-    toast('เบราว์เซอร์นี้ยังไม่รองรับแจ้งเตือนบนหน้าจอ จะแจ้งในแอพแทน')
+    toast('เบราว์เซอร์นี้ไม่รองรับแจ้งเตือนบนหน้าจอ จะแจ้งในแอปแทน')
   } else {
     toast.error('ยังไม่ได้อนุญาตการแจ้งเตือน', { description: 'เปิดได้ในการตั้งค่าของเบราว์เซอร์' })
   }

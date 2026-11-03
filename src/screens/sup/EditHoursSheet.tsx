@@ -90,7 +90,7 @@ export function EditHoursSheet({ row, activity, by, onClose }: Props) {
               value={input}
               onChange={(e) => setInput(e.target.value.trim())}
               error={input && hours === null ? `ใส่จำนวนเต็ม 0 ถึง ${full}` : undefined}
-              hint={`เต็ม ${full} ชั่วโมง`}
+              hint={`สูงสุด ${full} ชั่วโมง`}
             />
             <div className="flex flex-wrap gap-2">
               {chips.map((h) => (
@@ -120,11 +120,11 @@ export function EditHoursSheet({ row, activity, by, onClose }: Props) {
           </Button>
           {credit && (
             <Button variant="danger" className="w-full" onClick={remove}>
-              {confirmRemove ? 'กดอีกครั้งเพื่อยกเลิกชั่วโมงของคนนี้' : 'ยกเลิกชั่วโมง'}
+              {confirmRemove ? 'กดอีกครั้งเพื่อยกเลิกชั่วโมง' : 'ยกเลิกชั่วโมง'}
             </Button>
           )}
           <Button variant="danger" className="w-full" onClick={drop}>
-            {confirmDrop ? 'กดอีกครั้งเพื่อลบคนนี้ออกจากรายชื่อ' : 'ลบออกจากรายชื่อ'}
+            {confirmDrop ? 'กดอีกครั้งเพื่อลบรายชื่อ' : 'ลบออกจากรายชื่อ'}
           </Button>
         </div>
       )}

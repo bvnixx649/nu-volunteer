@@ -5,6 +5,7 @@ import { DownloadSimple, Printer, X } from '@phosphor-icons/react'
 import { api, now } from '../../data/api'
 import type { Activity, Credit } from '../../data/types'
 import { qrWindowMs } from '../../config'
+import { isBottle } from '../../lib/bottle'
 import { checkinOf } from '../../lib/checkin'
 import { claimUrl, makeToken, windowOf } from '../../lib/qr'
 import { watchFix, type Fix, type GeoError } from '../../lib/geo'
@@ -72,6 +73,7 @@ export default function QrScreen() {
   if (!sup) return <Navigate to="/sup/login" replace />
   if (activity === undefined) return null
   if (!activity) return <p className="p-6">ไม่พบกิจกรรมนี้</p>
+  if (isBottle(activity)) return <Navigate to={`/sup/a/${activity.id}`} replace />
 
   const url = claimUrl(token)
   const today = credits.filter((c) => sameDay(c.at, now())).length
@@ -89,7 +91,7 @@ export default function QrScreen() {
     : fix
       ? `GPS แม่นยำ ±${Math.round(fix.acc)} ม.`
       : geoErr === 'denied'
-        ? 'ยังไม่ได้เปิดตำแหน่ง QR นี้จะไม่มีพิกัด'
+        ? 'ยังไม่ได้เปิดตำแหน่ง QR จะไม่มีพิกัด'
         : 'กำลังหาตำแหน่ง'
 
   return (
@@ -124,7 +126,7 @@ export default function QrScreen() {
             </div>
           )}
           <p className="text-center text-[15px] text-[#6b6862] print:hidden">
-            {dynamic ? `QR เปลี่ยนทุก ${interval} วินาที สแกนด้วยกล้องมือถือได้เลย` : 'QR นี้ใช้ได้ตลอดช่วงกิจกรรม'}
+            {dynamic ? `QR เปลี่ยนทุก ${interval} วินาที` : 'QR นี้ใช้ได้ตลอดช่วงกิจกรรม'}
             {gps && (
               <>
                 <br />

@@ -24,7 +24,7 @@ export default async function ({ browser, base, shot }) {
   }
 
   await page.goto(`${base}#/sup/login`)
-  await page.getByLabel('ชื่อผู้คุม').fill('พี่เต้')
+  await page.getByLabel('ชื่อผู้ดูแล').fill('พี่เต้')
   await page.getByLabel('รหัสหน่วยงาน').fill('NUVOL69')
   await page.getByRole('button', { name: 'เข้าใช้งาน' }).click()
   await page.getByRole('link', { name: /เก็บขยะริมแม่น้ำน่าน/ }).first().click()
@@ -33,7 +33,7 @@ export default async function ({ browser, base, shot }) {
   // Stage bar: six steps, step 4 is current.
   expect((await page.locator('ol > li').count()) === 6, 'stage bar has six steps')
   expect((await page.locator('li[aria-current="step"]').innerText()) === 'ปิดรายชื่อ', 'current step is ปิดรายชื่อ')
-  await page.getByText(/ระบบจะปิดให้ 24 ชม./).waitFor()
+  await page.getByText(/ระบบปิดให้อัตโนมัติ/).waitFor()
   await noOverflow('closing')
   await both('close-1-closing')
 
@@ -61,7 +61,7 @@ export default async function ({ browser, base, shot }) {
   await page.getByRole('button', { name: /ปวีณา มาสาย/ }).click()
   const edit = page.getByRole('dialog', { name: 'ให้ชั่วโมง' })
   await edit.getByRole('button', { name: 'ลบออกจากรายชื่อ' }).click()
-  await edit.getByRole('button', { name: /กดอีกครั้งเพื่อลบคนนี้/ }).click()
+  await edit.getByRole('button', { name: /กดอีกครั้งเพื่อลบรายชื่อ/ }).click()
   await page.getByRole('dialog').waitFor({ state: 'detached' })
   // With a remote database the list refreshes a moment after the dialog closes, so wait for it instead of counting at once.
   await page.getByRole('button', { name: /ปวีณา มาสาย/ }).waitFor({ state: 'detached', timeout: 8000 })
@@ -81,7 +81,7 @@ export default async function ({ browser, base, shot }) {
 
   // Locked: reason shown, add disabled, rows no longer open the edit sheet.
   await page.getByText('ส่งรายชื่อแล้ว แก้ไม่ได้').waitFor()
-  expect(await page.getByRole('button', { name: 'เพิ่มคนเอง' }).isDisabled(), 'add person is disabled after submit')
+  expect(await page.getByRole('button', { name: 'เพิ่มรายชื่อ' }).isDisabled(), 'add person is disabled after submit')
   await page.getByRole('button', { name: /สมชาย ใจดี/ }).click()
   await page.waitForTimeout(500)
   expect((await page.getByRole('dialog').count()) === 0, 'edit sheet stays closed after submit')

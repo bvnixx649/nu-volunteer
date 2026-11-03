@@ -28,10 +28,9 @@ export default function Login() {
 
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col px-5 pt-[calc(2.5rem+env(safe-area-inset-top,0px))] pb-8">
-      <p className="font-semibold text-accent-strong">จิตอาสา มน.</p>
-      <h1 className="mt-3 mb-10 text-3xl font-bold tracking-tight">เข้าโหมดผู้คุม</h1>
+      <h1 className="mt-3 mb-10 text-3xl font-bold tracking-tight">โหมดผู้ดูแลกิจกรรม</h1>
       <form onSubmit={submit} noValidate className="flex flex-col gap-5">
-        <Field label="ชื่อผู้คุม" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
+        <Field label="ชื่อผู้ดูแล" autoComplete="name" value={name} onChange={(e) => setName(e.target.value)} />
         <Field
           label="รหัสหน่วยงาน"
           autoCapitalize="characters"
@@ -43,7 +42,7 @@ export default function Login() {
             setError(undefined)
           }}
           error={error}
-          hint="รับรหัสได้จากศูนย์จิตอาสา กองกิจการนิสิต"
+          hint="รับรหัสจากศูนย์จิตอาสา"
         />
         <Button size="lg" type="submit" loading={busy} disabled={!name.trim() || !code.trim()} className="mt-2 w-full">
           เข้าใช้งาน

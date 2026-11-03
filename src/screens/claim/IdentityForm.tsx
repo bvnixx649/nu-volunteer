@@ -47,7 +47,7 @@ export function IdentityForm({ onSubmit, initialId = '', submitLabel = 'รั�
         onChange={(e) => setName(e.target.value)}
         error={nameError}
       />
-      <p className="text-sm text-muted">กรอกครั้งเดียว ครั้งต่อไปเครื่องนี้จำไว้ให้</p>
+      <p className="text-sm text-muted">เครื่องนี้จะจำข้อมูลไว้</p>
       <Button size="lg" type="submit" loading={busy} className="mt-2 w-full">
         {submitLabel}
       </Button>

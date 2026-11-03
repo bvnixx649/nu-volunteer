@@ -40,11 +40,11 @@ export function precheck({ verified, activity, hasCredit, registration, fix }: I
 
 /** What each failure tells the student: what happened, then what to do next. */
 export const CLAIM_COPY: Record<FailReason | 'offline', { title: string; action: string }> = {
-  invalid: { title: 'QR นี้ใช้รับชั่วโมงไม่ได้', action: 'สแกน QR จากจอของผู้คุมกิจกรรม' },
-  expired: { title: 'QR หมดอายุ', action: 'สแกนใหม่จากจอของผู้คุม' },
+  invalid: { title: 'QR นี้ใช้รับชั่วโมงไม่ได้', action: 'สแกน QR จากจอของผู้ดูแลกิจกรรม' },
+  expired: { title: 'QR หมดอายุ', action: 'สแกนใหม่จากจอของผู้ดูแล' },
   early: { title: 'ยังไม่ถึงเวลารับชั่วโมง', action: 'สแกนอีกครั้งเมื่อกิจกรรมเริ่ม' },
-  late: { title: 'หมดเวลารับชั่วโมงแล้ว', action: 'ติดต่อผู้คุมกิจกรรม' },
+  late: { title: 'หมดเวลารับชั่วโมงแล้ว', action: 'ติดต่อผู้ดูแลกิจกรรม' },
   already: { title: 'ได้รับชั่วโมงกิจกรรมนี้แล้ว', action: '' },
-  notRegistered: { title: 'ไม่ได้ลงทะเบียน', action: 'ติดต่อผู้คุมให้เพิ่มชื่อ' },
+  notRegistered: { title: 'ไม่ได้ลงทะเบียน', action: 'ติดต่อผู้ดูแลเพื่อเพิ่มชื่อ' },
   offline: { title: 'บันทึกไม่ได้เพราะไม่มีอินเทอร์เน็ต', action: 'เชื่อมต่ออินเทอร์เน็ตแล้วลองอีกครั้ง' },
 }

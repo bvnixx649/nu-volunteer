@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
-import { QrCode } from '@phosphor-icons/react'
+import { QrCode, Recycle } from '@phosphor-icons/react'
 import type { Activity } from '../../../data/types'
+import { isBottle } from '../../../lib/bottle'
 import { thTime } from '../../../lib/format'
 import { Counter } from '../../../ui/Counter'
 
@@ -28,11 +29,11 @@ export function LiveCards({ list, showOrg }: { list: Activity[]; showOrg: boolea
               <span className="text-muted">คนได้ชั่วโมงแล้ว</span>
             </p>
             <Link
-              to={`/sup/a/${a.id}/qr`}
+              to={isBottle(a) ? `/sup/a/${a.id}` : `/sup/a/${a.id}/qr`}
               className="pressable mt-5 inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-full bg-accent-strong px-7 text-[17px] font-semibold text-on-accent shadow-soft"
             >
-              <QrCode size={22} weight="bold" />
-              เปิด QR
+              {isBottle(a) ? <Recycle size={22} weight="bold" /> : <QrCode size={22} weight="bold" />}
+              {isBottle(a) ? 'บันทึกขวด' : 'เปิด QR'}
             </Link>
           </li>
         ))}

@@ -77,9 +77,9 @@ export function StageBar({ activity, regs, credits }: Props) {
       {s === 'closing' && (
         <div className={card}>
           <h2 className="text-xl font-bold tracking-tight">ตรวจรายชื่อแล้วปิด</h2>
-          <p className="mt-1.5 text-muted">ให้ชั่วโมงคนที่มาแต่สแกนไม่ได้ก่อน คนที่ลงชื่อแต่ไม่ได้ชั่วโมงจะนับว่าไม่มา</p>
+          <p className="mt-1.5 text-muted">เพิ่มชั่วโมงผู้ที่มาแต่สแกนไม่ได้ก่อน ผู้ลงทะเบียนที่ไม่ได้ชั่วโมงจะนับว่าไม่มา</p>
           <p className="num mt-3 text-sm text-muted">
-            ถ้าไม่กด ระบบจะปิดให้ {AUTO_CLOSE_H} ชม. หลังจบงาน คือ {stamp(activity.end + AUTO_CLOSE_H * 3600_000)}
+            ระบบปิดให้อัตโนมัติ {stamp(activity.end + AUTO_CLOSE_H * 3600_000)}
           </p>
           <Button size="lg" className="mt-5 w-full" onClick={() => setAsking('close')}>
             ปิดรายชื่อ
@@ -129,7 +129,7 @@ export function StageBar({ activity, regs, credits }: Props) {
           <Stat value={got} label="ได้ชั่วโมง (คน)" />
           <Stat value={missed} label="ไม่มา (คน)" />
         </div>
-        <p className="mt-4 text-muted">ปิดแล้วยังแก้ชั่วโมงและเพิ่มคนได้ จนกว่าจะส่งรายชื่อให้ศูนย์</p>
+        <p className="mt-4 text-muted">ปิดแล้วยังแก้ไขได้จนกว่าจะส่งรายชื่อ</p>
         <Button size="lg" className="mt-6 w-full" loading={busy} onClick={() => run((id) => api.closeRoster(id), 'ปิดรายชื่อแล้ว')}>
           ปิดรายชื่อ
         </Button>
@@ -144,7 +144,7 @@ export function StageBar({ activity, regs, credits }: Props) {
           <Stat value={total} label="ชั่วโมงรวม" />
         </div>
         <p className="mt-4 font-medium text-bad">ส่งแล้วแก้รายชื่อและชั่วโมงไม่ได้อีก</p>
-        <p className="mt-2 text-muted">การส่งจะแจ้งศูนย์จิตอาสาว่ารายชื่อพร้อมให้บันทึกแล้ว</p>
+        <p className="mt-2 text-muted">ศูนย์จิตอาสาจะได้รับแจ้งให้บันทึกชั่วโมง</p>
         <Button size="lg" className="mt-6 w-full" loading={busy} onClick={() => run((id) => api.submitRoster(id), 'ส่งรายชื่อให้ศูนย์แล้ว')}>
           ส่งรายชื่อ
         </Button>

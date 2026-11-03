@@ -47,12 +47,12 @@ export default function Kit() {
       </section>
 
       <section className="rounded-[var(--radius-card)] bg-surface px-5 py-2 shadow-soft">
-        <Switch checked={on} onChange={setOn} label="รับคนที่ไม่ได้ลงชื่อ" hint="มาสแกนรับชั่วโมงได้เลยโดยไม่ต้องลงทะเบียน" />
+        <Switch checked={on} onChange={setOn} label="รับผู้ไม่ได้ลงทะเบียน" />
       </section>
 
       <section className="flex flex-wrap gap-2">
-        <Flag kind="walkIn">มาเพิ่ม</Flag>
-        <Flag kind="location">ตำแหน่งไม่ผ่าน 420 ม.</Flag>
+        <Flag kind="walkIn">ไม่ได้ลงทะเบียน</Flag>
+        <Flag kind="location">อยู่นอกพื้นที่ 420 ม.</Flag>
         <Flag kind="device">เครื่องซ้ำ</Flag>
         <Flag kind="edited">3 ชม. มาสาย</Flag>
       </section>

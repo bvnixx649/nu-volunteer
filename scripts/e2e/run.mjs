@@ -39,7 +39,14 @@ if (remote) {
 }
 // Lets specs use app code (e.g. makeToken) through Vite's TS pipeline.
 const load = (path) => server.ssrLoadModule(path)
-const shot = (page, name) => page.screenshot({ path: join(out, `${name}.png`), fullPage: !name.startsWith('stress-roster') })
+// Every screenshot is also a copy check: words the app no longer uses must not show on any screen a spec visits.
+const BANNED = ['ผู้คุม', 'แอพ', 'walk-in', 'Walk-in', 'ลงชื่อ', '·', '—']
+const shot = async (page, name) => {
+  const text = await page.evaluate(() => document.body.innerText).catch(() => '')
+  const hit = BANNED.find((w) => text.includes(w))
+  if (hit) throw new Error(`screen "${name}" shows "${hit}"`)
+  return page.screenshot({ path: join(out, `${name}.png`), fullPage: !name.startsWith('stress-roster') })
+}
 
 let failed = 0
 for (const f of specs) {

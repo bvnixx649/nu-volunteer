@@ -10,7 +10,7 @@ export default async function ({ browser, base, load, shot }) {
   const sup = await ctx.newPage()
 
   await sup.goto(`${base}#/sup/login`)
-  await sup.getByLabel('ชื่อผู้คุม').fill('พี่เต้')
+  await sup.getByLabel('ชื่อผู้ดูแล').fill('พี่เต้')
   await sup.getByLabel('รหัสหน่วยงาน').fill('nope')
   await sup.getByRole('button', { name: 'เข้าใช้งาน' }).click()
   await sup.getByText('ไม่พบรหัสหน่วยงานนี้').waitFor()

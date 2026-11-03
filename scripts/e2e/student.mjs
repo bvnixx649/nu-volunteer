@@ -84,7 +84,7 @@ export default async function ({ browser, base, load, shot: rawShot }) {
   await shot(page, 'student-1-home')
   await page.getByRole('button', { name: 'จัดสถานที่', exact: true }).click()
   await page.getByText('พบ 1 กิจกรรม').waitFor()
-  await page.getByRole('button', { name: 'เก็บขวด', exact: true }).click()
+  await page.getByRole('button', { name: 'แลกขวด', exact: true }).click()
   await page.getByText('ไม่พบกิจกรรมตามตัวกรอง').waitFor()
   await page.getByRole('button', { name: 'ทุกหมวด' }).click()
   const text = await page.locator('main').innerText()
@@ -137,14 +137,14 @@ export default async function ({ browser, base, load, shot: rawShot }) {
   // Profile: transcript, credits, long name.
   await page.goto(`${base}#/me`)
   await page.getByText('Transcript จิตอาสา').waitFor()
-  await page.getByText('เครดิตการเข้าร่วม').waitFor()
+  await page.getByText('สิทธิ์ยกเลิก').waitFor()
   await page.waitForTimeout(900)
   await noOverflow('profile')
   await shot(page, 'student-7-profile')
 
   // Chat rooms open only for activities with chat; the private thread always works for a registered student.
   await page.goto(`${base}#/a/test-later/dm`)
-  await page.getByPlaceholder('พิมพ์ข้อความถึงผู้คุม').fill('ขอแจ้งว่ามาไม่ได้')
+  await page.getByPlaceholder('พิมพ์ข้อความถึงผู้ดูแล').fill('ขอแจ้งว่ามาไม่ได้')
   await page.getByRole('button', { name: 'ส่ง', exact: true }).click()
   await page.getByText('ขอแจ้งว่ามาไม่ได้').waitFor()
   await noOverflow('dm')

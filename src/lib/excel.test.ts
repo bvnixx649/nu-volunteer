@@ -54,10 +54,18 @@ describe('supRows', () => {
   it('marks a walk-in with edited hours, the editor and flags', () => {
     expect(rows[0]).toMatchObject({
       ชั่วโมง: 3,
-      สถานะ: 'มาเพิ่ม',
+      สถานะ: 'ไม่ได้ลงทะเบียน',
       ยืนยันโดย: 'พี่เต้',
-      หมายเหตุ: 'มาสาย, ตำแหน่งไม่ผ่าน 213 ม., เครื่องซ้ำ',
+      หมายเหตุ: 'มาสาย, อยู่นอกพื้นที่ 213 ม., เครื่องซ้ำ',
     })
+  })
+
+  it('writes bottles in the note and does not call a bottle desk entry unregistered', () => {
+    const c = { ...credits[1], items: 45, flags: [] as Credit['flags'] }
+    const out = supRows(activity, regs, [credits[0], c])
+    const row = out.find((r) => r['รหัสนิสิต'] === c.studentId)
+    expect(row).toMatchObject({ สถานะ: 'ได้ชั่วโมง' })
+    expect(String(row?.หมายเหตุ)).toContain('45 ขวด')
   })
 
   it('gives a no-show 0 hours and empty time', () => {

@@ -47,7 +47,7 @@ export function AddPersonSheet({ open, activity, by, onClose }: { open: boolean;
   }
 
   return (
-    <Sheet open={open} onClose={onClose} title="เพิ่มคนเอง">
+    <Sheet open={open} onClose={onClose} title="เพิ่มรายชื่อ">
       <div className="flex flex-col gap-5">
         <Field label="รหัสนิสิต" inputMode="numeric" maxLength={8} value={id} onChange={(e) => setId(e.target.value.replace(/\D/g, ''))} />
         <Field label="ชื่อ-นามสกุล" value={name} disabled={known} onChange={(e) => setName(e.target.value)} hint={known ? 'มีชื่อนี้ในระบบแล้ว' : undefined} />

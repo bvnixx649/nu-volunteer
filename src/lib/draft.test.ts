@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { CATEGORIES, categoryOf } from '../data/categories'
 import type { Activity } from '../data/types'
-import { applyCategory, blankDraft, check, draftOf, firstBlocked, isDirty, posterChoices, toEdit, toNewActivity, type Draft } from './draft'
+import { applyCategory, blankDraft, check, draftOf, isDirty, posterChoices, toEdit, toNewActivity, type Draft } from './draft'
 
 const none = new Set<string>()
 const filled = (over: Partial<Draft> = {}): Draft => ({
@@ -15,7 +15,7 @@ const filled = (over: Partial<Draft> = {}): Draft => ({
 describe('applyCategory', () => {
   it('fills every default from the category', () => {
     const d = applyCategory(blankDraft(), 'setup', none)
-    expect(d).toMatchObject({ categoryKey: 'setup', hours: '5', capLimit: true, capacity: '20', walkIn: false, qrMode: 'dynamic', poster: './posters/openhouse.jpg' })
+    expect(d).toMatchObject({ categoryKey: 'setup', hours: '5', capLimit: true, capacity: '20', walkIn: false, qrMode: 'dynamic', poster: './posters/setup.jpg' })
     expect(d.description).toBe(CATEGORIES.setup.description)
   })
   it('leaves touched fields alone when the category changes', () => {
@@ -24,7 +24,7 @@ describe('applyCategory', () => {
     expect(d2).toMatchObject({ categoryKey: 'setup', hours: '4', walkIn: false, capLimit: true, capacity: '20' })
   })
   it('fills the bottle defaults', () => {
-    expect(applyCategory(blankDraft(), 'bottle', none)).toMatchObject({ qrMode: 'static', locMode: 'off', walkIn: true, hours: '1', poster: './posters/river.jpg' })
+    expect(applyCategory(blankDraft(), 'bottle', none)).toMatchObject({ qrMode: 'static', locMode: 'off', walkIn: true, hours: '5', itemsPerHour: '20', poster: './posters/bottle.jpg' })
   })
   it('falls back to blood for a removed key', () => {
     expect(categoryOf('camp')).toBe(CATEGORIES.blood)
@@ -37,47 +37,59 @@ describe('check', () => {
     expect(check(1, blankDraft()).ok).toBe(false)
     expect(check(1, filled()).ok).toBe(true)
     expect(check(2, filled({ title: '  ' })).ok).toBe(false)
-    expect(check(3, filled({ date: '' })).ok).toBe(false)
-    expect(check(3, filled({ place: ' ' })).ok).toBe(false)
-    expect(check(3, filled()).ok).toBe(true)
+    expect(check(2, filled({ date: '' })).ok).toBe(false)
+    expect(check(2, filled({ place: ' ' })).ok).toBe(false)
+    expect(check(2, filled()).ok).toBe(true)
   })
   it('wants the end after the start', () => {
-    const c = check(3, filled({ startT: '10:00', endT: '10:00' }))
+    const c = check(2, filled({ startT: '10:00', endT: '10:00' }))
     expect(c.ok).toBe(false)
     expect(c.errors.endT).toBeTruthy()
-    expect(check(3, filled({ startT: '10:00', endT: '09:00' })).ok).toBe(false)
+    expect(check(2, filled({ startT: '10:00', endT: '09:00' })).ok).toBe(false)
   })
   it('takes whole hours 1 to 99', () => {
-    for (const h of ['1', '99', '6']) expect(check(4, filled({ hours: h })).ok).toBe(true)
-    for (const h of ['0', '100', '2.5', '-1', 'abc']) expect(check(4, filled({ hours: h })).ok).toBe(false)
-    const empty = check(4, filled({ hours: '' }))
+    for (const h of ['1', '99', '6']) expect(check(2, filled({ hours: h })).ok).toBe(true)
+    for (const h of ['0', '100', '2.5', '-1', 'abc']) expect(check(2, filled({ hours: h })).ok).toBe(false)
+    const empty = check(2, filled({ hours: '' }))
     expect(empty.ok).toBe(false)
     expect(empty.errors.hours).toBeUndefined()
   })
   it('checks capacity only when limited', () => {
-    expect(check(4, filled({ capLimit: false, capacity: '' })).ok).toBe(true)
-    expect(check(4, filled({ capLimit: true, capacity: '' })).ok).toBe(false)
-    expect(check(4, filled({ capLimit: true, capacity: '0' })).ok).toBe(false)
-    expect(check(4, filled({ capLimit: true, capacity: '50' })).ok).toBe(true)
+    expect(check(2, filled({ capLimit: false, capacity: '' })).ok).toBe(true)
+    expect(check(2, filled({ capLimit: true, capacity: '' })).ok).toBe(false)
+    expect(check(2, filled({ capLimit: true, capacity: '0' })).ok).toBe(false)
+    expect(check(2, filled({ capLimit: true, capacity: '50' })).ok).toBe(true)
   })
   it('wants the opening time before the start', () => {
-    expect(check(4, filled({ scheduled: true, openDate: '', openT: '' })).ok).toBe(false)
-    expect(check(4, filled({ scheduled: true, openDate: '2026-11-10', openT: '08:00' })).ok).toBe(true)
-    expect(check(4, filled({ scheduled: true, openDate: '2026-11-21', openT: '08:00' })).errors.openDate).toBeTruthy()
+    expect(check(2, filled({ scheduled: true, openDate: '', openT: '' })).ok).toBe(false)
+    expect(check(2, filled({ scheduled: true, openDate: '2026-11-10', openT: '08:00' })).ok).toBe(true)
+    expect(check(2, filled({ scheduled: true, openDate: '2026-11-21', openT: '08:00' })).errors.openDate).toBeTruthy()
   })
   it('checks cancel days, the supervisor name and the chat link', () => {
-    expect(check(4, filled({ cancelDays: '15' })).ok).toBe(false)
-    expect(check(4, filled({ cancelDays: '0' })).ok).toBe(true)
-    expect(check(6, filled({ supName: '' })).ok).toBe(false)
-    expect(check(6, filled({ chatEnabled: true, openChatUrl: 'line.me' })).errors.openChatUrl).toBeTruthy()
-    expect(check(6, filled({ chatEnabled: true, openChatUrl: 'https://line.me/ti/g2/x' })).ok).toBe(true)
-    expect(check(6, filled({ chatEnabled: false, openChatUrl: 'nonsense' })).ok).toBe(true)
+    expect(check(2, filled({ cancelDays: '15' })).ok).toBe(false)
+    expect(check(2, filled({ cancelDays: '0' })).ok).toBe(true)
+    expect(check(2, filled({ supName: '' })).ok).toBe(false)
+    expect(check(2, filled({ chatEnabled: true, openChatUrl: 'line.me' })).errors.openChatUrl).toBeTruthy()
+    expect(check(2, filled({ chatEnabled: true, openChatUrl: 'https://line.me/ti/g2/x' })).ok).toBe(true)
+    expect(check(2, filled({ chatEnabled: false, openChatUrl: 'nonsense' })).ok).toBe(true)
   })
-  it('step 7 needs all the others and firstBlocked finds the first that fails', () => {
-    expect(check(7, filled()).ok).toBe(true)
-    expect(firstBlocked(filled())).toBe(7)
-    expect(firstBlocked(filled({ place: '' }))).toBe(3)
-    expect(firstBlocked(blankDraft())).toBe(1)
+  it('step 3 needs both of the others', () => {
+    expect(check(3, filled()).ok).toBe(true)
+    expect(check(3, filled({ place: '' })).ok).toBe(false)
+    expect(check(3, blankDraft()).ok).toBe(false)
+  })
+  it('names the empty required fields separately from wrong values', () => {
+    const c = check(2, filled({ title: '', place: '', hours: '100' }))
+    expect(c.missing).toMatchObject({ title: expect.any(String), place: expect.any(String) })
+    expect(c.errors.hours).toBeTruthy()
+    expect(c.errors.title).toBeUndefined()
+  })
+  it('checks bottles per hour for the bottle template only', () => {
+    const bottle = { ...applyCategory(blankDraft('พี่เต้'), 'bottle', none), title: 'แลกขวด', date: '2026-11-20', place: 'ลานหน้าตึก' }
+    expect(check(2, bottle).ok).toBe(true)
+    expect(check(2, { ...bottle, itemsPerHour: '' }).ok).toBe(false)
+    expect(check(2, { ...bottle, itemsPerHour: '0' }).errors.itemsPerHour).toBeTruthy()
+    expect(check(2, filled({ itemsPerHour: '' })).ok).toBe(true)
   })
 })
 
@@ -107,6 +119,12 @@ describe('draft to activity and back', () => {
     const e = toEdit(d)
     expect('org' in e || 'orgCode' in e).toBe(false)
     expect(e).toMatchObject({ title: 'บริจาคโลหิต', lat: 16.7 })
+  })
+  it('forces the bottle exchange settings', () => {
+    const d = { ...applyCategory(blankDraft('พี่เต้'), 'bottle', none), title: 'แลกขวด', date: '2026-11-20', place: 'ลานหน้าตึก', capLimit: true, qrMode: 'dynamic' as const, locMode: 'on' as const, walkIn: false }
+    const a = toNewActivity(d, who)
+    expect(a).toMatchObject({ categoryKey: 'bottle', itemsPerHour: 20, hours: 5, capLimit: false, capacity: 0, walkIn: true, qrMode: 'static', locMode: 'off' })
+    expect(toNewActivity(filled(), who).itemsPerHour).toBeUndefined()
   })
   it('detects changes', () => {
     const d = blankDraft('ก')

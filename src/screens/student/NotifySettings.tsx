@@ -8,7 +8,7 @@ import { Switch } from '../../ui/Switch'
 const ROWS: { key: Exclude<keyof NotifyPrefs, 'enabled'>; title: string; body: string }[] = [
   { key: 'openings', title: 'เปิดรับสมัคร', body: 'เมื่อกิจกรรมที่กดเตือนไว้เปิดให้ลงทะเบียน' },
   { key: 'announcements', title: 'ประกาศจากกิจกรรมที่ลงทะเบียน', body: 'เปลี่ยนเวลา ย้ายจุดนัดพบ หรือสิ่งที่ต้องเตรียม' },
-  { key: 'messages', title: 'ข้อความจากผู้คุม', body: 'คำตอบของผู้คุมในแชทส่วนตัว' },
+  { key: 'messages', title: 'ข้อความจากผู้ดูแล', body: 'คำตอบของผู้ดูแลในแชทส่วนตัว' },
 ]
 
 export default function NotifySettings() {
@@ -24,7 +24,7 @@ export default function NotifySettings() {
       <section className="mt-6 rounded-[var(--radius-card)] bg-surface px-5 py-3 shadow-soft">
         <Switch
           label="แจ้งเตือนบนเครื่อง"
-          hint={prefs.enabled ? 'ปิดได้ทุกเมื่อด้วยปุ่มนี้ปุ่มเดียว' : 'ตอนนี้ปิดอยู่'}
+          hint={prefs.enabled ? 'เปิดอยู่' : 'ปิดอยู่'}
           checked={prefs.enabled}
           onChange={(v) => student && (v ? enablePush(student, patchStudent) : saveNotify(student, { enabled: false }, patchStudent))}
         />
@@ -38,8 +38,8 @@ export default function NotifySettings() {
         ))}
       </section>
 
-      <p className="mt-5 text-sm text-muted">กล่องแจ้งเตือนในแอพทำงานเสมอ สวิตช์เหล่านี้ควบคุมเฉพาะการเด้งบนหน้าจอเครื่อง</p>
-      {isIOS && !standalone && <p className="mt-3 text-sm text-muted">บน iPhone และ iPad ต้องเพิ่มแอพไปที่หน้าจอโฮมก่อน ถึงจะรับการแจ้งเตือนบนหน้าจอล็อกได้</p>}
+      <p className="mt-5 text-sm text-muted">กล่องแจ้งเตือนในแอปเปิดเสมอ สวิตช์นี้ควบคุมเฉพาะการแจ้งบนหน้าจอเครื่อง</p>
+      {isIOS && !standalone && <p className="mt-3 text-sm text-muted">บน iPhone และ iPad ต้องเพิ่มแอปไปที่หน้าจอโฮมก่อน จึงรับแจ้งเตือนบนหน้าจอล็อกได้</p>}
     </main>
   )
 }

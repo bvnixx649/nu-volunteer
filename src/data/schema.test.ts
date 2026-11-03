@@ -86,6 +86,21 @@ describe('claim', () => {
   })
 })
 
+describe('bottle exchange columns', () => {
+  it('stores bottles per hour on the activity and bottles on the credit, null for everything else', async () => {
+    expect((await db.query<{ items_per_hour: number | null }>(`select items_per_hour from activities where id = 'a1'`)).rows[0].items_per_hour).toBeNull()
+    await db.exec(`update activities set items_per_hour = 20 where id = 'a1'`)
+    const c = await claim('65000020')
+    expect(c.credit).toMatchObject({ student_id: '65000020' })
+    expect((c.credit as Credit & { items: number | null }).items).toBeNull()
+    await db.exec(`update credits set items = 45 where activity_id = 'a1' and student_id = '65000020'`)
+    await db.exec(`select set_hours('a1', '65000020', 2, '', 'พี่เต้')`)
+    const row = (await db.query<{ items: number; hours: number }>(`select items, hours from credits where student_id = '65000020'`)).rows[0]
+    expect(row).toMatchObject({ items: 45, hours: 2 })
+    expect((await db.query<{ items_per_hour: number }>(`select items_per_hour from activities where id = 'a1'`)).rows[0].items_per_hour).toBe(20)
+  })
+})
+
 describe('removal', () => {
   it('remove_registration lowers both counters, and never below 0', async () => {
     await claim('65000010')

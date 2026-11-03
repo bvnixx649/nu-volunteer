@@ -16,9 +16,9 @@ describe('checkinOf', () => {
 
 describe('checkinSummary', () => {
   it('describes a dynamic QR with location', () => {
-    expect(checkinSummary({ qrMode: 'dynamic', qrInterval: 10, locMode: 'on', radius: 150 })).toBe('QR เปลี่ยนทุก 10 วิ ขอตำแหน่ง 150 ม.')
+    expect(checkinSummary({ qrMode: 'dynamic', qrInterval: 10, locMode: 'on', radius: 150 })).toBe('QR เปลี่ยนทุก 10 วิ ตรวจตำแหน่ง 150 ม.')
   })
   it('describes a static QR without location', () => {
-    expect(checkinSummary({ qrMode: 'static', locMode: 'off' })).toBe('QR ภาพเดียว ไม่ขอตำแหน่ง')
+    expect(checkinSummary({ qrMode: 'static', locMode: 'off' })).toBe('QR แบบพิมพ์ ไม่ตรวจตำแหน่ง')
   })
 })

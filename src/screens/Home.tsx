@@ -59,7 +59,7 @@ export default function Home() {
   const sections = [
     { title: 'ใกล้ถึงวัน', sub: `เริ่มภายใน ${SOON_DAYS} วัน`, list: feed.soon },
     { title: 'เปิดรับสมัคร', sub: '', list: feed.open },
-    { title: 'ยังไม่เปิดรับ', sub: 'กดเข้าไปตั้งเตือนได้', list: feed.notYet },
+    { title: 'ยังไม่เปิดรับ', sub: 'ตั้งเตือนล่วงหน้าได้', list: feed.notYet },
   ].filter((s) => s.list.length)
 
   return (
@@ -94,7 +94,7 @@ export default function Home() {
           <Link to={`/a/${a.id}`} className="mt-2 line-clamp-2 block text-lg leading-snug font-semibold">
             {a.title}
           </Link>
-          <p className="mt-1 text-muted">สแกน QR จากผู้คุมเพื่อรับ {a.hours} ชั่วโมง</p>
+          <p className="mt-1 text-muted">สแกน QR ที่งานเพื่อรับ {a.hours} ชั่วโมง</p>
           <LinkButton to="/scan" variant="primary" className="mt-4 w-full">
             <QrCode size={22} weight="bold" /> สแกนรับชั่วโมง
           </LinkButton>
@@ -158,7 +158,7 @@ export default function Home() {
           <Skeleton />
         </div>
       ) : failed ? (
-        <p className="mt-6 rounded-[var(--radius-card)] bg-bad-soft px-5 py-4 text-bad">โหลดกิจกรรมไม่ได้ ตรวจอินเทอร์เน็ตแล้วเปิดแอพใหม่</p>
+        <p className="mt-6 rounded-[var(--radius-card)] bg-bad-soft px-5 py-4 text-bad">โหลดกิจกรรมไม่ได้ ตรวจอินเทอร์เน็ตแล้วเปิดแอปใหม่</p>
       ) : ui.view === 'cal' ? (
         <div className="mt-6 flex flex-col gap-5">
           <MonthCalendar
@@ -185,7 +185,7 @@ export default function Home() {
       ) : feed.items.length === 0 ? (
         <div className="mt-6 rounded-[var(--radius-card)] bg-surface px-6 py-12 text-center shadow-soft">
           <p className="text-lg font-semibold">{filtered ? 'ไม่พบกิจกรรมตามตัวกรอง' : 'ยังไม่มีกิจกรรมเปิดรับ'}</p>
-          <p className="mt-2 text-muted">{filtered ? 'ลองเลือกหมวดหรือวันอื่น หรือล้างตัวกรอง' : 'เมื่อผู้คุมเผยแพร่กิจกรรมใหม่ จะขึ้นที่นี่'}</p>
+          <p className="mt-2 text-muted">{filtered ? 'ลองเปลี่ยนหมวดหรือวัน หรือล้างตัวกรอง' : 'กิจกรรมใหม่จะแสดงที่นี่'}</p>
         </div>
       ) : (
         sections.map((s) => (

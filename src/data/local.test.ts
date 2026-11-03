@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createLocalApi, resetLocal } from './local'
 import type { Activity, Credit } from './types'
+import { addBottles } from '../lib/bottle'
 
 const activity = {
   id: 'a1',
@@ -78,6 +79,26 @@ describe('edits', () => {
     await api.removeCredit('a1', '65000009')
     expect(await api.getCredit('a1', '65000009')).toBeNull()
     expect(await api.getActivity('a1')).toMatchObject({ creditCount: 0 })
+  })
+})
+
+describe('bottle exchange', () => {
+  const bottles = { ...activity, id: 'b1', categoryKey: 'bottle', itemsPerHour: 20, hours: 5 } as Activity
+  beforeEach(() => resetLocal({ activities: { b1: bottles } }))
+
+  it('creates the credit on the first save and adds to it on the next', async () => {
+    const s = { id: '65000030', name: 'นิสิต' }
+    expect(await addBottles(api, bottles, s, 45, 'พี่เต้')).toEqual({ items: 45, hours: 2 })
+    expect(await api.getCredit('b1', s.id)).toMatchObject({ hours: 2, items: 45, method: 'manual' })
+    expect(await addBottles(api, bottles, s, 15, 'พี่เต้')).toEqual({ items: 60, hours: 3 })
+    expect(await api.getCredit('b1', s.id)).toMatchObject({ hours: 3, items: 60 })
+    expect(await api.getActivity('b1')).toMatchObject({ creditCount: 1 })
+  })
+
+  it('stops at the maximum hours but keeps counting bottles', async () => {
+    const s = { id: '65000031', name: 'นิสิต' }
+    await addBottles(api, bottles, s, 90, 'พี่เต้')
+    expect(await addBottles(api, bottles, s, 40, 'พี่เต้')).toEqual({ items: 130, hours: 5 })
   })
 })
 
@@ -237,7 +258,7 @@ describe('student side', () => {
 
   it('marks only the other side messages in a thread as read', async () => {
     await api.sendDm({ activityId: 'a1', studentId: me.id, fromSup: false, authorName: me.name, text: 'ไม่สบาย' })
-    await api.sendDm({ activityId: 'a1', studentId: me.id, fromSup: true, authorName: 'ผู้คุม', text: 'รับทราบ' })
+    await api.sendDm({ activityId: 'a1', studentId: me.id, fromSup: true, authorName: 'ผู้ดูแล', text: 'รับทราบ' })
     await api.markDmsRead('a1', me.id, false)
     expect((await api.listDms('a1', me.id)).map((m) => [m.fromSup, m.read])).toEqual([[false, false], [true, true]])
   })

@@ -41,8 +41,8 @@ export default function Chat() {
     <Thread
       fallback={`/a/${id}`}
       title={a?.title ?? 'ห้องแชท'}
-      subtitle={a ? `ลงชื่อแล้ว ${a.regCount} คน` : undefined}
-      empty="เริ่มทักทายผู้เข้าร่วมกิจกรรมได้เลย"
+      subtitle={a ? `ลงทะเบียนแล้ว ${a.regCount} คน` : undefined}
+      empty="ยังไม่มีข้อความ"
       messages={bubbles}
       placeholder="พิมพ์ข้อความ"
       onSend={async (text) => {

@@ -53,7 +53,7 @@ export default function SupHome() {
           <p className="text-muted">{sup.orgName}</p>
           <h1 className="mt-1 text-3xl font-bold tracking-tight">สวัสดี {sup.name}</h1>
         </div>
-        <button onClick={clearSup} className="pressable flex items-center gap-1.5 rounded-full px-3 py-2 text-muted" aria-label="ออกจากโหมดผู้คุม">
+        <button onClick={clearSup} className="pressable flex items-center gap-1.5 rounded-full px-3 py-2 text-muted" aria-label="ออกจากโหมดผู้ดูแล">
           <SignOut size={20} />
         </button>
       </div>

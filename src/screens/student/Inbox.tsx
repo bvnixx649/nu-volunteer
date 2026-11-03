@@ -57,7 +57,7 @@ export default function Inbox() {
         <section className="mt-5 flex items-center gap-4 rounded-[var(--radius-card)] bg-surface p-4 shadow-soft">
           <div className="min-w-0 flex-1">
             <p className="font-semibold">เปิดแจ้งเตือนบนเครื่อง</p>
-            <p className="text-sm text-muted">รู้ทันทีเมื่อได้รับชั่วโมงหรือผู้คุมประกาศ</p>
+            <p className="text-sm text-muted">แจ้งเมื่อได้รับชั่วโมงหรือมีประกาศ</p>
           </div>
           <Button onClick={() => enablePush(student, patchStudent)}>เปิด</Button>
         </section>
@@ -66,7 +66,6 @@ export default function Inbox() {
       {loaded && notices.length === 0 && (
         <div className="mt-6 rounded-[var(--radius-card)] bg-surface px-6 py-12 text-center shadow-soft">
           <p className="text-lg font-semibold">ยังไม่มีการแจ้งเตือน</p>
-          <p className="mt-2 text-muted">ลงทะเบียนหรือรับชั่วโมงแล้วจะขึ้นที่นี่</p>
         </div>
       )}
 

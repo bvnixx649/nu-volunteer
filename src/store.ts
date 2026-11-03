@@ -17,6 +17,9 @@ interface DeviceState {
   /** Random per browser. Two students claiming from one deviceId get the "เครื่องซ้ำ" flag. */
   deviceId: string
   sup: SupSession | null
+  /** Last contact phone a supervisor typed on this device, to prefill the next activity. */
+  supPhone: string
+  setSupPhone: (p: string) => void
   setStudent: (id: string) => void
   signOut: () => void
   setSup: (s: SupSession) => void
@@ -29,6 +32,8 @@ export const useDevice = create<DeviceState>()(
       studentId: null,
       deviceId: crypto.randomUUID(),
       sup: null,
+      supPhone: '',
+      setSupPhone: (supPhone) => set({ supPhone }),
       setStudent: (studentId) => set({ studentId }),
       signOut: () => set({ studentId: null }),
       setSup: (sup) => set({ sup }),

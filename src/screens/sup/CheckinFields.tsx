@@ -8,7 +8,7 @@ import { Switch } from '../../ui/Switch'
 /** The check-in settings an activity carries, plus whether it takes people who did not sign up. */
 export type CheckinDraft = Pick<Activity, 'qrMode' | 'qrInterval' | 'locMode' | 'radius' | 'walkIn'>
 
-type Props = { value: CheckinDraft; onChange: (v: CheckinDraft) => void; /** The create flow asks walk-in on its own step. */ hideWalkIn?: boolean }
+type Props = { value: CheckinDraft; onChange: (v: CheckinDraft) => void; /** The create flow shows walk-in on its own. */ hideWalkIn?: boolean }
 
 type OptionProps = { selected: boolean; icon: ReactNode; title: string; hint: string; onClick: () => void; children?: ReactNode }
 
@@ -40,8 +40,8 @@ export function CheckinFields({ value, onChange, hideWalkIn }: Props) {
         <Option
           selected={dynamic}
           icon={<ArrowsClockwise size={22} weight="bold" />}
-          title="เปลี่ยนเองเรื่อย ๆ"
-          hint="เปิดจอให้สแกนหน้างาน ถ่ายภาพส่งต่อกันไม่ได้"
+          title="QR เปลี่ยนอัตโนมัติ"
+          hint="ต้องเปิดจอให้สแกนที่งาน"
           onClick={() => set({ qrMode: 'dynamic' })}
         >
           <Segmented
@@ -54,8 +54,8 @@ export function CheckinFields({ value, onChange, hideWalkIn }: Props) {
         <Option
           selected={!dynamic}
           icon={<Printer size={22} weight="bold" />}
-          title="ภาพเดียวพิมพ์ได้"
-          hint="ติดป้ายไว้ตรงจุด ไม่ต้องมีคนเฝ้าจอ"
+          title="QR แบบพิมพ์"
+          hint="ใช้ภาพเดิมตลอดกิจกรรม"
           onClick={() => set({ qrMode: 'static' })}
         />
       </section>
@@ -66,8 +66,8 @@ export function CheckinFields({ value, onChange, hideWalkIn }: Props) {
           <Switch
             checked={locOn}
             onChange={(v) => set({ locMode: v ? 'on' : 'off' })}
-            label="ขอตำแหน่งนิสิต"
-            hint={locOn ? 'นอกระยะยังได้ชั่วโมง แต่ขึ้นธงให้ผู้คุมตรวจ' : 'ไม่ถามตำแหน่ง สแกนได้จากทุกที่'}
+            label="ตรวจสอบตำแหน่ง"
+            hint={locOn ? 'นอกระยะยังได้ชั่วโมง แต่ทำเครื่องหมายไว้' : 'สแกนได้จากทุกที่'}
           />
           {locOn && (
             <div className="pb-4">
@@ -84,13 +84,13 @@ export function CheckinFields({ value, onChange, hideWalkIn }: Props) {
 
       {!hideWalkIn && (
         <section className="flex flex-col gap-3">
-          <h3 className="font-semibold">คนที่ไม่ได้ลงชื่อไว้</h3>
+          <h3 className="font-semibold">ผู้ไม่ได้ลงทะเบียน</h3>
           <div className="rounded-[var(--radius-field)] bg-surface px-4 ring-1 ring-line">
             <Switch
               checked={value.walkIn}
               onChange={(v) => set({ walkIn: v })}
-              label="รับ walk-in"
-              hint={value.walkIn ? 'สแกนรับชั่วโมงได้เลย ขึ้นป้าย มาเพิ่ม ในรายชื่อ' : 'สแกนได้เฉพาะคนที่ลงชื่อไว้'}
+              label="รับผู้ไม่ได้ลงทะเบียน"
+              hint={value.walkIn ? undefined : 'สแกนได้เฉพาะผู้ลงทะเบียน'}
             />
           </div>
         </section>
@@ -99,7 +99,7 @@ export function CheckinFields({ value, onChange, hideWalkIn }: Props) {
       {!dynamic && !locOn && (
         <p className="flex gap-2.5 rounded-[var(--radius-field)] bg-bad-soft px-4 py-3 text-sm font-medium text-bad">
           <Warning size={20} weight="bold" className="shrink-0" />
-          ภาพ QR ส่งต่อกันได้ คนที่ไม่ได้อยู่ที่งานก็สแกนรับชั่วโมงได้
+          ภาพ QR ส่งต่อกันได้ ผู้ที่ไม่ได้อยู่ที่งานอาจสแกนได้
         </p>
       )}
     </div>

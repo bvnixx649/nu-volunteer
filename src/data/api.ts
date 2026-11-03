@@ -60,6 +60,8 @@ export interface Api {
   /** Writes the credit only if none exists, bumps creditCount, and registers walk-ins. All or nothing. */
   claim(input: ClaimInput): Promise<ClaimResult>
   setHours(activityId: string, studentId: string, hours: number, reason: string, by: string): Promise<void>
+  /** Records how many bottles a credit was counted from (bottle exchange). Does not change hours. */
+  setItems(activityId: string, studentId: string, items: number): Promise<void>
   removeCredit(activityId: string, studentId: string): Promise<void>
   /** Deletes the registration and its credit, if any, and lowers regCount and creditCount (never below 0). All or nothing. */
   removeRegistration(activityId: string, studentId: string): Promise<void>
@@ -133,6 +135,7 @@ function lazyRemote(): Api {
     getRegistration: call('getRegistration'),
     claim: call('claim'),
     setHours: call('setHours'),
+    setItems: call('setItems'),
     removeCredit: call('removeCredit'),
     removeRegistration: call('removeRegistration'),
     closeRoster: call('closeRoster'),

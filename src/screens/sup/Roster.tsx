@@ -9,9 +9,9 @@ import { Flag } from '../../ui/Flag'
 const FILTERS: { key: RosterFilter; label: string }[] = [
   { key: 'all', label: 'ทั้งหมด' },
   { key: 'credited', label: 'ได้ชั่วโมงแล้ว' },
-  { key: 'notScanned', label: 'ยังไม่สแกน' },
-  { key: 'walkIn', label: 'มาเพิ่ม' },
-  { key: 'flagged', label: 'มีธง' },
+  { key: 'notScanned', label: 'ยังไม่ได้ชั่วโมง' },
+  { key: 'walkIn', label: 'ไม่ได้ลงทะเบียน' },
+  { key: 'flagged', label: 'ทำเครื่องหมาย' },
 ]
 
 type Props = {
@@ -28,9 +28,9 @@ export function Flags({ row, closed }: { row: RosterRow; closed?: boolean }) {
   return (
     <>
       {closed && row.reg && !c && <Flag kind="noShow">ไม่มา</Flag>}
-      {row.reg?.walkIn && <Flag kind="walkIn">มาเพิ่ม</Flag>}
+      {row.reg?.walkIn && c?.items === undefined && <Flag kind="walkIn">ไม่ได้ลงทะเบียน</Flag>}
       {c?.flags.includes('location') && (
-        <Flag kind="location">{c.distance !== undefined ? `ตำแหน่งไม่ผ่าน ${Math.round(c.distance)} ม.` : 'ตำแหน่งไม่ผ่าน'}</Flag>
+        <Flag kind="location">{c.distance !== undefined ? `อยู่นอกพื้นที่ ${Math.round(c.distance)} ม.` : 'อยู่นอกพื้นที่'}</Flag>
       )}
       {c?.flags.includes('device') && <Flag kind="device">เครื่องซ้ำ</Flag>}
       {c?.reason && <Flag kind="edited">{c.reason}</Flag>}
@@ -68,7 +68,7 @@ export function Roster({ regs, credits, selected, closed, onSelect }: Props) {
 
       {!rows.length ? (
         <p className="rounded-[var(--radius-card)] bg-surface px-5 py-8 text-center text-muted">
-          {all.length ? 'ไม่พบรายชื่อที่ตรงกัน' : 'ยังไม่มีใครสแกน รายชื่อจะขึ้นที่นี่ทันทีที่มีคนรับชั่วโมง'}
+          {all.length ? 'ไม่พบรายชื่อที่ตรงกัน' : 'ยังไม่มีรายชื่อ'}
         </p>
       ) : (
         <ul className="divide-y divide-line overflow-hidden rounded-[var(--radius-card)] bg-surface shadow-soft">
@@ -83,14 +83,14 @@ export function Roster({ regs, credits, selected, closed, onSelect }: Props) {
                   <p className="truncate font-semibold">{r.name}</p>
                   <p className="num text-sm text-muted">
                     {r.studentId}
-                    {r.credit && <> สแกน {thTime(r.credit.at)} น.</>}
+                    {r.credit && (r.credit.items !== undefined ? <> {r.credit.items} ขวด</> : <> สแกน {thTime(r.credit.at)} น.</>)}
                   </p>
                   <div className="mt-1.5 flex flex-wrap gap-1.5 empty:hidden">
                     <Flags row={r} closed={closed} />
                   </div>
                 </div>
                 <p className={`num shrink-0 pt-0.5 font-semibold ${r.credit ? '' : 'text-muted'}`}>
-                  {r.credit ? `${r.credit.hours} ชม.` : closed && r.reg ? '0 ชม.' : 'ยังไม่สแกน'}
+                  {r.credit ? `${r.credit.hours} ชม.` : closed && r.reg ? '0 ชม.' : 'ยังไม่ได้ชั่วโมง'}
                 </p>
               </button>
             </li>

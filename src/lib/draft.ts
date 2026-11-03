@@ -17,6 +17,8 @@ export interface Draft {
   /** From the GPS button only; not saved with the activity. */
   accuracy?: number
   hours: string
+  /** Bottle exchange only: bottles per hour, as typed. Empty for other categories. */
+  itemsPerHour: string
   capLimit: boolean
   capacity: string
   walkIn: boolean
@@ -36,13 +38,13 @@ export interface Draft {
 }
 
 /** Fields a category fills in. Once the supervisor edits one, picking another category leaves it alone. */
-export const DEFAULT_KEYS = ['poster', 'description', 'hours', 'capLimit', 'capacity', 'walkIn', 'qrMode', 'qrInterval', 'locMode', 'radius'] as const
+export const DEFAULT_KEYS = ['poster', 'description', 'hours', 'itemsPerHour', 'capLimit', 'capacity', 'walkIn', 'qrMode', 'qrInterval', 'locMode', 'radius'] as const
 export type DefaultKey = (typeof DEFAULT_KEYS)[number]
 
 /** Template photos of a category. Categories without any (recycling) borrow the ones of "อื่น ๆ". */
 export const posterChoices = (key: CategoryKey) => categoryOf(key).posters
 
-export function blankDraft(supName = ''): Draft {
+export function blankDraft(supName = '', phone = ''): Draft {
   return {
     categoryKey: null,
     title: '',
@@ -53,6 +55,7 @@ export function blankDraft(supName = ''): Draft {
     endT: '16:00',
     place: '',
     hours: '',
+    itemsPerHour: '',
     capLimit: false,
     capacity: '30',
     walkIn: false,
@@ -66,7 +69,7 @@ export function blankDraft(supName = ''): Draft {
     locMode: 'on',
     radius: RADIUS_DEFAULT,
     supName,
-    phone: '',
+    phone,
     chatEnabled: false,
     openChatUrl: '',
   }
@@ -79,6 +82,7 @@ export function applyCategory(d: Draft, key: CategoryKey, touched: ReadonlySet<s
     poster: posterChoices(key)[0],
     description: c.description,
     hours: String(c.hours),
+    itemsPerHour: c.itemsPerHour ? String(c.itemsPerHour) : '',
     capLimit: c.capLimit,
     capacity: String(c.capacity > 0 ? c.capacity : 30),
     walkIn: c.walkIn,
@@ -117,6 +121,7 @@ export function draftOf(a: Activity): Draft {
     lat: a.lat,
     lng: a.lng,
     hours: String(a.hours),
+    itemsPerHour: a.itemsPerHour ? String(a.itemsPerHour) : '',
     capLimit: a.capLimit,
     capacity: String(a.capacity > 0 ? a.capacity : 30),
     walkIn: a.walkIn,
@@ -136,13 +141,16 @@ export function draftOf(a: Activity): Draft {
   }
 }
 
-export const STEP_COUNT = 7
+/** Steps: 1 template, 2 details, 3 review and publish. */
+export const STEP_COUNT = 3
 
 export interface Check {
   /** The step can move on. */
   ok: boolean
-  /** Messages by field, only for values that are wrong (an empty required field blocks without a message). */
+  /** Messages by field for values that are wrong. */
   errors: Record<string, string>
+  /** Messages by field for required fields still empty; shown once the supervisor tries to move on. */
+  missing: Record<string, string>
 }
 
 const whole = (s: string) => /^\d+$/.test(s.trim())
@@ -154,60 +162,70 @@ const isUrl = (s: string) => {
   }
 }
 
-/** Checks one step (1 to 7; step 7 checks all of them). */
+/** Bottle exchange: no registration, no QR, no location. The desk adds people by hand. */
+export const isBottleDraft = (d: Pick<Draft, 'categoryKey'>) => d.categoryKey === 'bottle'
+
+/** Fields that live inside the collapsed "ตั้งค่าเพิ่มเติม" section. */
+export const ADVANCED_FIELDS = ['capacity', 'openDate', 'cancelDays', 'supName', 'openChatUrl']
+
+/** Checks one step (1 to 3; step 3 checks everything). */
 export function check(step: number, d: Draft): Check {
-  if (step === 7) {
-    const all = [1, 2, 3, 4, 5, 6].map((s) => check(s, d))
-    return { ok: all.every((c) => c.ok), errors: Object.assign({}, ...all.map((c) => c.errors)) }
+  if (step === 3) {
+    const all = [check(1, d), check(2, d)]
+    return { ok: all.every((c) => c.ok), errors: Object.assign({}, ...all.map((c) => c.errors)), missing: Object.assign({}, ...all.map((c) => c.missing)) }
   }
   const errors: Record<string, string> = {}
+  const missing: Record<string, string> = {}
   let ok = true
-  const need = (cond: boolean) => {
-    if (!cond) ok = false
+  const need = (field: string, cond: boolean, msg: string) => {
+    if (!cond) {
+      missing[field] = msg
+      ok = false
+    }
   }
   const bad = (field: string, msg: string) => {
     errors[field] = msg
     ok = false
   }
 
-  if (step === 1) need(d.categoryKey !== null)
-  if (step === 2) need(d.title.trim().length > 0)
-  if (step === 3) {
-    need(!!d.date && !!d.startT && !!d.endT && d.place.trim().length > 0)
-    const s = toMs(d.date, d.startT)
-    const e = toMs(d.date, d.endT)
-    if (!Number.isNaN(s) && !Number.isNaN(e) && e <= s) bad('endT', 'เวลาจบต้องหลังเวลาเริ่ม')
-  }
-  if (step === 4) {
-    if (!d.hours.trim()) need(false)
-    else if (!whole(d.hours) || +d.hours < 1 || +d.hours > 99) bad('hours', 'ใส่ตัวเลข 1 ถึง 99')
+  if (step === 1) return { ok: d.categoryKey !== null, errors, missing }
+
+  const bottle = isBottleDraft(d)
+  need('title', d.title.trim().length > 0, 'ใส่ชื่อกิจกรรม')
+  need('date', !!d.date, 'เลือกวันที่')
+  need('startT', !!d.startT, 'ใส่เวลาเริ่ม')
+  need('endT', !!d.endT, 'ใส่เวลาจบ')
+  need('place', d.place.trim().length > 0, 'ใส่สถานที่')
+  const s = toMs(d.date, d.startT)
+  const e = toMs(d.date, d.endT)
+  if (!Number.isNaN(s) && !Number.isNaN(e) && e <= s) bad('endT', 'เวลาจบต้องหลังเวลาเริ่ม')
+
+  if (!d.hours.trim()) need('hours', false, bottle ? 'ใส่ชั่วโมงสูงสุด' : 'ใส่จำนวนชั่วโมง')
+  else if (!whole(d.hours) || +d.hours < 1 || +d.hours > 99) bad('hours', 'ใส่ตัวเลข 1 ถึง 99')
+  if (bottle) {
+    if (!d.itemsPerHour.trim()) need('itemsPerHour', false, 'ใส่จำนวนขวด')
+    else if (!whole(d.itemsPerHour) || +d.itemsPerHour < 1 || +d.itemsPerHour > 999) bad('itemsPerHour', 'ใส่ตัวเลข 1 ถึง 999')
+  } else {
     if (d.capLimit) {
-      if (!d.capacity.trim()) need(false)
+      if (!d.capacity.trim()) need('capacity', false, 'ใส่จำนวนคน')
       else if (!whole(d.capacity) || +d.capacity < 1 || +d.capacity > 9999) bad('capacity', 'ใส่จำนวนคน 1 ถึง 9999')
     }
     if (d.scheduled) {
       const o = toMs(d.openDate, d.openT)
-      if (Number.isNaN(o)) need(false)
+      if (Number.isNaN(o)) need('openDate', false, 'ใส่วันและเวลาเปิดรับ')
       else if (o >= toMs(d.date, d.startT)) bad('openDate', 'เวลาเปิดรับต้องก่อนเวลาเริ่มกิจกรรม')
     }
     if (!whole(d.cancelDays) || +d.cancelDays > 14) bad('cancelDays', 'ใส่ตัวเลข 0 ถึง 14')
   }
-  if (step === 6) {
-    need(d.supName.trim().length > 0)
-    if (d.chatEnabled && d.openChatUrl.trim() && !isUrl(d.openChatUrl.trim())) bad('openChatUrl', 'ลิงก์ต้องขึ้นต้นด้วย https://')
-  }
-  return { ok, errors }
-}
-
-/** First step that is not ready, or 7 when all are. */
-export function firstBlocked(d: Draft): number {
-  for (let s = 1; s <= 6; s++) if (!check(s, d).ok) return s
-  return 7
+  need('supName', d.supName.trim().length > 0, 'ใส่ชื่อผู้ดูแล')
+  if (d.chatEnabled && d.openChatUrl.trim() && !isUrl(d.openChatUrl.trim())) bad('openChatUrl', 'ลิงก์ต้องขึ้นต้นด้วย https://')
+  return { ok, errors, missing }
 }
 
 /** The activity the draft describes, ready for createActivity. Call only when check(7) is ok. */
 export function toNewActivity(d: Draft, who: { orgCode: string; orgName: string }): NewActivity {
-  const open = d.scheduled ? toMs(d.openDate, d.openT) : undefined
+  const bottle = isBottleDraft(d)
+  const open = d.scheduled && !bottle ? toMs(d.openDate, d.openT) : undefined
   return {
     title: d.title.trim(),
     categoryKey: d.categoryKey ?? 'blood',
@@ -221,11 +239,12 @@ export function toNewActivity(d: Draft, who: { orgCode: string; orgName: string 
     start: toMs(d.date, d.startT),
     end: toMs(d.date, d.endT),
     hours: Number(d.hours),
-    capLimit: d.capLimit,
-    capacity: d.capLimit ? Number(d.capacity) : 0,
-    walkIn: d.walkIn,
-    qrMode: d.qrMode,
-    locMode: d.locMode,
+    itemsPerHour: bottle ? Number(d.itemsPerHour) : undefined,
+    capLimit: !bottle && d.capLimit,
+    capacity: !bottle && d.capLimit ? Number(d.capacity) : 0,
+    walkIn: bottle || d.walkIn,
+    qrMode: bottle ? 'static' : d.qrMode,
+    locMode: bottle ? 'off' : d.locMode,
     radius: d.radius,
     qrInterval: d.qrInterval,
     supervisor: { name: d.supName.trim(), phone: d.phone.trim() },
@@ -233,7 +252,7 @@ export function toNewActivity(d: Draft, who: { orgCode: string; orgName: string 
     openChatUrl: d.chatEnabled && d.openChatUrl.trim() ? d.openChatUrl.trim() : undefined,
     opensAt: open,
     cancelDays: Number(d.cancelDays),
-    hideUntilOpen: d.scheduled && d.hideUntilOpen ? true : undefined,
+    hideUntilOpen: d.scheduled && !bottle && d.hideUntilOpen ? true : undefined,
   }
 }
 

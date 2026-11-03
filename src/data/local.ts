@@ -148,6 +148,12 @@ export function createLocalApi(): Api {
         Object.assign(c, { hours, reason, editedBy: by, editedAt: Date.now() })
       }),
 
+    setItems: (a, s, items) =>
+      tx((db) => {
+        const c = db.credits[a]?.[s]
+        if (c) c.items = items
+      }),
+
     removeCredit: (a, s) =>
       tx((db) => {
         if (!db.credits[a]?.[s]) return

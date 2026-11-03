@@ -26,7 +26,7 @@ export function YearStats({ stats, now }: { stats: Stats; now: number }) {
       </div>
       {stats.kpi && (
         <div className="mt-3 rounded-[var(--radius-card)] bg-surface p-5 shadow-soft">
-          <p className="text-sm text-muted">มาจริงเทียบรับ</p>
+          <p className="text-sm text-muted">มาจริงเทียบจำนวนที่รับ</p>
           <p className="mt-1 flex items-baseline gap-1">
             <Counter value={stats.kpi.percent} className="text-5xl leading-none font-bold tracking-tight" />
             <span className="text-xl font-semibold">%</span>

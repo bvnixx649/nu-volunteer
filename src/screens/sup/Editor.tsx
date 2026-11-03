@@ -5,12 +5,12 @@ import { CaretLeft, X } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { api } from '../../data/api'
 import type { Activity, CategoryKey } from '../../data/types'
-import { applyCategory, blankDraft, check, DEFAULT_KEYS, draftOf, isDirty, STEP_COUNT, toEdit, toNewActivity, type Draft } from '../../lib/draft'
+import { ADVANCED_FIELDS, applyCategory, blankDraft, check, DEFAULT_KEYS, draftOf, isDirty, STEP_COUNT, toEdit, toNewActivity, type Draft } from '../../lib/draft'
 import { canEdit } from '../../lib/stage'
 import { useDevice, type SupSession } from '../../store'
 import { Button } from '../../ui/Button'
 import { Sheet } from '../../ui/Sheet'
-import { StepCategory, StepCheckin, StepContact, StepPeople, StepReview, StepTitle, StepWhen, TITLES } from './EditorSteps'
+import { StepCategory, StepDetails, StepReview, TITLES } from './EditorSteps'
 
 const slide = {
   enter: (dir: number) => ({ x: dir * 36, opacity: 0 }),
@@ -18,7 +18,7 @@ const slide = {
   exit: (dir: number) => ({ x: dir * -36, opacity: 0, transition: { duration: 0.12, ease: [0.23, 1, 0.32, 1] as const } }),
 }
 
-/** Create (/sup/new) and edit (/sup/edit/:id) share this flow. Edit starts on the review step. */
+/** Create (/sup/new) and edit (/sup/edit/:id) share this flow. Edit skips the template and starts on the details. */
 export default function Editor() {
   const { id } = useParams()
   const sup = useDevice((s) => s.sup)
@@ -33,6 +33,24 @@ export default function Editor() {
   if (id && !saved) return <Blocked text="ไม่พบกิจกรรมนี้" to="/sup" back="กลับหน้าแรก" />
   if (id && saved && !canEdit(saved)) return <Blocked text="ส่งรายชื่อแล้ว แก้ไขกิจกรรมไม่ได้" to={`/sup/a/${id}`} back="กลับไปหน้ากิจกรรม" />
   return <Flow sup={sup} saved={saved ?? null} />
+}
+
+const DRAFT_KEY = 'nuv:draft'
+const readDraft = (): Draft | null => {
+  try {
+    const d = JSON.parse(localStorage.getItem(DRAFT_KEY) ?? 'null') as Draft | null
+    return d && d.categoryKey ? { ...blankDraft(), ...d } : null
+  } catch {
+    return null
+  }
+}
+const writeDraft = (d: Draft | null) => {
+  try {
+    if (d) localStorage.setItem(DRAFT_KEY, JSON.stringify(d))
+    else localStorage.removeItem(DRAFT_KEY)
+  } catch {
+    // Storage can be blocked; the flow works without a saved draft.
+  }
 }
 
 function Blocked({ text, to, back }: { text: string; to: string; back: string }) {
@@ -51,13 +69,18 @@ function Blocked({ text, to, back }: { text: string; to: string; back: string })
 function Flow({ sup, saved }: { sup: SupSession; saved: Activity | null }) {
   const nav = useNavigate()
   const edit = saved !== null
-  const initial = useRef<Draft>(saved ? draftOf(saved) : blankDraft(sup.name))
-  const [draft, setDraft] = useState<Draft>(initial.current)
-  // Fields the supervisor changed by hand. A saved activity counts as all touched, so a category change never rewrites it.
-  const touched = useRef(new Set<string>(edit ? DEFAULT_KEYS : []))
-  const [step, setStep] = useState(edit ? STEP_COUNT : 1)
+  const phone = useDevice((s) => s.supPhone)
+  const setSupPhone = useDevice((s) => s.setSupPhone)
+  const initial = useRef<Draft>(saved ? draftOf(saved) : blankDraft(sup.name, phone))
+  // A new activity picks up where an unfinished one stopped (autosaved on this device).
+  const [restored] = useState(() => (saved ? null : readDraft()))
+  const [draft, setDraft] = useState<Draft>(restored ?? initial.current)
+  // Fields the supervisor changed by hand. A saved or restored draft counts as all touched, so a category change never rewrites it.
+  const touched = useRef(new Set<string>(edit || restored ? DEFAULT_KEYS : []))
+  const [step, setStep] = useState(edit || restored ? 2 : 1)
+  const [attempted, setAttempted] = useState(false)
+  const [advancedOpen, setAdvancedOpen] = useState(false)
   const [dir, setDir] = useState(1)
-  const [fromReview, setFromReview] = useState(false)
   const [leaving, setLeaving] = useState(false)
   const [busy, setBusy] = useState(false)
 
@@ -65,7 +88,14 @@ function Flow({ sup, saved }: { sup: SupSession; saved: Activity | null }) {
     window.scrollTo(0, 0)
   }, [step])
 
-  const exit = () => nav(saved ? `/sup/a/${saved.id}` : '/sup', { replace: true })
+  useEffect(() => {
+    if (!edit && draft.categoryKey) writeDraft(draft)
+  }, [draft, edit])
+
+  const exit = () => {
+    if (!edit) writeDraft(null)
+    nav(saved ? `/sup/a/${saved.id}` : '/sup', { replace: true })
+  }
   const close = () => (isDirty(draft, initial.current) ? setLeaving(true) : exit())
 
   const set = (p: Partial<Draft>) => {
@@ -76,28 +106,25 @@ function Flow({ sup, saved }: { sup: SupSession; saved: Activity | null }) {
     setDir(n > step ? 1 : -1)
     setStep(n)
   }
-  const jump = (n: number) => {
-    setFromReview(true)
-    go(n)
-  }
   const pick = (k: CategoryKey) => {
     setDraft((d) => applyCategory(d, k, touched.current))
-    if (fromReview) {
-      setFromReview(false)
-      go(STEP_COUNT)
-    } else go(2)
+    setAttempted(false)
+    go(2)
   }
 
   const here = check(step, draft)
+  const shown = attempted ? { ...here.missing, ...here.errors } : here.errors
   const publish = async () => {
     setBusy(true)
     try {
+      if (draft.phone.trim()) setSupPhone(draft.phone.trim())
       if (saved) {
         await api.updateActivity(saved.id, toEdit(draft))
         toast.success('บันทึกแล้ว')
         nav(`/sup/a/${saved.id}`, { replace: true })
       } else {
         const id = await api.createActivity(toNewActivity(draft, { orgCode: sup.orgCode, orgName: sup.orgName }))
+        writeDraft(null)
         toast.success('เผยแพร่กิจกรรมแล้ว')
         nav(`/sup/a/${id}`, { replace: true })
       }
@@ -107,28 +134,26 @@ function Flow({ sup, saved }: { sup: SupSession; saved: Activity | null }) {
     }
   }
   const next = () => {
-    if (fromReview) {
-      setFromReview(false)
-      go(STEP_COUNT)
+    if (step === 2) {
+      if (!here.ok) {
+        setAttempted(true)
+        const fields = Object.keys({ ...here.missing, ...here.errors })
+        if (fields.some((f) => ADVANCED_FIELDS.includes(f))) setAdvancedOpen(true)
+        // Wait for the section to open, then bring the first wrong field into view.
+        setTimeout(() => document.querySelector('[aria-invalid="true"]')?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 60)
+        return
+      }
+      go(3)
     } else if (step === STEP_COUNT) publish()
     else go(step + 1)
   }
-  const back = () => {
-    if (fromReview) {
-      setFromReview(false)
-      go(STEP_COUNT)
-    } else go(step - 1)
-  }
+  const back = () => go(step - 1)
+  const canBack = edit ? step > 2 : step > 1
 
-  const props = { d: draft, set, errors: here.errors }
   const body = [
     <StepCategory key={1} d={draft} onPick={pick} />,
-    <StepTitle key={2} {...props} />,
-    <StepWhen key={3} {...props} />,
-    <StepPeople key={4} {...props} />,
-    <StepCheckin key={5} {...props} />,
-    <StepContact key={6} {...props} />,
-    <StepReview key={7} d={draft} onJump={jump} />,
+    <StepDetails key={2} d={draft} set={set} errors={shown} advancedOpen={advancedOpen} onAdvanced={setAdvancedOpen} />,
+    <StepReview key={3} d={draft} />,
   ][step - 1]
 
   return (
@@ -168,15 +193,17 @@ function Flow({ sup, saved }: { sup: SupSession; saved: Activity | null }) {
         </AnimatePresence>
       </main>
 
-      <footer className="sticky bottom-0 z-10 flex gap-3 border-t border-line bg-bg px-5 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
-        {(step > 1 || fromReview) && (
+      <footer className={`sticky bottom-0 z-10 gap-3 border-t border-line bg-bg px-5 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] ${canBack || step > 1 || draft.categoryKey ? 'flex' : 'hidden'}`}>
+        {canBack && (
           <Button size="lg" variant="secondary" onClick={back} disabled={busy}>
             <CaretLeft size={20} weight="bold" /> ย้อนกลับ
           </Button>
         )}
-        <Button size="lg" className="flex-1" disabled={!here.ok} loading={busy} onClick={next}>
-          {fromReview || step < STEP_COUNT ? 'ถัดไป' : edit ? 'บันทึก' : 'เผยแพร่'}
-        </Button>
+        {(step > 1 || draft.categoryKey) && (
+          <Button size="lg" className="flex-1" loading={busy} onClick={next}>
+            {step < STEP_COUNT ? 'ถัดไป' : edit ? 'บันทึก' : 'เผยแพร่'}
+          </Button>
+        )}
       </footer>
 
       <Sheet open={leaving} onClose={() => setLeaving(false)} title="ทิ้งที่กรอกไว้ไหม">

@@ -52,6 +52,8 @@ create table if not exists activities (
   reg_count integer not null default 0,
   credit_count integer not null default 0
 );
+-- Bottle exchange: how many bottles make one hour. Null for every other category.
+alter table activities add column if not exists items_per_hour integer;
 
 create table if not exists registrations (
   activity_id text not null references activities (id) on delete cascade,
@@ -84,6 +86,8 @@ create table if not exists credits (
   reason text,
   primary key (activity_id, student_id)
 );
+-- Bottle exchange: how many bottles the hours were counted from.
+alter table credits add column if not exists items integer;
 
 create table if not exists announcements (
   id uuid primary key default gen_random_uuid(),

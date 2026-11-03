@@ -28,12 +28,12 @@ export default async function ({ browser, base, shot, mode }) {
   }
 
   await page.goto(`${base}#/sup/login`)
-  await page.getByLabel('ชื่อผู้คุม').fill('พี่เต้')
+  await page.getByLabel('ชื่อผู้ดูแล').fill('พี่เต้')
   await page.getByLabel('รหัสหน่วยงาน').fill('NUVOL69')
   await page.getByRole('button', { name: 'เข้าใช้งาน' }).click()
   await page.getByRole('link', { name: /บริจาคโลหิต/ }).first().click()
   await page.getByRole('heading', { name: /บริจาคโลหิต/ }).waitFor()
-  await page.getByText('QR เปลี่ยนทุก 10 วิ ขอตำแหน่ง 150 ม.').waitFor()
+  await page.getByText('QR เปลี่ยนทุก 10 วิ ตรวจตำแหน่ง 150 ม.').waitFor()
   await noOverflow('manage')
   await both('settings-1-manage')
 
@@ -42,23 +42,23 @@ export default async function ({ browser, base, shot, mode }) {
   const sheet = page.getByRole('dialog', { name: 'ตั้งค่าการเช็คชื่อ' })
   await sheet.getByRole('radio', { name: 'ทุก 15 วิ', exact: true }).click()
   await sheet.getByRole('radio', { name: '200 ม.', exact: true }).click()
-  await sheet.getByRole('radio', { name: /เปลี่ยนเองเรื่อย/ }).waitFor()
+  await sheet.getByRole('radio', { name: /QR เปลี่ยนอัตโนมัติ/ }).waitFor()
   await page.waitForTimeout(500)
   await noOverflow('sheet')
   await both('settings-2-sheet')
 
   // Static with location off shows the forwarding warning, then back again without saving.
-  await sheet.getByRole('radio', { name: /ภาพเดียวพิมพ์ได้/ }).click()
-  await sheet.getByRole('switch', { name: 'ขอตำแหน่งนิสิต' }).click()
+  await sheet.getByRole('radio', { name: /QR แบบพิมพ์/ }).click()
+  await sheet.getByRole('switch', { name: 'ตรวจสอบตำแหน่ง' }).click()
   await sheet.getByText(/ภาพ QR ส่งต่อกันได้/).waitFor()
   await both('settings-3-warning')
-  await sheet.getByRole('radio', { name: /เปลี่ยนเองเรื่อย/ }).click()
-  await sheet.getByRole('switch', { name: 'ขอตำแหน่งนิสิต' }).click()
+  await sheet.getByRole('radio', { name: /QR เปลี่ยนอัตโนมัติ/ }).click()
+  await sheet.getByRole('switch', { name: 'ตรวจสอบตำแหน่ง' }).click()
   await sheet.getByRole('radio', { name: '200 ม.', exact: true }).click()
 
   await sheet.getByRole('button', { name: 'บันทึก', exact: true }).click()
   await page.getByRole('dialog').waitFor({ state: 'detached' })
-  await page.getByText('QR เปลี่ยนทุก 15 วิ ขอตำแหน่ง 200 ม.').waitFor()
+  await page.getByText('QR เปลี่ยนทุก 15 วิ ตรวจตำแหน่ง 200 ม.').waitFor()
   await both('settings-4-saved')
 
   // QR screen runs on 15 s.

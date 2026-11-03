@@ -8,7 +8,7 @@ export default async function ({ browser, base, shot }) {
   const ctx = await browser.newContext({ viewport: { width: 1024, height: 768 }, colorScheme: 'dark', geolocation: site, permissions: ['geolocation'] })
   const kiosk = await ctx.newPage()
   await kiosk.goto(`${base}#/sup/login`)
-  await kiosk.getByLabel('ชื่อผู้คุม').fill('พี่เต้')
+  await kiosk.getByLabel('ชื่อผู้ดูแล').fill('พี่เต้')
   await kiosk.getByLabel('รหัสหน่วยงาน').fill('NUVOL69')
   await kiosk.getByRole('button', { name: 'เข้าใช้งาน' }).click()
   await kiosk.waitForURL(/#\/sup$/)

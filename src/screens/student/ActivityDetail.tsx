@@ -27,6 +27,7 @@ import { categoryOf } from '../../data/categories'
 import type { Activity, Announcement, DirectMsg } from '../../data/types'
 import { STRIKE_LIMIT } from '../../config'
 import { countdown, fmtHours, relDay, thDate, thTime, timeAgo } from '../../lib/format'
+import { isBottle } from '../../lib/bottle'
 import { haptic } from '../../lib/device'
 import { useNow } from '../../lib/hooks'
 import { creditsLeft, freeCancelUntil, isFull, isVisible, notOpenYet, phase, strikesOf } from '../../lib/student'
@@ -86,7 +87,7 @@ export default function ActivityDetail() {
           <CaretLeft size={20} /> กลับ
         </button>
         <h1 className="mt-10 text-2xl font-bold">ไม่พบกิจกรรมนี้</h1>
-        <p className="mt-2 text-muted">กิจกรรมอาจถูกลบ หรือผู้คุมยังไม่เปิดให้เห็น</p>
+        <p className="mt-2 text-muted">กิจกรรมถูกลบหรือยังไม่เปิดให้ดู</p>
         <LinkButton to="/" className="mt-8 w-full">
           ไปหน้าแรก
         </LinkButton>
@@ -101,7 +102,8 @@ export default function ActivityDetail() {
   const late = t > freeUntil
   const unreadDm = dms.filter((m) => m.fromSup && !m.read).length
   const multiDay = new Date(a.start).toDateString() !== new Date(a.end).toDateString()
-  const canScan = ph === 'live' && !credit && (registered || a.walkIn)
+  const bottle = isBottle(a)
+  const canScan = !bottle && ph === 'live' && !credit && (registered || a.walkIn)
 
   const share = async () => {
     const url = `${location.origin}${location.pathname}#/a/${a.id}`
@@ -142,7 +144,7 @@ export default function ActivityDetail() {
     try {
       await api.cancelRegistration(a.id, student.id, late)
       setSheet(null)
-      if (late) toast.error('ยกเลิกแล้ว ถูกหักเครดิต 1 ครั้ง', { description: `ภาคนี้เหลือ ${Math.max(0, left - 1)} จาก ${STRIKE_LIMIT} ครั้ง` })
+      if (late) toast.error('ยกเลิกแล้ว ถูกหักสิทธิ์ 1 ครั้ง', { description: `สิทธิ์ยกเลิกภาคนี้เหลือ ${Math.max(0, left - 1)} จาก ${STRIKE_LIMIT} ครั้ง` })
       else toast('ยกเลิกการลงทะเบียนแล้ว')
       await Promise.all([refresh(), load()])
     } catch {
@@ -166,24 +168,32 @@ export default function ActivityDetail() {
   }
 
   const status = credit
-    ? a.recordedAt
-      ? 'บันทึกลงระบบแล้ว'
-      : 'รอศูนย์บันทึก'
+    ? bottle
+      ? a.recordedAt
+        ? 'บันทึกลงระบบแล้ว'
+        : `แลก ${credit.items ?? 0} ขวด`
+      : a.recordedAt
+        ? 'บันทึกลงระบบแล้ว'
+        : 'รอศูนย์บันทึก'
     : ph === 'ended'
       ? 'กิจกรรมจบแล้ว'
-      : scheduled
-        ? `เปิดรับ${countdown(a.opensAt! - t)}`
-        : registered
-          ? `ลงทะเบียนแล้ว ${relDay(a.start, t)}`
-          : lateCancelled
-            ? 'ยกเลิกหลังกำหนด ลงทะเบียนซ้ำไม่ได้'
-            : left === 0
-              ? 'เครดิตภาคนี้หมดแล้ว'
-              : isFull(a)
-                ? 'ที่นั่งเต็มแล้ว'
-                : a.capLimit
-                  ? `เหลือ ${a.capacity - a.regCount} ที่`
-                  : `ลงชื่อแล้ว ${a.regCount} คน`
+      : bottle
+        ? ph === 'live'
+          ? 'รับขวดที่จุดรับตอนนี้'
+          : `เริ่ม ${relDay(a.start, t)}`
+        : scheduled
+          ? `เปิดรับ${countdown(a.opensAt! - t)}`
+          : registered
+            ? `ลงทะเบียนแล้ว ${relDay(a.start, t)}`
+            : lateCancelled
+              ? 'ยกเลิกหลังกำหนด ลงทะเบียนซ้ำไม่ได้'
+              : left === 0
+                ? 'สิทธิ์ยกเลิกหมดแล้ว'
+                : isFull(a)
+                  ? 'ที่นั่งเต็มแล้ว'
+                  : a.capLimit
+                    ? `เหลือ ${a.capacity - a.regCount} ที่`
+                    : `ลงทะเบียนแล้ว ${a.regCount} คน`
 
   return (
     <>
@@ -229,7 +239,7 @@ export default function ActivityDetail() {
                 </a>
               )}
             </Fact>
-            {ph === 'upcoming' && (
+            {ph === 'upcoming' && !bottle && (
               <Fact icon={<CalendarX size={22} />}>
                 {scheduled && (
                   <p className="font-semibold text-accent-strong">
@@ -239,34 +249,47 @@ export default function ActivityDetail() {
                 <p className={scheduled ? 'text-muted' : 'font-semibold'}>
                   ยกเลิกฟรีได้ถึง {thDate(freeUntil)} {thTime(freeUntil)} น.
                 </p>
-                <p className="text-muted">ยกเลิกหลังจากนั้นหรือไม่มา จะถูกหักเครดิต</p>
+                <p className="text-muted">ยกเลิกหลังกำหนดหรือไม่มา จะถูกหักสิทธิ์ยกเลิก 1 ครั้ง</p>
               </Fact>
             )}
             <Fact icon={<HourglassMedium size={22} />}>
-              <p className="font-semibold">ได้รับ {fmtHours(a.hours)} ชั่วโมง</p>
-              {a.walkIn && <p className="text-muted">ไม่ได้ลงชื่อก็มาสแกนรับชั่วโมงได้</p>}
-            </Fact>
-            <Fact icon={<UsersThree size={22} />}>
-              <p className="num font-semibold">ลงทะเบียนแล้ว {a.regCount}{a.capLimit ? ` จาก ${a.capacity}` : ''} คน</p>
-              {a.capLimit && (
-                <div className="mt-1">
-                  <Seats a={a} />
-                </div>
+              {bottle ? (
+                <>
+                  <p className="num font-semibold">
+                    {a.itemsPerHour} ขวด = 1 ชั่วโมง ได้สูงสุด {fmtHours(a.hours)} ชั่วโมง
+                  </p>
+                  <p className="text-muted">นำขวดพลาสติกที่ล้างแล้วมาที่จุดรับในเวลากิจกรรม</p>
+                </>
+              ) : (
+                <>
+                  <p className="font-semibold">ได้รับ {fmtHours(a.hours)} ชั่วโมง</p>
+                  {a.walkIn && <p className="text-muted">รับผู้ไม่ได้ลงทะเบียน</p>}
+                </>
               )}
             </Fact>
+            {!bottle && (
+              <Fact icon={<UsersThree size={22} />}>
+                <p className="num font-semibold">ลงทะเบียนแล้ว {a.regCount}{a.capLimit ? ` จาก ${a.capacity}` : ''} คน</p>
+                {a.capLimit && (
+                  <div className="mt-1">
+                    <Seats a={a} />
+                  </div>
+                )}
+              </Fact>
+            )}
           </div>
 
           <div className="mt-4 flex items-center gap-3 rounded-[var(--radius-card)] bg-surface p-4 shadow-soft">
             <div className="min-w-0 flex-1">
-              <p className="truncate font-semibold">{a.supervisor.name || 'ผู้คุมกิจกรรม'}</p>
-              <p className="num text-sm text-muted">ผู้คุมกิจกรรม {a.supervisor.phone && `โทร ${a.supervisor.phone}`}</p>
+              <p className="truncate font-semibold">{a.supervisor.name || 'ผู้ดูแลกิจกรรม'}</p>
+              <p className="num text-sm text-muted">ผู้ดูแลกิจกรรม {a.supervisor.phone && `โทร ${a.supervisor.phone}`}</p>
             </div>
-            <button onClick={() => nav(`/a/${a.id}/dm`)} aria-label="ส่งข้อความถึงผู้คุมกิจกรรม" className="pressable relative grid size-12 place-items-center rounded-full bg-surface-2">
+            <button onClick={() => nav(`/a/${a.id}/dm`)} aria-label="ส่งข้อความถึงผู้ดูแลกิจกรรม" className="pressable relative grid size-12 place-items-center rounded-full bg-surface-2">
               <ChatTeardropText size={22} weight="fill" />
               {unreadDm > 0 && <span className="absolute top-2 right-2 size-2.5 rounded-full bg-accent" />}
             </button>
             {a.supervisor.phone && (
-              <a href={`tel:${a.supervisor.phone.replace(/\D/g, '')}`} aria-label="โทรหาผู้คุมกิจกรรม" className="pressable grid size-12 place-items-center rounded-full bg-surface-2">
+              <a href={`tel:${a.supervisor.phone.replace(/\D/g, '')}`} aria-label="โทรหาผู้ดูแลกิจกรรม" className="pressable grid size-12 place-items-center rounded-full bg-surface-2">
                 <Phone size={22} weight="fill" />
               </a>
             )}
@@ -285,13 +308,13 @@ export default function ActivityDetail() {
               <div className="mt-3 divide-y divide-line overflow-hidden rounded-[var(--radius-card)] bg-surface shadow-soft">
                 {a.chatEnabled && (
                   <button
-                    onClick={() => (registered || credit ? nav(`/a/${a.id}/chat`) : toast('ลงทะเบียนก่อนเพื่อเข้าห้องแชท'))}
+                    onClick={() => (registered || credit ? nav(`/a/${a.id}/chat`) : toast('ลงทะเบียนก่อนจึงเข้าห้องแชทได้'))}
                     className="pressable flex w-full items-center gap-4 px-5 py-4 text-left"
                   >
                     <span className="text-accent-strong">{registered || credit ? <ChatCircleDots size={24} weight="fill" /> : <LockSimple size={24} weight="fill" />}</span>
                     <span className="min-w-0 flex-1">
                       <span className="block font-semibold">ห้องแชทกิจกรรม</span>
-                      <span className="block text-sm text-muted">{registered || credit ? 'คุยกับผู้คุมและผู้เข้าร่วม' : 'สำหรับคนที่ลงทะเบียนแล้ว'}</span>
+                      <span className="block text-sm text-muted">{registered || credit ? 'ผู้ดูแลและผู้เข้าร่วม' : 'เฉพาะผู้ลงทะเบียน'}</span>
                     </span>
                     <CaretRight size={18} className="text-muted" />
                   </button>
@@ -303,7 +326,7 @@ export default function ActivityDetail() {
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="block font-semibold">LINE OpenChat</span>
-                      <span className="block text-sm text-muted">สำหรับคนที่สะดวกคุยใน LINE</span>
+                      <span className="block text-sm text-muted">กลุ่มสนทนาใน LINE</span>
                     </span>
                     <CaretRight size={18} className="text-muted" />
                   </a>
@@ -314,10 +337,10 @@ export default function ActivityDetail() {
 
           <section className="mt-9">
             <h2 className="text-xl font-semibold">
-              ประกาศจากผู้คุม {notes.length > 0 && <span className="num text-muted">{notes.length}</span>}
+              ประกาศจากผู้ดูแล {notes.length > 0 && <span className="num text-muted">{notes.length}</span>}
             </h2>
             {notes.length === 0 ? (
-              <p className="mt-3 text-muted">ยังไม่มีประกาศ ถ้ามีการเปลี่ยนแปลงจะแจ้งที่นี่</p>
+              <p className="mt-3 text-muted">ยังไม่มีประกาศ</p>
             ) : (
               <ul className="mt-3 flex flex-col gap-3">
                 {notes.map((n) => (
@@ -342,14 +365,14 @@ export default function ActivityDetail() {
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-surface/95 backdrop-blur-xl">
         <div className="mx-auto flex max-w-lg items-center gap-4 px-5 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
           <div className="min-w-0 flex-1">
-            <p className="num text-2xl leading-tight font-bold">{credit ? `ได้รับ ${fmtHours(credit.hours)} ชม.` : `+${fmtHours(a.hours)} ชม.`}</p>
+            <p className="num text-2xl leading-tight font-bold">{credit ? `ได้รับ ${fmtHours(credit.hours)} ชม.` : bottle ? `สูงสุด ${fmtHours(a.hours)} ชม.` : `+${fmtHours(a.hours)} ชม.`}</p>
             <p className={`truncate text-sm ${scheduled ? 'font-semibold text-accent-strong' : 'text-muted'}`}>{status}</p>
           </div>
           {credit ? (
             <LinkButton to={`/a/${a.id}/roster`} variant="primary">
               ตรวจสอบรายชื่อ
             </LinkButton>
-          ) : ph === 'ended' ? (
+          ) : bottle ? null : ph === 'ended' ? (
             <Button size="lg" variant="secondary" disabled>
               จบแล้ว
             </Button>
@@ -372,11 +395,11 @@ export default function ActivityDetail() {
           ) : scheduled ? (
             <Button size="lg" variant={reminding ? 'secondary' : 'primary'} onClick={toggleReminder}>
               {reminding ? <BellRinging size={20} weight="fill" /> : <BellSimple size={20} weight="bold" />}
-              {reminding ? 'จะเตือนคุณ' : 'เตือนฉัน'}
+              {reminding ? 'ตั้งเตือนแล้ว' : 'เตือนฉัน'}
             </Button>
           ) : left === 0 ? (
             <Button size="lg" variant="secondary" onClick={() => setSheet('blocked')}>
-              สมัครไม่ได้
+              ลงทะเบียนไม่ได้
             </Button>
           ) : (
             <Button size="lg" onClick={() => setSheet('register')}>
@@ -404,12 +427,12 @@ export default function ActivityDetail() {
             </div>
             <p className="num text-muted">{student?.id}</p>
           </div>
-          <p className="text-muted">เมื่อจบกิจกรรม สแกน QR จากผู้คุมเพื่อรับ {fmtHours(a.hours)} ชั่วโมง</p>
+          <p className="text-muted">สแกน QR ที่งานเพื่อรับ {fmtHours(a.hours)} ชั่วโมง</p>
           <div className={`rounded-2xl bg-surface-2 p-4 ${left === 1 ? 'ring-2 ring-accent' : ''}`}>
             <p className="font-semibold">{late ? 'เลยกำหนดยกเลิกฟรีแล้ว' : `ยกเลิกฟรีได้ถึง ${thDate(freeUntil)} ${thTime(freeUntil)} น.`}</p>
             <p className="mt-1 text-sm text-muted">
-              {late ? 'ถ้ายกเลิกหรือไม่มา' : 'ยกเลิกหลังจากนั้นหรือไม่มา'} จะถูกหักเครดิต 1 ครั้ง ภาคนี้เหลือ {left} จาก {STRIKE_LIMIT} ครั้ง
-              {left === 1 && ' ถ้าหมดจะสมัครกิจกรรมไม่ได้จนจบภาคการศึกษา'}
+              {late ? 'ยกเลิกหรือไม่มา' : 'ยกเลิกหลังกำหนดหรือไม่มา'} จะถูกหักสิทธิ์ยกเลิก 1 ครั้ง ภาคนี้เหลือ {left} จาก {STRIKE_LIMIT} ครั้ง
+              {left === 1 && ' สิทธิ์หมดแล้วลงทะเบียนไม่ได้จนจบภาค'}
             </p>
           </div>
           <Button size="lg" className="w-full" loading={busy} onClick={register}>
@@ -423,27 +446,27 @@ export default function ActivityDetail() {
           {late ? (
             <>
               <div className="rounded-2xl bg-bad-soft p-4">
-                <p className="font-semibold text-bad">ยกเลิกตอนนี้จะถูกหักเครดิต 1 ครั้ง</p>
+                <p className="font-semibold text-bad">ยกเลิกตอนนี้จะถูกหักสิทธิ์ 1 ครั้ง</p>
                 <p className="mt-1 text-sm">
-                  เลยกำหนดยกเลิกฟรีแล้ว ภาคนี้จะเหลือ {Math.max(0, left - 1)} จาก {STRIKE_LIMIT} ครั้ง
-                  {left <= 1 && ' และจะสมัครกิจกรรมไม่ได้จนจบภาคการศึกษา'}
+                  เลยกำหนดยกเลิกฟรีแล้ว สิทธิ์ภาคนี้จะเหลือ {Math.max(0, left - 1)} จาก {STRIKE_LIMIT} ครั้ง
+                  {left <= 1 && ' ลงทะเบียนไม่ได้จนจบภาค'}
                 </p>
               </div>
               <div className="flex items-center gap-3 rounded-2xl bg-surface-2 p-4">
                 <div className="min-w-0 flex-1">
                   <p className="font-semibold">มีเหตุสุดวิสัย เช่น ป่วยหรืออุบัติเหตุ</p>
-                  <p className="text-sm text-muted">ส่งข้อความถึงผู้คุม ผู้คุมคืนเครดิตให้ได้</p>
+                  <p className="text-sm text-muted">ส่งข้อความถึงผู้ดูแลเพื่อขอคืนสิทธิ์</p>
                 </div>
-                <button onClick={() => nav(`/a/${a.id}/dm`)} aria-label="ส่งข้อความถึงผู้คุมกิจกรรม" className="pressable grid size-12 shrink-0 place-items-center rounded-full bg-surface">
+                <button onClick={() => nav(`/a/${a.id}/dm`)} aria-label="ส่งข้อความถึงผู้ดูแลกิจกรรม" className="pressable grid size-12 shrink-0 place-items-center rounded-full bg-surface">
                   <ChatTeardropText size={22} weight="fill" />
                 </button>
               </div>
             </>
           ) : (
-            <p className="text-muted">ยังยกเลิกได้ฟรีถึง {thDate(freeUntil)} {thTime(freeUntil)} น. ที่นั่งของคุณจะเปิดให้คนอื่นลงทะเบียนแทน</p>
+            <p className="text-muted">ยังยกเลิกได้ฟรีถึง {thDate(freeUntil)} {thTime(freeUntil)} น. ที่นั่งจะเปิดให้ผู้อื่น</p>
           )}
           <Button size="lg" variant="danger" className="mt-2 w-full" loading={busy} onClick={cancel}>
-            {late ? 'ยกเลิกและเสียเครดิต' : 'ยกเลิกการลงทะเบียน'}
+            {late ? 'ยกเลิกและหักสิทธิ์' : 'ยกเลิกการลงทะเบียน'}
           </Button>
           <Button size="lg" variant="ghost" className="w-full" onClick={() => setSheet(null)}>
             ไม่ยกเลิก
@@ -451,12 +474,12 @@ export default function ActivityDetail() {
         </div>
       </Sheet>
 
-      <Sheet open={sheet === 'blocked'} onClose={() => setSheet(null)} title="เครดิตภาคนี้หมดแล้ว">
+      <Sheet open={sheet === 'blocked'} onClose={() => setSheet(null)} title="สิทธิ์ยกเลิกหมดแล้ว">
         <div className="flex flex-col gap-4">
-          <p className="text-muted">ยกเลิกหลังกำหนดหรือไม่มาครบ {STRIKE_LIMIT} ครั้งในภาคการศึกษานี้ จึงสมัครกิจกรรมใหม่ไม่ได้จนถึงภาคการศึกษาหน้า</p>
-          <p className="text-muted">ถ้าครั้งไหนมีเหตุสุดวิสัย ส่งข้อความถึงผู้คุมกิจกรรมนั้นเพื่อขอคืนเครดิต</p>
+          <p className="text-muted">ยกเลิกหลังกำหนดหรือไม่มาครบ {STRIKE_LIMIT} ครั้งในภาคนี้ ลงทะเบียนกิจกรรมใหม่ได้ในภาคหน้า</p>
+          <p className="text-muted">หากมีเหตุสุดวิสัย ส่งข้อความถึงผู้ดูแลกิจกรรมนั้นเพื่อขอคืนสิทธิ์</p>
           <Button size="lg" className="w-full" onClick={() => nav('/me')}>
-            ดูเครดิตของฉัน
+            ดูสิทธิ์ยกเลิก
           </Button>
         </div>
       </Sheet>

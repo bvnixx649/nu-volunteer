@@ -43,7 +43,7 @@ export default function DirectMessage() {
       <main className="mx-auto max-w-lg px-5 pt-[calc(0.5rem+env(safe-area-inset-top,0px))]">
         <BackBar fallback={`/a/${id}`} />
         <h1 className="mt-6 text-2xl font-bold">ข้อความส่วนตัวหมดอายุแล้ว</h1>
-        <p className="mt-2 text-muted">ข้อความถึงผู้คุมซ่อนหลังกิจกรรมจบ {DM_HIDE_DAYS} วัน ถ้ายังต้องการติดต่อ โทรหาผู้คุมตามเบอร์ในหน้ากิจกรรม</p>
+        <p className="mt-2 text-muted">ข้อความถูกซ่อนหลังกิจกรรมจบ {DM_HIDE_DAYS} วัน ติดต่อผู้ดูแลตามเบอร์โทรในหน้ากิจกรรม</p>
       </main>
     )
   }
@@ -51,12 +51,12 @@ export default function DirectMessage() {
   return (
     <Thread
       fallback={`/a/${id}`}
-      title={`ผู้คุม ${a?.supervisor.name ?? ''}`}
+      title={`ผู้ดูแล ${a?.supervisor.name ?? ''}`}
       subtitle={a?.title}
-      intro="ข้อความส่วนตัวถึงผู้คุมกิจกรรมนี้ ผู้เข้าร่วมคนอื่นไม่เห็น ใช้แจ้งเหตุผลที่มาไม่ได้หรือถามรายละเอียด"
+      intro="ข้อความส่วนตัวถึงผู้ดูแล ผู้เข้าร่วมคนอื่นไม่เห็น"
       messages={bubbles}
       quick={QUICK}
-      placeholder="พิมพ์ข้อความถึงผู้คุม"
+      placeholder="พิมพ์ข้อความถึงผู้ดูแล"
       onSend={async (text) => {
         if (!student) return
         try {

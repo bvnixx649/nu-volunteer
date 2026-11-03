@@ -157,6 +157,9 @@ export function createRemoteApi(): Api {
     async setHours(a, s, hours, reason, by) {
       await rpc('set_hours', { p_activity: a, p_student: s, p_hours: hours, p_reason: reason, p_by: by })
     },
+    async setItems(a, s, items) {
+      await must(supabase.from('credits').update({ items }).eq('activity_id', a).eq('student_id', s))
+    },
     async removeCredit(a, s) {
       await rpc('remove_credit', { p_activity: a, p_student: s })
     },

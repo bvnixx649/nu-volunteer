@@ -79,7 +79,6 @@ export default function Mine() {
           ) : (
             <div className="rounded-[var(--radius-card)] bg-surface px-6 py-10 text-center shadow-soft">
               <p className="text-lg font-semibold">ยังไม่มีกิจกรรมที่ลงทะเบียน</p>
-              <p className="mt-2 text-muted">เลือกกิจกรรมจากหน้าแรก ลงทะเบียนแล้วจะขึ้นที่นี่</p>
               <LinkButton to="/" className="mt-6">
                 ดูกิจกรรมที่เปิดรับ
               </LinkButton>
@@ -92,7 +91,7 @@ export default function Mine() {
               <Row key={a.id} a={a} i={i}>
                 <p className="text-sm text-muted">{thDate(a.start)}</p>
                 <p className="line-clamp-2 leading-snug font-semibold">{a.title}</p>
-                {credit ? <p className="num text-sm font-semibold text-ok">+{fmtHours(credit.hours)} ชั่วโมง</p> : <p className="text-sm text-muted">ไม่ได้รับชั่วโมง</p>}
+                {credit ? <p className="num text-sm font-semibold text-ok">+{fmtHours(credit.hours)} ชั่วโมง{credit.items !== undefined && ` จากแลกขวด ${credit.items} ขวด`}</p> : <p className="text-sm text-muted">ไม่ได้รับชั่วโมง</p>}
               </Row>
             ))
           ) : (

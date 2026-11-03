@@ -144,7 +144,7 @@ export default function Claim() {
           {view.kind === 'confirm' && (
             <div className="flex flex-col gap-4">
               <h1 className="text-2xl font-bold">ใช่ {view.student.name} ไหม</h1>
-              <p className="text-muted">รหัส {view.student.id} ลงชื่อไว้ในระบบแล้ว</p>
+              <p className="text-muted">พบรหัส {view.student.id} ในระบบ</p>
               <Button
                 size="lg"
                 className="mt-4 w-full"

@@ -39,7 +39,7 @@ export default async function ({ browser, base, load, shot }) {
     localStorage.setItem('nuv:db', JSON.stringify(db))
   })
   await page.goto(`${base}#/sup/login`)
-  await page.getByLabel('ชื่อผู้คุม').fill('พี่เต้')
+  await page.getByLabel('ชื่อผู้ดูแล').fill('พี่เต้')
   await page.getByLabel('รหัสหน่วยงาน').fill('NUVOL69')
   await page.getByRole('button', { name: 'เข้าใช้งาน' }).click()
   await page.waitForURL(/#\/sup$/)

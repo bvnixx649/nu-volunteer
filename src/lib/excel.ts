@@ -3,7 +3,7 @@ import type { Activity, Credit, Registration } from '../data/types'
 import { thDate, thTime } from './format'
 import { rosterRows } from './roster'
 
-/** Supervisor file columns, in order. SPEC section 12. */
+/** Activity supervisor file columns, in order. SPEC section 12. */
 export const SUP_COLUMNS = ['ลำดับ', 'รหัสนิสิต', 'ชื่อ', 'กิจกรรม', 'หมวด', 'วันที่', 'ชั่วโมง', 'สถานะ', 'เวลายืนยัน', 'ยืนยันโดย', 'หมายเหตุ'] as const
 
 export type SupRow = Record<(typeof SUP_COLUMNS)[number], string | number>
@@ -13,8 +13,9 @@ export function supRows(activity: Activity, regs: Registration[], credits: Credi
   return rosterRows(regs, credits, 'all', '').map((r, i) => {
     const c = r.credit
     const notes = [
+      c?.items !== undefined && `${c.items} ขวด`,
       c?.reason,
-      c?.flags.includes('location') && (c.distance !== undefined ? `ตำแหน่งไม่ผ่าน ${Math.round(c.distance)} ม.` : 'ตำแหน่งไม่ผ่าน'),
+      c?.flags.includes('location') && (c.distance !== undefined ? `อยู่นอกพื้นที่ ${Math.round(c.distance)} ม.` : 'อยู่นอกพื้นที่'),
       c?.flags.includes('device') && 'เครื่องซ้ำ',
     ].filter(Boolean)
     return {
@@ -25,9 +26,9 @@ export function supRows(activity: Activity, regs: Registration[], credits: Credi
       หมวด: categoryOf(activity.categoryKey).label,
       วันที่: thDate(activity.start),
       ชั่วโมง: c ? c.hours : 0,
-      สถานะ: !c ? 'ไม่มา' : r.reg?.walkIn ? 'มาเพิ่ม' : 'ได้ชั่วโมง',
+      สถานะ: !c ? 'ไม่มา' : r.reg?.walkIn && c.items === undefined ? 'ไม่ได้ลงทะเบียน' : 'ได้ชั่วโมง',
       เวลายืนยัน: c ? `${thTime(c.at)} น.` : '',
-      ยืนยันโดย: !c ? '' : c.method === 'qr' ? 'สแกน QR' : (c.editedBy ?? 'ผู้คุม'),
+      ยืนยันโดย: !c ? '' : c.method === 'qr' ? 'สแกน QR' : (c.editedBy ?? 'ผู้ดูแล'),
       หมายเหตุ: notes.join(', '),
     }
   })
