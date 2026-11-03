@@ -1,4 +1,4 @@
-export type CategoryKey = 'blood' | 'setup' | 'bottle'
+export type CategoryKey = 'blood' | 'setup' | 'bottle' | 'other'
 export type QrMode = 'dynamic' | 'static'
 export type LocMode = 'on' | 'off'
 export type CreditFlag = 'location' | 'device'
@@ -76,6 +76,8 @@ export interface Activity {
   id: string
   title: string
   categoryKey: CategoryKey
+  /** The supervisor-made template this activity started from (categoryKey is then 'other'). The template may be deleted later. */
+  templateId?: string
   org: string
   orgCode: string
   poster: string
@@ -151,3 +153,33 @@ export type NewActivity = Omit<Activity, 'id' | 'createdAt' | 'regCount' | 'cred
 
 /** Fields the editor and the settings sheet may change. A key present with value undefined clears an optional field. */
 export type ActivityEdit = Partial<Omit<NewActivity, 'org' | 'orgCode' | 'closedAt' | 'submittedAt' | 'recordedAt' | 'hidden'>>
+
+/** Defaults a template carries for the check-in and intake settings. */
+export interface TemplateSettings {
+  capLimit: boolean
+  capacity: number
+  walkIn: boolean
+  qrMode: QrMode
+  qrInterval: number
+  locMode: LocMode
+  radius: number
+}
+
+/** A template a supervisor made, shared by everyone who signs in with the same organisation code. */
+export interface Template {
+  id: string
+  orgCode: string
+  title: string
+  poster: string
+  description: string
+  hours: number
+  settings: TemplateSettings
+  createdBy: string
+  createdAt: number
+}
+
+/** What createTemplate takes: everything but the id and the server time. */
+export type NewTemplate = Omit<Template, 'id' | 'createdAt'>
+
+/** Fields editing a template may change. */
+export type TemplateEdit = Partial<Pick<Template, 'title' | 'poster' | 'description' | 'hours' | 'settings'>>

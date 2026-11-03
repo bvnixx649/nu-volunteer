@@ -231,6 +231,31 @@ describe('access', () => {
   })
 })
 
+describe('templates', () => {
+  it('stores a template per organisation, lets a signed-in user write it and keeps activities when it is deleted', async () => {
+    await db.exec(`insert into templates (id, org_code, title, hours) values ('t1', 'NUVOL69', 'งานรับน้อง', 4), ('t2', 'OTHER', 'งานอื่น', 2)`)
+    const t = (await db.query<{ poster: string; description: string; settings: unknown; created_by: string; created_at: string }>(`select * from templates where id = 't1'`)).rows[0]
+    expect(t).toMatchObject({ poster: '', description: '', settings: {}, created_by: '' })
+    expect(t.created_at).toBeTruthy()
+    expect((await db.query(`select id from templates where org_code = 'NUVOL69'`)).rows).toEqual([{ id: 't1' }])
+
+    await db.exec(`update activities set category_key = 'other', template_id = 't1' where id = 'a1'`)
+    await db.exec(`delete from templates where id = 't1'`)
+    expect((await db.query(`select category_key, template_id from activities where id = 'a1'`)).rows).toEqual([{ category_key: 'other', template_id: 't1' }])
+
+    await db.exec('set role authenticated')
+    try {
+      await db.exec(`insert into templates (id, org_code, title, hours, settings) values ('t3', 'NUVOL69', 'ใหม่', 3, '{"capLimit":true}')`)
+      await db.exec(`update templates set title = 'แก้' where id = 't3'`)
+      expect((await db.query(`select title from templates where id = 't3'`)).rows).toEqual([{ title: 'แก้' }])
+      await db.exec(`delete from templates where id = 't3'`)
+    } finally {
+      await db.exec('reset role')
+    }
+    await db.exec(`delete from templates`)
+  })
+})
+
 describe('seed-test.sql', () => {
   it('mirrors the fixture, can be run twice and is removed by clean-test.sql', async () => {
     await db.exec(seed)

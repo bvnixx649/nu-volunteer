@@ -3,7 +3,9 @@ import { newId } from '../lib/id'
 import {
   fromActivityPatch,
   fromNewActivity,
+  fromNewTemplate,
   fromStudent,
+  fromTemplatePatch,
   toActivity,
   toAnnouncement,
   toChatMsg,
@@ -15,6 +17,7 @@ import {
   toOrg,
   toRegistration,
   toStudent,
+  toTemplate,
 } from './rows'
 import { ready, supabase } from './supabase'
 
@@ -233,6 +236,20 @@ export function createRemoteApi(): Api {
     },
     async markDmsRead(a, s, readerIsSup) {
       await must(supabase.from('dms').update({ read: true }).eq('activity_id', a).eq('student_id', s).eq('from_sup', !readerIsSup).eq('read', false))
+    },
+    async listTemplates(orgCode) {
+      return ((await must(supabase.from('templates').select('*').eq('org_code', orgCode).order('created_at', { ascending: true }))) ?? []).map(toTemplate)
+    },
+    async createTemplate(t) {
+      const row = await must(supabase.from('templates').insert(fromNewTemplate(newId(), t)).select('*').single())
+      return toTemplate(row)
+    },
+    async updateTemplate(id, patch) {
+      const row = fromTemplatePatch(patch)
+      if (Object.keys(row).length) await must(supabase.from('templates').update(row).eq('id', id))
+    },
+    async deleteTemplate(id) {
+      await must(supabase.from('templates').delete().eq('id', id))
     },
     async submitRoster(a) {
       await rpc('submit_roster', { p_activity: a })

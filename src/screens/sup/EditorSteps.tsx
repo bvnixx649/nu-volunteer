@@ -1,10 +1,10 @@
 import { useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'motion/react'
-import { CaretDown, Check, ImageSquare, MapPin, PencilSimple } from '@phosphor-icons/react'
+import { CaretDown, Check, DotsThree, ImageSquare, MapPin, PencilSimple, Plus } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { HOUR_CHIPS } from '../../config'
-import { categoryOf, CATEGORIES, CATEGORY_KEYS } from '../../data/categories'
-import type { CategoryKey } from '../../data/types'
+import { categoryOf, CATEGORIES, BUILTIN_KEYS } from '../../data/categories'
+import type { CategoryKey, Template } from '../../data/types'
 import { checkinSummary } from '../../lib/checkin'
 import { isBottleDraft, toMs, ymd, posterChoices, type Draft } from '../../lib/draft'
 import { thDate, thTime } from '../../lib/format'
@@ -67,29 +67,107 @@ const num = (s: string) => s.replace(/\D/g, '').slice(0, 4)
 
 /* Step 1 ------------------------------------------------------------------------------------------ */
 
-export function StepCategory({ d, onPick }: { d: Draft; onPick: (k: CategoryKey) => void }) {
+type CategoryProps = {
+  d: Draft
+  templates: Template[]
+  onPick: (k: CategoryKey) => void
+  onPickTemplate: (t: Template) => void
+  onAdd: () => void
+  /** Opens the edit and delete choices for a custom template. */
+  onMenu: (t: Template) => void
+}
+
+const LONG_PRESS_MS = 480
+
+/** A custom template card. A tap picks it; a long press or the "..." button opens edit and delete. */
+function TemplateCard({ t, on, onPick, onMenu }: { t: Template; on: boolean; onPick: () => void; onMenu: () => void }) {
+  const timer = useRef<number>(0)
+  const held = useRef(false)
+  const stop = () => window.clearTimeout(timer.current)
   return (
-    <div className="grid grid-cols-2 gap-3">
-      {CATEGORY_KEYS.map((k) => {
-        const c = CATEGORIES[k]
-        const on = d.categoryKey === k
-        return (
-          <button
-            key={k}
-            type="button"
-            aria-pressed={on}
-            onClick={() => onPick(k)}
-            className={`pressable overflow-hidden rounded-[var(--radius-card)] bg-surface text-left shadow-soft ring-1 transition-shadow duration-200 ${on ? 'ring-2 ring-accent' : 'ring-line'}`}
-          >
-            <img src={posterChoices(k)[0]} alt="" className="aspect-[4/3] w-full object-cover" />
-            <span className="block px-3.5 py-3">
-              <span className="block font-semibold">{c.label}</span>
-              <span className="num block text-sm text-muted">{c.itemsPerHour ? `สูงสุด ${c.hours} ชม.` : `${c.hours} ชม.`}</span>
-            </span>
-          </button>
-        )
-      })}
+    <div className={`relative overflow-hidden rounded-[var(--radius-card)] bg-surface shadow-soft ring-1 transition-shadow duration-200 ${on ? 'ring-2 ring-accent' : 'ring-line'}`}>
+      <button
+        type="button"
+        aria-pressed={on}
+        onClick={() => {
+          if (held.current) held.current = false
+          else onPick()
+        }}
+        onPointerDown={() => {
+          held.current = false
+          stop()
+          timer.current = window.setTimeout(() => {
+            held.current = true
+            navigator.vibrate?.(10)
+            onMenu()
+          }, LONG_PRESS_MS)
+        }}
+        onPointerUp={stop}
+        onPointerLeave={stop}
+        onPointerCancel={stop}
+        onPointerMove={(e) => (Math.abs(e.movementX) + Math.abs(e.movementY) > 6 ? stop() : undefined)}
+        onContextMenu={(e) => e.preventDefault()}
+        className="pressable block w-full text-left select-none [-webkit-touch-callout:none]"
+      >
+        <img src={t.poster} alt="" draggable={false} className="aspect-[4/3] w-full object-cover" />
+        <span className="block py-3 pr-12 pl-3.5">
+          <span className="block truncate font-semibold">{t.title}</span>
+          <span className="num block text-sm text-muted">{t.hours} ชม.</span>
+        </span>
+      </button>
+      <button
+        type="button"
+        aria-label={`ตัวเลือกของ ${t.title}`}
+        onClick={onMenu}
+        className="pressable absolute right-0 bottom-0 grid size-12 place-items-center text-muted"
+      >
+        <DotsThree size={26} weight="bold" />
+      </button>
     </div>
+  )
+}
+
+export function StepCategory({ d, templates, onPick, onPickTemplate, onAdd, onMenu }: CategoryProps) {
+  return (
+    <>
+      <div className="grid grid-cols-2 gap-3">
+        {BUILTIN_KEYS.map((k) => {
+          const c = CATEGORIES[k]
+          const on = d.categoryKey === k
+          return (
+            <button
+              key={k}
+              type="button"
+              aria-pressed={on}
+              onClick={() => onPick(k)}
+              className={`pressable overflow-hidden rounded-[var(--radius-card)] bg-surface text-left shadow-soft ring-1 transition-shadow duration-200 ${on ? 'ring-2 ring-accent' : 'ring-line'}`}
+            >
+              <img src={posterChoices(k)[0]} alt="" className="aspect-[4/3] w-full object-cover" />
+              <span className="block px-3.5 py-3">
+                <span className="block font-semibold">{c.label}</span>
+                <span className="num block text-sm text-muted">{c.itemsPerHour ? `สูงสุด ${c.hours} ชม.` : `${c.hours} ชม.`}</span>
+              </span>
+            </button>
+          )
+        })}
+        {templates.map((t) => (
+          <TemplateCard key={t.id} t={t} on={d.templateId === t.id} onPick={() => onPickTemplate(t)} onMenu={() => onMenu(t)} />
+        ))}
+      </div>
+      <div className="mt-8 flex flex-col items-center gap-2">
+        <button
+          type="button"
+          aria-label="เพิ่มเทมเพลต"
+          onClick={onAdd}
+          className="pressable grid size-16 place-items-center rounded-full bg-accent-soft text-accent"
+        >
+          <Plus size={28} weight="bold" />
+        </button>
+        <span aria-hidden className="text-sm text-muted">
+          เพิ่มเทมเพลต
+        </span>
+      </div>
+    </>
   )
 }
 
@@ -195,7 +273,7 @@ const GEO_MSG: Record<GeoError, string> = {
 /** Summary line shown while "ตั้งค่าเพิ่มเติม" is closed. */
 export function settingsSummary(d: Draft): string {
   const who = d.supName.trim() ? `ผู้ดูแล ${d.supName.trim()}` : ''
-  if (isBottleDraft(d)) return [who, d.chatEnabled && 'มีห้องแชท'].filter(Boolean).join(', ')
+  if (isBottleDraft(d)) return who
   const parts = [
     d.capLimit ? `รับ ${d.capacity} คน` : 'ไม่จำกัดจำนวน',
     d.walkIn && 'รับผู้ไม่ได้ลงทะเบียน',
@@ -316,6 +394,25 @@ export function StepDetails({ d, set, errors, advancedOpen, onAdvanced }: StepPr
         <textarea id="desc" rows={7} className={areaClass} value={d.description} onChange={(e) => set({ description: e.target.value })} />
       </Disclosure>
 
+      <Group>
+        <Switch checked={d.chatEnabled} onChange={(v) => set({ chatEnabled: v })} label="เปิดห้องแชท" />
+        <Reveal show={d.chatEnabled}>
+          <div className="pb-4">
+            <Field
+              label="ลิงก์ OpenChat"
+              type="url"
+              inputMode="url"
+              autoCapitalize="none"
+              autoCorrect="off"
+              placeholder="https://line.me/ti/g2/"
+              value={d.openChatUrl}
+              onChange={(e) => set({ openChatUrl: e.target.value })}
+              error={errors.openChatUrl}
+            />
+          </div>
+        </Reveal>
+      </Group>
+
       <Disclosure title="ตั้งค่าเพิ่มเติม" summary={settingsSummary(d)} open={advancedOpen} onToggle={() => onAdvanced(!advancedOpen)}>
         <div className="flex flex-col gap-6 pt-1">
           {!bottle && (
@@ -370,24 +467,6 @@ export function StepDetails({ d, set, errors, advancedOpen, onAdvanced }: StepPr
           <div className="flex flex-col gap-5">
             <Field label="ชื่อผู้ดูแลกิจกรรม" value={d.supName} onChange={(e) => set({ supName: e.target.value })} error={errors.supName} autoComplete="name" />
             <Field label="เบอร์ติดต่อ" type="tel" inputMode="tel" autoComplete="tel" value={d.phone} onChange={(e) => set({ phone: e.target.value })} />
-            <Group>
-              <Switch checked={d.chatEnabled} onChange={(v) => set({ chatEnabled: v })} label="เปิดห้องแชท" />
-              <Reveal show={d.chatEnabled}>
-                <div className="pb-4">
-                  <Field
-                    label="ลิงก์ OpenChat"
-                    type="url"
-                    inputMode="url"
-                    autoCapitalize="none"
-                    autoCorrect="off"
-                    placeholder="https://line.me/ti/g2/"
-                    value={d.openChatUrl}
-                    onChange={(e) => set({ openChatUrl: e.target.value })}
-                    error={errors.openChatUrl}
-                  />
-                </div>
-              </Reveal>
-            </Group>
           </div>
         </div>
       </Disclosure>
@@ -406,7 +485,7 @@ function SummaryRow({ label, children }: { label: string; children: ReactNode })
   )
 }
 
-export function StepReview({ d }: { d: Draft }) {
+export function StepReview({ d, templateName }: { d: Draft; templateName?: string }) {
   const start = toMs(d.date, d.startT)
   const end = toMs(d.date, d.endT)
   const open = d.scheduled ? toMs(d.openDate, d.openT) : NaN
@@ -433,7 +512,14 @@ export function StepReview({ d }: { d: Draft }) {
       </article>
 
       <dl className="divide-y divide-line">
-        <SummaryRow label="เทมเพลต">{d.categoryKey ? categoryOf(d.categoryKey).label : ''}</SummaryRow>
+        <SummaryRow label="เทมเพลต">{d.categoryKey ? categoryOf(d.categoryKey).label : ''}
+          {templateName && (
+            <>
+              <br />
+              {templateName}
+            </>
+          )}
+        </SummaryRow>
         {bottle ? (
           <SummaryRow label="การแลก">
             {d.itemsPerHour} ขวด ได้ 1 ชั่วโมง

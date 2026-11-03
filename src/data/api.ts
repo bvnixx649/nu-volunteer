@@ -14,6 +14,9 @@ import type {
   Org,
   Registration,
   Student,
+  Template,
+  TemplateEdit,
+  NewTemplate,
 } from './types'
 import { createLocalApi, seedIfEmpty } from './local'
 import { FIXTURE } from './fixture'
@@ -97,6 +100,13 @@ export interface Api {
   sendDm(m: Omit<DirectMsg, 'id' | 'at' | 'read'>): Promise<void>
   /** Marks the other side's messages in the thread as read. */
   markDmsRead(activityId: string, studentId: string, readerIsSup: boolean): Promise<void>
+  /** Templates of one organisation, oldest first. */
+  listTemplates(orgCode: string): Promise<Template[]>
+  /** Creates a template with a short random id and server time as createdAt. Returns it. */
+  createTemplate(t: NewTemplate): Promise<Template>
+  updateTemplate(id: string, patch: TemplateEdit): Promise<void>
+  /** Activities made from it keep their copy of the values. */
+  deleteTemplate(id: string): Promise<void>
   /** Sets submittedAt unless already set, and closedAt too if the roster was still open. */
   submitRoster(activityId: string): Promise<void>
 }
@@ -142,6 +152,10 @@ function lazyRemote(): Api {
     createActivity: call('createActivity'),
     updateActivity: call('updateActivity'),
     submitRoster: call('submitRoster'),
+    listTemplates: call('listTemplates'),
+    createTemplate: call('createTemplate'),
+    updateTemplate: call('updateTemplate'),
+    deleteTemplate: call('deleteTemplate'),
     listActivities: call('listActivities'),
     listCredits: call('listCredits'),
     studentRegistrations: call('studentRegistrations'),

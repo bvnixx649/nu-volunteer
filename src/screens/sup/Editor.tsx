@@ -4,13 +4,14 @@ import { AnimatePresence, motion } from 'motion/react'
 import { CaretLeft, X } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { api } from '../../data/api'
-import type { Activity, CategoryKey } from '../../data/types'
-import { ADVANCED_FIELDS, applyCategory, blankDraft, check, DEFAULT_KEYS, draftOf, isDirty, STEP_COUNT, toEdit, toNewActivity, type Draft } from '../../lib/draft'
+import type { Activity, CategoryKey, NewTemplate, Template } from '../../data/types'
+import { ADVANCED_FIELDS, applyCategory, applyTemplate, blankDraft, check, DEFAULT_KEYS, draftOf, isDirty, STEP_COUNT, toEdit, toNewActivity, type Draft } from '../../lib/draft'
 import { canEdit } from '../../lib/stage'
 import { useDevice, type SupSession } from '../../store'
 import { Button } from '../../ui/Button'
 import { Sheet } from '../../ui/Sheet'
 import { StepCategory, StepDetails, StepReview, TITLES } from './EditorSteps'
+import { TemplateForm } from './TemplateForm'
 
 const slide = {
   enter: (dir: number) => ({ x: dir * 36, opacity: 0 }),
@@ -83,6 +84,19 @@ function Flow({ sup, saved }: { sup: SupSession; saved: Activity | null }) {
   const [dir, setDir] = useState(1)
   const [leaving, setLeaving] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [templates, setTemplates] = useState<Template[]>([])
+  const [form, setForm] = useState<{ open: boolean; editing: Template | null }>({ open: false, editing: null })
+  const [menuFor, setMenuFor] = useState<Template | null>(null)
+  const [deleting, setDeleting] = useState<Template | null>(null)
+
+  useEffect(() => {
+    if (edit) return
+    let live = true
+    api.listTemplates(sup.orgCode).then((l) => live && setTemplates(l), () => {})
+    return () => {
+      live = false
+    }
+  }, [edit, sup.orgCode])
 
   useEffect(() => {
     window.scrollTo(0, 0)
@@ -110,6 +124,41 @@ function Flow({ sup, saved }: { sup: SupSession; saved: Activity | null }) {
     setDraft((d) => applyCategory(d, k, touched.current))
     setAttempted(false)
     go(2)
+  }
+
+  const pickTemplate = (t: Template) => {
+    setDraft((d) => applyTemplate(d, t, touched.current))
+    setAttempted(false)
+    go(2)
+  }
+  /** Saves a new or edited template. The saved one is preselected in the grid, without moving on. */
+  const saveTemplate = async (input: NewTemplate, id?: string) => {
+    let saved: Template
+    if (id) {
+      await api.updateTemplate(id, { title: input.title, poster: input.poster, description: input.description, hours: input.hours, settings: input.settings })
+      saved = { ...(templates.find((t) => t.id === id) as Template), ...input }
+      setTemplates((l) => l.map((t) => (t.id === id ? saved : t)))
+      if (draft.templateId === id) setDraft((d) => applyTemplate(d, saved, touched.current))
+      toast.success('บันทึกเทมเพลตแล้ว')
+    } else {
+      saved = await api.createTemplate(input)
+      setTemplates((l) => [...l, saved])
+      setDraft((d) => applyTemplate(d, saved, touched.current))
+      toast.success('เพิ่มเทมเพลตแล้ว')
+    }
+    setForm((f) => ({ ...f, open: false }))
+  }
+  const removeTemplate = async (t: Template) => {
+    try {
+      await api.deleteTemplate(t.id)
+    } catch {
+      toast.error('ลบไม่ได้ ลองอีกครั้ง')
+      return
+    }
+    setTemplates((l) => l.filter((x) => x.id !== t.id))
+    if (draft.templateId === t.id) setDraft((d) => ({ ...d, categoryKey: null, templateId: null }))
+    setDeleting(null)
+    toast.success('ลบเทมเพลตแล้ว')
   }
 
   const here = check(step, draft)
@@ -151,9 +200,17 @@ function Flow({ sup, saved }: { sup: SupSession; saved: Activity | null }) {
   const canBack = edit ? step > 2 : step > 1
 
   const body = [
-    <StepCategory key={1} d={draft} onPick={pick} />,
+    <StepCategory
+      key={1}
+      d={draft}
+      templates={templates}
+      onPick={pick}
+      onPickTemplate={pickTemplate}
+      onAdd={() => setForm({ open: true, editing: null })}
+      onMenu={setMenuFor}
+    />,
     <StepDetails key={2} d={draft} set={set} errors={shown} advancedOpen={advancedOpen} onAdvanced={setAdvancedOpen} />,
-    <StepReview key={3} d={draft} />,
+    <StepReview key={3} d={draft} templateName={templates.find((t) => t.id === draft.templateId)?.title} />,
   ][step - 1]
 
   return (
@@ -205,6 +262,45 @@ function Flow({ sup, saved }: { sup: SupSession; saved: Activity | null }) {
           </Button>
         )}
       </footer>
+
+      <TemplateForm open={form.open} onClose={() => setForm((f) => ({ ...f, open: false }))} editing={form.editing} who={{ orgCode: sup.orgCode, name: sup.name }} onSave={saveTemplate} />
+
+      <Sheet open={menuFor !== null} onClose={() => setMenuFor(null)} title={menuFor?.title ?? 'เทมเพลต'}>
+        <div className="flex flex-col gap-3">
+          <Button
+            size="lg"
+            variant="secondary"
+            onClick={() => {
+              setForm({ open: true, editing: menuFor })
+              setMenuFor(null)
+            }}
+          >
+            แก้ไข
+          </Button>
+          <Button
+            size="lg"
+            variant="danger"
+            onClick={() => {
+              setDeleting(menuFor)
+              setMenuFor(null)
+            }}
+          >
+            ลบ
+          </Button>
+        </div>
+      </Sheet>
+
+      <Sheet open={deleting !== null} onClose={() => setDeleting(null)} title="ลบเทมเพลตนี้ไหม">
+        <p className="mb-6 text-muted">{deleting?.title} จะหายไปจากทุกเครื่องของหน่วยงาน กิจกรรมที่สร้างไปแล้วไม่เปลี่ยน</p>
+        <div className="flex flex-col gap-3">
+          <Button size="lg" variant="danger" onClick={() => deleting && removeTemplate(deleting)}>
+            ลบเทมเพลต
+          </Button>
+          <Button size="lg" variant="secondary" onClick={() => setDeleting(null)}>
+            ยกเลิก
+          </Button>
+        </div>
+      </Sheet>
 
       <Sheet open={leaving} onClose={() => setLeaving(false)} title="ทิ้งที่กรอกไว้ไหม">
         <p className="mb-6 text-muted">{edit ? 'การแก้ไขที่ยังไม่บันทึกจะหายไป' : 'กิจกรรมนี้ยังไม่ได้เผยแพร่ ที่กรอกไว้จะหายไป'}</p>

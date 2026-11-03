@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { createLocalApi, resetLocal } from './local'
-import type { Activity, Credit } from './types'
+import type { Activity, Credit, NewActivity } from './types'
 import { addBottles } from '../lib/bottle'
 
 const activity = {
@@ -261,5 +261,35 @@ describe('student side', () => {
     await api.sendDm({ activityId: 'a1', studentId: me.id, fromSup: true, authorName: 'ผู้ดูแล', text: 'รับทราบ' })
     await api.markDmsRead('a1', me.id, false)
     expect((await api.listDms('a1', me.id)).map((m) => [m.fromSup, m.read])).toEqual([[false, false], [true, true]])
+  })
+})
+
+describe('templates', () => {
+  const tpl = (orgCode: string, title: string) => ({
+    orgCode,
+    title,
+    poster: 'data:image/jpeg;base64,AAAA',
+    description: 'ช่วยงานเทศกาล',
+    hours: 4,
+    settings: { capLimit: true, capacity: 12, walkIn: false, qrMode: 'static' as const, qrInterval: 10, locMode: 'off' as const, radius: 150 },
+    createdBy: 'พี่เต้',
+  })
+
+  it('shares templates inside one organisation only, oldest first', async () => {
+    const a = await api.createTemplate(tpl('NUVOL69', 'งานรับน้อง'))
+    const b = await api.createTemplate(tpl('NUVOL69', 'งานกีฬา'))
+    await api.createTemplate(tpl('OTHER', 'ของหน่วยงานอื่น'))
+    expect(a.id).not.toBe(b.id)
+    expect((await api.listTemplates('NUVOL69')).map((t) => t.title)).toEqual(['งานรับน้อง', 'งานกีฬา'])
+  })
+
+  it('updates and deletes, and an activity keeps its templateId', async () => {
+    const t = await api.createTemplate(tpl('NUVOL69', 'งานรับน้อง'))
+    await api.updateTemplate(t.id, { title: 'งานรับน้องใหม่', hours: 5 })
+    expect((await api.listTemplates('NUVOL69'))[0]).toMatchObject({ title: 'งานรับน้องใหม่', hours: 5, description: 'ช่วยงานเทศกาล' })
+    const id = await api.createActivity({ ...(activity as unknown as NewActivity), categoryKey: 'other', templateId: t.id })
+    await api.deleteTemplate(t.id)
+    expect(await api.listTemplates('NUVOL69')).toEqual([])
+    expect(await api.getActivity(id)).toMatchObject({ categoryKey: 'other', templateId: t.id })
   })
 })

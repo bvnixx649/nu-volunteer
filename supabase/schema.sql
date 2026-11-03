@@ -55,6 +55,22 @@ create table if not exists activities (
 -- Bottle exchange: how many bottles make one hour. Null for every other category.
 alter table activities add column if not exists items_per_hour integer;
 
+-- Templates a supervisor made, shared by everyone who signs in with the same org code (SPEC 6.3).
+-- Activities made from one are category_key 'other' and remember template_id (no foreign key: deleting a template keeps them).
+create table if not exists templates (
+  id text primary key,
+  org_code text not null,
+  title text not null,
+  poster text not null default '',
+  description text not null default '',
+  hours double precision not null,
+  settings jsonb not null default '{}',
+  created_by text not null default '',
+  created_at timestamptz not null default now()
+);
+create index if not exists templates_org_idx on templates (org_code);
+alter table activities add column if not exists template_id text;
+
 create table if not exists registrations (
   activity_id text not null references activities (id) on delete cascade,
   student_id text not null,
@@ -289,7 +305,7 @@ do $$
 declare
   t text;
 begin
-  foreach t in array array['students', 'activities', 'registrations', 'credits', 'announcements', 'messages', 'dms', 'notices'] loop
+  foreach t in array array['students', 'activities', 'registrations', 'credits', 'announcements', 'messages', 'dms', 'notices', 'templates'] loop
     execute format('alter table %I enable row level security', t);
     execute format('drop policy if exists "signed in" on %I', t);
     execute format('create policy "signed in" on %I for all to authenticated using (true) with check (true)', t);

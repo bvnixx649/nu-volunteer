@@ -127,7 +127,7 @@ export default function Home() {
         <Chip selected={ui.category === null} onClick={() => ui.set({ category: null })}>
           ทุกหมวด
         </Chip>
-        {CATEGORY_KEYS.map((k) => (
+        {CATEGORY_KEYS.filter((k) => k !== 'other' || ui.category === 'other' || activities.some((a) => a.categoryKey === 'other')).map((k) => (
           <Chip key={k} selected={ui.category === k} onClick={() => ui.set({ category: k })}>
             {CATEGORIES[k].label}
           </Chip>

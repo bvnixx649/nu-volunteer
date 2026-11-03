@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fromActivityPatch, fromNewActivity, fromStudent, toActivity, toCredit, toMyRegistration, toNotice, toRegistration, toStudent } from './rows'
+import { fromActivityPatch, fromNewActivity, fromNewTemplate, fromStudent, fromTemplatePatch, toActivity, toCredit, toMyRegistration, toNotice, toRegistration, toStudent, toTemplate } from './rows'
 
 const row = {
   id: 'a1', title: 't', category_key: 'blood', org: 'o', org_code: 'X', poster: '', description: '', place: 'p',
@@ -63,5 +63,30 @@ describe('student rows', () => {
   })
   it('gives a student without reminders an empty list', () => {
     expect(toStudent({ id: '65010001', name: 'x', created_at: '2026-11-01T00:00:00Z', reminders: null, notify: null })).toMatchObject({ reminders: [], notify: {} })
+  })
+})
+
+describe('template rows', () => {
+  it('maps a template row and fills missing settings', () => {
+    const t = toTemplate({ id: 't1', org_code: 'X', title: 'งานกีฬา', poster: 'p', description: null, hours: 4, settings: { capLimit: true, capacity: 12, qrMode: 'static' }, created_by: 'ก', created_at: '2026-11-04T00:00:00Z' })
+    expect(t).toEqual({
+      id: 't1', orgCode: 'X', title: 'งานกีฬา', poster: 'p', description: '', hours: 4, createdBy: 'ก', createdAt: Date.parse('2026-11-04T00:00:00Z'),
+      settings: { capLimit: true, capacity: 12, walkIn: false, qrMode: 'static', qrInterval: 10, locMode: 'on', radius: 150 },
+    })
+    expect(toTemplate({ id: 't', org_code: 'X', title: 't', hours: 1, created_by: null, settings: null, created_at: null }).settings).toMatchObject({ capacity: 30, qrMode: 'dynamic' })
+  })
+
+  it('maps writes back to columns', () => {
+    const settings = toTemplate({ id: 't', org_code: 'X', title: 't', hours: 1 }).settings
+    expect(fromNewTemplate('t9', { orgCode: 'X', title: 'a', poster: 'p', description: 'd', hours: 3, settings, createdBy: 'ก' })).toEqual({
+      id: 't9', org_code: 'X', title: 'a', poster: 'p', description: 'd', hours: 3, settings, created_by: 'ก',
+    })
+    expect(fromTemplatePatch({ title: 'b' })).toEqual({ title: 'b' })
+  })
+
+  it('carries template_id on activities', () => {
+    expect(toActivity({ ...row, category_key: 'other', template_id: 't1' })).toMatchObject({ categoryKey: 'other', templateId: 't1' })
+    expect('templateId' in toActivity(row)).toBe(false)
+    expect(fromActivityPatch({ templateId: undefined })).toEqual({ template_id: null })
   })
 })

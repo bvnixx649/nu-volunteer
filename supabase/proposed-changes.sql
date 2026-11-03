@@ -1,3 +1,12 @@
+-- 4 พ.ย. 2569 (applied to schema.sql, NOT proposed): supervisor-made templates added a table and a column to schema.sql,
+--   create table if not exists templates (id text primary key, org_code text not null, title text not null, poster text not null default '',
+--     description text not null default '', hours double precision not null, settings jsonb not null default '{}',
+--     created_by text not null default '', created_at timestamptz not null default now());
+--   create index if not exists templates_org_idx on templates (org_code);
+--   alter table activities add column if not exists template_id text;
+-- plus RLS "signed in" for templates (the loop near the end of schema.sql). It is already in schema.sql and MUST be run on an existing
+-- database before using "เพิ่มเทมเพลต": run the whole schema.sql (safe to repeat), or the three statements above and the RLS loop.
+
 -- 4 พ.ย. 2569 (applied to schema.sql, NOT proposed): bottle exchange added two columns to schema.sql,
 --   alter table activities add column if not exists items_per_hour integer;
 --   alter table credits add column if not exists items integer;

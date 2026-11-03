@@ -69,9 +69,27 @@ export const CATEGORIES: Record<CategoryKey, CategoryPreset> = {
     description: 'นำขวดพลาสติกที่ล้างสะอาดแล้วมาที่จุดรับในเวลากิจกรรม\nเจ้าหน้าที่นับขวดและบันทึกชั่วโมงให้ที่โต๊ะ ไม่ต้องสแกน QR',
     posters: p('bottle', 'bottle-2', 'bottle-3'),
   },
+  // Activities made from a supervisor's own template. The values come from the template, so these are only a fallback.
+  other: {
+    label: 'อื่น ๆ',
+    hours: 3,
+    capLimit: false,
+    capacity: 0,
+    walkIn: false,
+    qrMode: 'dynamic',
+    locMode: 'on',
+    radius: 150,
+    qrInterval: 10,
+    reasons: [],
+    description: '',
+    posters: [],
+  },
 }
 
+/** Every key, for labels, filters and stats. */
 export const CATEGORY_KEYS = Object.keys(CATEGORIES) as CategoryKey[]
+/** The templates built into the app, in the order the picker shows them. "อื่น ๆ" has no card: it comes from custom templates. */
+export const BUILTIN_KEYS = CATEGORY_KEYS.filter((k) => k !== 'other')
 
 /** Preset for an activity's key. Old rows may still carry a removed key, so unknown keys fall back to blood. */
 export const categoryOf = (key: string): CategoryPreset => (CATEGORIES as Record<string, CategoryPreset>)[key] ?? CATEGORIES.blood

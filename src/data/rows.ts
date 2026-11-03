@@ -13,6 +13,10 @@ import type {
   Org,
   Registration,
   Student,
+  Template,
+  NewTemplate,
+  TemplateEdit,
+  TemplateSettings,
 } from './types'
 
 /** Database rows (snake_case, timestamptz as ISO strings) and the one place they become the camelCase types (ms numbers). */
@@ -39,6 +43,7 @@ export const toActivity = (r: Row): Activity =>
     id: r.id,
     title: r.title,
     categoryKey: r.category_key,
+    templateId: opt(r.template_id),
     org: r.org,
     orgCode: r.org_code,
     poster: r.poster,
@@ -108,6 +113,7 @@ const iso = (v: number | undefined) => (v === undefined ? null : new Date(v).toI
 const COLUMNS: { [K in keyof NewActivity]-?: (v: NewActivity[K]) => Row } = {
   title: (v) => ({ title: v }),
   categoryKey: (v) => ({ category_key: v }),
+  templateId: (v) => ({ template_id: v ?? null }),
   org: (v) => ({ org: v }),
   orgCode: (v) => ({ org_code: v }),
   poster: (v) => ({ poster: v }),
@@ -193,3 +199,47 @@ export const toDirectMsg = (r: Row): DirectMsg => ({
   at: ms(r.at) ?? 0,
   read: !!r.read,
 })
+
+/** Settings come from a jsonb column that may be missing keys, so every key has a fallback. */
+export const toTemplateSettings = (s: Row | null | undefined): TemplateSettings => ({
+  capLimit: !!s?.capLimit,
+  capacity: Number(s?.capacity) > 0 ? Number(s?.capacity) : 30,
+  walkIn: !!s?.walkIn,
+  qrMode: s?.qrMode === 'static' ? 'static' : 'dynamic',
+  qrInterval: Number(s?.qrInterval) > 0 ? Number(s?.qrInterval) : 10,
+  locMode: s?.locMode === 'off' ? 'off' : 'on',
+  radius: Number(s?.radius) > 0 ? Number(s?.radius) : 150,
+})
+
+export const toTemplate = (r: Row): Template => ({
+  id: r.id,
+  orgCode: r.org_code,
+  title: r.title,
+  poster: r.poster ?? '',
+  description: r.description ?? '',
+  hours: Number(r.hours),
+  settings: toTemplateSettings(r.settings),
+  createdBy: r.created_by ?? '',
+  createdAt: ms(r.created_at) ?? 0,
+})
+
+export const fromNewTemplate = (id: string, t: NewTemplate): Row => ({
+  id,
+  org_code: t.orgCode,
+  title: t.title,
+  poster: t.poster,
+  description: t.description,
+  hours: t.hours,
+  settings: t.settings,
+  created_by: t.createdBy,
+})
+
+export const fromTemplatePatch = (p: TemplateEdit): Row => {
+  const row: Row = {}
+  if (p.title !== undefined) row.title = p.title
+  if (p.poster !== undefined) row.poster = p.poster
+  if (p.description !== undefined) row.description = p.description
+  if (p.hours !== undefined) row.hours = p.hours
+  if (p.settings !== undefined) row.settings = p.settings
+  return row
+}

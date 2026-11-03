@@ -1,6 +1,6 @@
 import type { Api, ClaimInput, ClaimResult, RegisterResult } from './api'
 import { newId } from '../lib/id'
-import type { Activity, Announcement, ChatMsg, Credit, DirectMsg, NewActivity, Notice, Org, Registration, Student } from './types'
+import type { Activity, Announcement, ChatMsg, Credit, DirectMsg, NewActivity, NewTemplate, Notice, Org, Registration, Student, Template } from './types'
 
 /**
  * Browser-only storage for building and demoing without a backend: one JSON blob in localStorage,
@@ -18,10 +18,11 @@ export interface LocalDb {
   messages: ChatMsg[]
   dms: DirectMsg[]
   notices: Notice[]
+  templates: Record<string, Template>
 }
 
 const KEY = 'nuv:db'
-const empty = (): LocalDb => ({ students: {}, orgs: {}, activities: {}, regs: {}, credits: {}, announcements: [], messages: [], dms: [], notices: [] })
+const empty = (): LocalDb => ({ students: {}, orgs: {}, activities: {}, regs: {}, credits: {}, announcements: [], messages: [], dms: [], notices: [], templates: {} })
 
 const load = (): LocalDb => {
   try {
@@ -188,6 +189,25 @@ export function createLocalApi(): Api {
       tx((db) => {
         const act = db.activities[a]
         if (act) Object.assign(act, patch)
+      }),
+
+    listTemplates: async (orgCode) => Object.values(load().templates).filter((t) => t.orgCode === orgCode).sort((a, b) => a.createdAt - b.createdAt),
+    createTemplate: (input: NewTemplate) =>
+      tx((db) => {
+        let id = newId()
+        while (db.templates[id]) id = newId()
+        const t: Template = { ...input, id, createdAt: Date.now() }
+        db.templates[id] = t
+        return t
+      }),
+    updateTemplate: (id, patch) =>
+      tx((db) => {
+        const t = db.templates[id]
+        if (t) Object.assign(t, patch)
+      }),
+    deleteTemplate: (id) =>
+      tx((db) => {
+        delete db.templates[id]
       }),
 
     listActivities: async () => Object.values(load().activities),

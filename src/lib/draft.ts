@@ -1,10 +1,12 @@
 import { CANCEL_DAYS, QR_INTERVAL_DEFAULT, RADIUS_DEFAULT } from '../config'
 import { categoryOf } from '../data/categories'
-import type { Activity, ActivityEdit, CategoryKey, LocMode, NewActivity, QrMode } from '../data/types'
+import type { Activity, ActivityEdit, CategoryKey, LocMode, NewActivity, QrMode, Template } from '../data/types'
 
 /** Everything the create and edit flow holds while the supervisor types. Numbers stay strings until they are checked. */
 export interface Draft {
   categoryKey: CategoryKey | null
+  /** Set when the activity starts from a supervisor-made template; categoryKey is then 'other'. */
+  templateId: string | null
   title: string
   poster: string
   description: string
@@ -47,6 +49,7 @@ export const posterChoices = (key: CategoryKey) => categoryOf(key).posters
 export function blankDraft(supName = '', phone = ''): Draft {
   return {
     categoryKey: null,
+    templateId: null,
     title: '',
     poster: '',
     description: '',
@@ -91,7 +94,27 @@ export function applyCategory(d: Draft, key: CategoryKey, touched: ReadonlySet<s
     locMode: c.locMode,
     radius: c.radius,
   }
-  const next: Draft = { ...d, categoryKey: key }
+  const next: Draft = { ...d, categoryKey: key, templateId: null }
+  for (const k of DEFAULT_KEYS) if (!touched.has(k)) Object.assign(next, { [k]: defaults[k] })
+  return next
+}
+
+/** Same as applyCategory for a supervisor-made template: category "อื่น ๆ" and the template's own values. */
+export function applyTemplate(d: Draft, t: Template, touched: ReadonlySet<string>): Draft {
+  const defaults: Pick<Draft, DefaultKey> = {
+    poster: t.poster,
+    description: t.description,
+    hours: String(t.hours),
+    itemsPerHour: '',
+    capLimit: t.settings.capLimit,
+    capacity: String(t.settings.capacity > 0 ? t.settings.capacity : 30),
+    walkIn: t.settings.walkIn,
+    qrMode: t.settings.qrMode,
+    qrInterval: t.settings.qrInterval,
+    locMode: t.settings.locMode,
+    radius: t.settings.radius,
+  }
+  const next: Draft = { ...d, categoryKey: 'other', templateId: t.id }
   for (const k of DEFAULT_KEYS) if (!touched.has(k)) Object.assign(next, { [k]: defaults[k] })
   return next
 }
@@ -111,6 +134,7 @@ export const toMs = (date: string, time: string) => (date && time ? new Date(`${
 export function draftOf(a: Activity): Draft {
   return {
     categoryKey: a.categoryKey,
+    templateId: a.templateId ?? null,
     title: a.title,
     poster: a.poster,
     description: a.description,
@@ -229,6 +253,7 @@ export function toNewActivity(d: Draft, who: { orgCode: string; orgName: string 
   return {
     title: d.title.trim(),
     categoryKey: d.categoryKey ?? 'blood',
+    templateId: d.categoryKey === 'other' ? (d.templateId ?? undefined) : undefined,
     org: who.orgName,
     orgCode: who.orgCode,
     poster: d.poster,

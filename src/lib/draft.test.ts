@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { CATEGORIES, categoryOf } from '../data/categories'
 import type { Activity } from '../data/types'
-import { applyCategory, blankDraft, check, draftOf, isDirty, posterChoices, toEdit, toNewActivity, type Draft } from './draft'
+import { applyCategory, applyTemplate, blankDraft, check, draftOf, isDirty, posterChoices, toEdit, toNewActivity, type Draft } from './draft'
 
 const none = new Set<string>()
 const filled = (over: Partial<Draft> = {}): Draft => ({
@@ -130,5 +130,32 @@ describe('draft to activity and back', () => {
     const d = blankDraft('ก')
     expect(isDirty(d, blankDraft('ก'))).toBe(false)
     expect(isDirty({ ...d, title: 'x' }, d)).toBe(true)
+  })
+})
+
+describe('applyTemplate', () => {
+  const tpl = {
+    id: 't1', orgCode: 'X', title: 'งานกีฬา', poster: 'data:image/jpeg;base64,AAAA', description: 'ช่วยจัดสนาม', hours: 4, createdBy: 'ก', createdAt: 1,
+    settings: { capLimit: true, capacity: 12, walkIn: true, qrMode: 'static' as const, qrInterval: 15, locMode: 'off' as const, radius: 300 },
+  }
+
+  it('fills the draft from the template and files the activity under "อื่น ๆ"', () => {
+    const d = applyTemplate(blankDraft('พี่เต้'), tpl, none)
+    expect(d).toMatchObject({ categoryKey: 'other', templateId: 't1', poster: tpl.poster, description: 'ช่วยจัดสนาม', hours: '4', capLimit: true, capacity: '12', walkIn: true, qrMode: 'static', qrInterval: 15, locMode: 'off', radius: 300 })
+    const a = toNewActivity({ ...d, title: 'แข่งกีฬา', date: '2026-11-20', place: 'สนาม' }, { orgCode: 'X', orgName: 'o' })
+    expect(a).toMatchObject({ categoryKey: 'other', templateId: 't1', hours: 4, capacity: 12 })
+  })
+
+  it('leaves touched fields alone, and a built-in category clears the template', () => {
+    const d = applyTemplate({ ...blankDraft(), hours: '9' }, tpl, new Set(['hours']))
+    expect(d.hours).toBe('9')
+    const back = applyCategory(d, 'blood', none)
+    expect(back.templateId).toBeNull()
+    expect(toNewActivity({ ...back, title: 't', date: '2026-11-20', place: 'p' }, { orgCode: 'X', orgName: 'o' }).templateId).toBeUndefined()
+  })
+
+  it('does not fall back to blood for "other"', () => {
+    expect(categoryOf('other').label).toBe('อื่น ๆ')
+    expect(categoryOf('removed-key').label).toBe(CATEGORIES.blood.label)
   })
 })
