@@ -1,0 +1,155 @@
+// Student side: welcome, home with category filter, activity detail, register, my activities, inbox, profile,
+// success screen with neighbours. Dark screenshots at 390x844 in scripts/e2e/out/student-*.png, no horizontal scroll anywhere.
+const expect = (cond, msg) => {
+  if (!cond) throw new Error(msg)
+}
+const site = { latitude: 16.7466, longitude: 100.1948 }
+
+export const localOnly = 'edits localStorage directly'
+
+export default async function ({ browser, base, load, shot: rawShot }) {
+  // Let the entrance animations finish so the pictures show the settled screen.
+  const shot = async (page, name) => {
+    await page.waitForTimeout(800)
+    await rawShot(page, name)
+  }
+  const { makeToken } = await load('/src/lib/qr.ts')
+  const ctx = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    colorScheme: 'dark',
+    geolocation: site,
+    permissions: ['geolocation'],
+    locale: 'th-TH',
+  })
+  const page = await ctx.newPage()
+  const problems = []
+  page.on('pageerror', (e) => problems.push(e.message))
+  page.on('console', (m) => m.type() === 'error' && problems.push(m.text()))
+  const noOverflow = async (label) => {
+    const w = await page.evaluate(() => document.documentElement.scrollWidth)
+    expect(w <= 390, `${label} is ${w}px wide`)
+  }
+  const name = 'ณัฐวุฒิพงศ์ แก้วประเสริฐกุลชัยวัฒน์'
+
+  // Activities for the feed: the fixture's blood activity is live today, add one open activity with seats and a roster to stand in.
+  await page.goto(`${base}#/welcome`)
+  await page.waitForFunction(() => localStorage.getItem('nuv:db'))
+  await page.evaluate(() => {
+    const db = JSON.parse(localStorage.getItem('nuv:db'))
+    const h = 3600_000
+    const blood = db.activities['test-blood']
+    blood.start = Date.now() - h
+    blood.end = Date.now() + 3 * h
+    db.activities['test-later'] = {
+      ...blood,
+      id: 'test-later',
+      title: 'จัดสถานที่ต้อนรับนิสิตใหม่',
+      categoryKey: 'setup',
+      hours: 5,
+      capLimit: true,
+      capacity: 10,
+      walkIn: false,
+      start: Date.now() + 5 * 24 * h,
+      end: Date.now() + 5 * 24 * h + 4 * h,
+      regCount: 8,
+      creditCount: 0,
+    }
+    const people = [['65020001', 'สมชาย ใจดี'], ['65020002', 'สมหญิง รักเรียน'], ['65020003', 'ธนากร แสงทอง']]
+    db.credits['test-blood'] = Object.fromEntries(
+      people.map(([id, n], i) => [id, { studentId: id, name: n, hours: 6, fullHours: 6, at: Date.now() - (30 - i * 10) * 60_000, method: 'qr', flags: [] }]),
+    )
+    blood.creditCount = 3
+    blood.regCount = 3
+    localStorage.setItem('nuv:db', JSON.stringify(db))
+  })
+  await page.reload()
+
+  // A student page without an identity goes to welcome, and comes back after.
+  await page.goto(`${base}#/mine`)
+  await page.getByRole('heading', { name: 'เก็บชั่วโมงจิตอาสา' }).waitFor()
+  await page.getByLabel('รหัสนิสิต').fill('65010077')
+  await page.getByLabel('ชื่อ-นามสกุล').fill(name)
+  await noOverflow('welcome')
+  await page.getByRole('button', { name: 'เริ่มใช้งาน' }).click()
+  await page.getByRole('heading', { name: 'กิจกรรมของฉัน' }).waitFor()
+  await page.getByText('ยังไม่มีกิจกรรมที่ลงทะเบียน').waitFor()
+  await noOverflow('mine empty')
+
+  // Home: greeting, live card with scan button, category filter.
+  await page.getByRole('link', { name: 'หน้าแรก' }).click()
+  await page.getByRole('heading', { name: 'สวัสดี ณัฐวุฒิพงศ์' }).waitFor()
+  await page.getByRole('link', { name: 'สแกนรับชั่วโมง' }).waitFor()
+  await page.getByRole('link', { name: /จัดสถานที่ต้อนรับนิสิตใหม่/ }).waitFor()
+  await noOverflow('home')
+  await shot(page, 'student-1-home')
+  await page.getByRole('button', { name: 'จัดสถานที่', exact: true }).click()
+  await page.getByText('พบ 1 กิจกรรม').waitFor()
+  await page.getByRole('button', { name: 'เก็บขวด', exact: true }).click()
+  await page.getByText('ไม่พบกิจกรรมตามตัวกรอง').waitFor()
+  await page.getByRole('button', { name: 'ทุกหมวด' }).click()
+  const text = await page.locator('main').innerText()
+  expect(!/[·—]/.test(text), 'no middle dot or em-dash on screen')
+
+  // Detail then register.
+  await page.getByRole('link', { name: /จัดสถานที่ต้อนรับนิสิตใหม่/ }).click()
+  await page.getByRole('heading', { name: 'จัดสถานที่ต้อนรับนิสิตใหม่' }).waitFor()
+  await page.getByText('เหลือ 2 ที่').first().waitFor()
+  await noOverflow('detail')
+  await shot(page, 'student-2-detail')
+  await page.getByRole('button', { name: 'ลงทะเบียน', exact: true }).click()
+  await page.getByRole('button', { name: 'ยืนยันลงทะเบียน' }).waitFor()
+  await shot(page, 'student-3-register-sheet')
+  await page.getByRole('button', { name: 'ยืนยันลงทะเบียน' }).click()
+  await page.getByRole('button', { name: 'ลงทะเบียนแล้ว' }).waitFor()
+
+  // It shows up under my activities, and a notice was written.
+  await page.goto(`${base}#/mine`)
+  await page.getByRole('link', { name: /จัดสถานที่ต้อนรับนิสิตใหม่/ }).waitFor()
+  await noOverflow('mine')
+  await shot(page, 'student-4-mine')
+  await page.getByRole('link', { name: /แจ้งเตือน/ }).click()
+  await page.getByText('ลงทะเบียนสำเร็จ').waitFor()
+  await noOverflow('inbox')
+  await shot(page, 'student-5-inbox')
+
+  // Claim the live activity: success screen with the two people before and the own row highlighted.
+  const token = makeToken({ a: 'test-blood', h: 6, la: site.latitude, lo: site.longitude, ac: 15 }, 'dynamic', Date.now())
+  await page.goto(`${base}#/claim?t=${token}`)
+  await page.getByRole('heading', { name }).waitFor({ timeout: 8000 })
+  await page.locator('[data-own]').waitFor()
+  await page.waitForFunction(() => document.querySelectorAll('li[class*="grid-cols"]').length >= 3)
+  const rows = await page.locator('ul li[class*="grid-cols"]').allInnerTexts()
+  expect(rows.length === 3 && rows[2].includes('65010077') && rows[1].includes('65020003'), `roster rows: ${JSON.stringify(rows)}`)
+  await page.waitForTimeout(900)
+  await noOverflow('success with long name')
+  await shot(page, 'student-6-success')
+
+  // The roster page lists all four, own row highlighted and in view.
+  await page.getByRole('link', { name: 'ดูรายชื่อทั้งหมด' }).click()
+  await page.locator('[data-own]').waitFor()
+  await page.waitForFunction(() => document.querySelectorAll('ul li[class*="grid-cols"]').length === 4)
+  const listed = await page.locator('ul li[class*="grid-cols"]').allInnerTexts()
+  expect(listed.length === 4, `roster page lists ${listed.length}: ${JSON.stringify(listed)}`)
+  await page.getByLabel('ค้นด้วยรหัสหรือชื่อ').fill('65020002')
+  await page.getByText('พบ 1 จาก 4 คน').waitFor()
+  await noOverflow('roster')
+
+  // Profile: transcript, credits, long name.
+  await page.goto(`${base}#/me`)
+  await page.getByText('Transcript จิตอาสา').waitFor()
+  await page.getByText('เครดิตการเข้าร่วม').waitFor()
+  await page.waitForTimeout(900)
+  await noOverflow('profile')
+  await shot(page, 'student-7-profile')
+
+  // Chat rooms open only for activities with chat; the private thread always works for a registered student.
+  await page.goto(`${base}#/a/test-later/dm`)
+  await page.getByPlaceholder('พิมพ์ข้อความถึงผู้คุม').fill('ขอแจ้งว่ามาไม่ได้')
+  await page.getByRole('button', { name: 'ส่ง', exact: true }).click()
+  await page.getByText('ขอแจ้งว่ามาไม่ได้').waitFor()
+  await noOverflow('dm')
+  await shot(page, 'student-8-dm')
+
+  expect(!problems.length, `console problems: ${problems.join(' | ')}`)
+  await ctx.close()
+}

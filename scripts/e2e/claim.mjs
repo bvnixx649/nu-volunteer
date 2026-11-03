@@ -29,11 +29,29 @@ export default async function ({ browser, base, load, shot }) {
     await page.getByLabel('ชื่อ-นามสกุล').fill('ณัฐวุฒิ แก้วประเสริฐ')
     await page.getByRole('button', { name: 'รับชั่วโมง' }).click()
     await page.getByRole('heading', { name: 'ณัฐวุฒิ แก้วประเสริฐ' }).waitFor({ timeout: 8000 })
-    expect(await page.getByText(id).isVisible(), 'ticket shows the student id')
+    // Design C: the hours number is the biggest thing, then name, then the roster with the own row highlighted.
+    expect(await page.getByText(id).first().isVisible(), 'success shows the student id')
+    await page.waitForFunction(() => document.querySelector('[data-value="6"]')?.textContent === '6')
+    const own = page.locator('[data-own]')
+    expect((await own.count()) === 1, 'one highlighted own row')
+    expect((await own.innerText()).includes(id) && (await own.innerText()).includes('ณัฐวุฒิ'), 'own row has id and name')
+    const sizes = await page.evaluate(() => {
+      const px = (el) => parseFloat(getComputedStyle(el).fontSize)
+      return { hours: px(document.querySelector('[data-value="6"]')), name: px(document.querySelector('h1')) }
+    })
+    expect(sizes.hours >= 120 && sizes.hours > sizes.name * 3, `hours ${sizes.hours}px vs name ${sizes.name}px`)
     await page.waitForTimeout(700)
     await shot(page, `claim-success-${scheme}`)
     const width = await page.evaluate(() => document.documentElement.scrollWidth)
     expect(width <= 390, `success page is ${width}px wide`)
+
+    // The roster button opens the check page with the own row highlighted.
+    await page.getByRole('link', { name: 'ดูรายชื่อทั้งหมด' }).click()
+    await page.getByRole('heading', { name: 'ตรวจสอบรายชื่อ' }).waitFor()
+    await page.locator('[data-own]').waitFor()
+    expect((await page.locator('[data-own]').innerText()).includes(id), 'roster page highlights own row')
+    expect((await page.evaluate(() => document.documentElement.scrollWidth)) <= 390, 'roster page has no horizontal scroll')
+    await shot(page, `roster-student-${scheme}`)
 
     // Same phone scans again: it already knows the student and says so.
     await page.goto('about:blank')

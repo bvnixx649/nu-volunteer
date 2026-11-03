@@ -1,4 +1,20 @@
-import type { Activity, ActivityEdit, Credit, CreditFlag, NewActivity, Org, Registration, Student } from './types'
+import type {
+  Activity,
+  ActivityEdit,
+  Announcement,
+  ChatMsg,
+  Credit,
+  CreditFlag,
+  DirectMsg,
+  MyCredit,
+  MyRegistration,
+  NewActivity,
+  Notice,
+  NotifyPrefs,
+  Org,
+  Registration,
+  Student,
+} from './types'
 import { createLocalApi, seedIfEmpty } from './local'
 import { FIXTURE } from './fixture'
 
@@ -17,6 +33,10 @@ export type ClaimInput = {
   /** Supervisor name when they add someone by hand. */
   by?: string
 }
+
+export type RegisterResult = 'ok' | 'full' | 'already'
+
+export type NewNotice = Pick<Notice, 'studentId' | 'kind' | 'title'> & Partial<Pick<Notice, 'body' | 'activityId' | 'to'>>
 
 export type ClaimResult = { ok: true; credit: Credit } | { ok: false; reason: 'already' | 'offline'; credit?: Credit }
 
@@ -49,6 +69,32 @@ export interface Api {
   createActivity(a: NewActivity): Promise<string>
   /** Changes any field the editor offers. The caller checks canEdit; a sent roster should not change. A key set to undefined clears that optional field. */
   updateActivity(id: string, patch: ActivityEdit): Promise<void>
+  // Student side. One-shot reads and single writes; none of it subscribes to realtime.
+  /** Every activity, hidden ones included; the screen decides what to show. */
+  listActivities(): Promise<Activity[]>
+  /** Everyone credited in the activity, in the order they got it (oldest first). */
+  listCredits(activityId: string): Promise<Credit[]>
+  studentRegistrations(studentId: string): Promise<MyRegistration[]>
+  studentCredits(studentId: string): Promise<MyCredit[]>
+  /** Registers unless the activity is full or the student already is. A cancelled registration is reopened. */
+  register(activityId: string, student: { id: string; name: string }): Promise<RegisterResult>
+  /** Marks the registration cancelled and lowers regCount. `late` records that it cost a credit. */
+  cancelRegistration(activityId: string, studentId: string, late: boolean): Promise<void>
+  updateStudent(id: string, patch: { reminders?: string[]; notify?: NotifyPrefs }): Promise<void>
+  /** Newest first, at most 60. */
+  listNotices(studentId: string): Promise<Notice[]>
+  addNotice(n: NewNotice): Promise<void>
+  markNoticesRead(studentId: string): Promise<void>
+  /** Newest first. */
+  listAnnouncements(activityId: string): Promise<Announcement[]>
+  /** Oldest first. */
+  listMessages(activityId: string): Promise<ChatMsg[]>
+  sendMessage(m: Omit<ChatMsg, 'id' | 'at'>): Promise<void>
+  /** Oldest first. */
+  listDms(activityId: string, studentId: string): Promise<DirectMsg[]>
+  sendDm(m: Omit<DirectMsg, 'id' | 'at' | 'read'>): Promise<void>
+  /** Marks the other side's messages in the thread as read. */
+  markDmsRead(activityId: string, studentId: string, readerIsSup: boolean): Promise<void>
   /** Sets submittedAt unless already set, and closedAt too if the roster was still open. */
   submitRoster(activityId: string): Promise<void>
 }
@@ -93,6 +139,22 @@ function lazyRemote(): Api {
     createActivity: call('createActivity'),
     updateActivity: call('updateActivity'),
     submitRoster: call('submitRoster'),
+    listActivities: call('listActivities'),
+    listCredits: call('listCredits'),
+    studentRegistrations: call('studentRegistrations'),
+    studentCredits: call('studentCredits'),
+    register: call('register'),
+    cancelRegistration: call('cancelRegistration'),
+    updateStudent: call('updateStudent'),
+    listNotices: call('listNotices'),
+    addNotice: call('addNotice'),
+    markNoticesRead: call('markNoticesRead'),
+    listAnnouncements: call('listAnnouncements'),
+    listMessages: call('listMessages'),
+    sendMessage: call('sendMessage'),
+    listDms: call('listDms'),
+    sendDm: call('sendDm'),
+    markDmsRead: call('markDmsRead'),
     watchActivities: watch('watchActivities'),
     watchActivity: watch('watchActivity'),
     watchRegistrations: watch('watchRegistrations'),

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { rosterRows, validHours } from './roster'
+import { creditList, rosterRows, validHours } from './roster'
 import type { Credit, Registration } from '../data/types'
 
 describe('validHours', () => {
@@ -55,5 +55,15 @@ describe('rosterRows', () => {
   })
   it('includes a credit with no registration', () => {
     expect(rosterRows([], [cred('9', 'y', 1)], 'all', '').map((r) => r.studentId)).toEqual(['9'])
+  })
+})
+
+describe('creditList', () => {
+  const c = (id: string, name: string, at: number) => ({ studentId: id, name, hours: 6, fullHours: 6, at, method: 'qr' as const, flags: [] })
+  const list = [c('65010003', 'สมหญิง ใจดี', 30), c('65010001', 'สมชาย รักเรียน', 10), c('65020002', 'ธนากร แสงทอง', 20)]
+  it('numbers by time and keeps the numbers when searching', () => {
+    expect(creditList(list, '').map((r) => [r.n, r.credit.studentId])).toEqual([[1, '65010001'], [2, '65020002'], [3, '65010003']])
+    expect(creditList(list, '650100').map((r) => r.n)).toEqual([1, 3])
+    expect(creditList(list, 'ธนากร').map((r) => r.n)).toEqual([2])
   })
 })

@@ -32,3 +32,8 @@ export const STRIKE_LIMIT = 3
 export const KPI_ACTIVITIES = 100
 /** "Coming soon" means starting within this many days. */
 export const SOON_DAYS = 3
+/** Seat bar turns yellow past this share of the seats, red past the second. */
+export const SEAT_YELLOW = 0.7
+export const SEAT_RED = 0.9
+/** Private messages to a supervisor disappear from the screen this many days after the activity ends. */
+export const DM_HIDE_DAYS = 5

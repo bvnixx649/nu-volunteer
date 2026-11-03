@@ -5,8 +5,6 @@ import { Field } from '../../ui/Field'
 import { Chip } from '../../ui/Chip'
 import { Switch } from '../../ui/Switch'
 import { Flag } from '../../ui/Flag'
-import { Ticket } from '../../ui/Ticket'
-import { Clock } from '../../ui/Clock'
 import { Counter } from '../../ui/Counter'
 import { Sheet } from '../../ui/Sheet'
 
@@ -60,13 +58,10 @@ export default function Kit() {
       </section>
 
       <section className="flex items-end justify-between">
-        <Clock className="text-5xl" />
         <button className="pressable text-6xl font-bold" onClick={() => setCount((c) => c + 1)}>
           <Counter value={count} />
         </button>
       </section>
-
-      <Ticket hours={6} name="ณัฐวุฒิ แก้วประเสริฐ" studentId="65012345" at={Date.now()} distance={38} ref="7F3A90C2" title="บริจาคโลหิต ครั้งที่ 2/2569" />
 
       <Button variant="secondary" size="lg" onClick={() => setSheet(true)}>
         เปิด sheet

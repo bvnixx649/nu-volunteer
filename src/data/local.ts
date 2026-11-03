@@ -1,6 +1,6 @@
-import type { Api, ClaimInput, ClaimResult } from './api'
+import type { Api, ClaimInput, ClaimResult, RegisterResult } from './api'
 import { newId } from '../lib/id'
-import type { Activity, Credit, NewActivity, Org, Registration, Student } from './types'
+import type { Activity, Announcement, ChatMsg, Credit, DirectMsg, NewActivity, Notice, Org, Registration, Student } from './types'
 
 /**
  * Browser-only storage for building and demoing without a backend: one JSON blob in localStorage,
@@ -14,10 +14,14 @@ export interface LocalDb {
   activities: Record<string, Activity>
   regs: Record<string, Record<string, Registration>>
   credits: Record<string, Record<string, Credit>>
+  announcements: Announcement[]
+  messages: ChatMsg[]
+  dms: DirectMsg[]
+  notices: Notice[]
 }
 
 const KEY = 'nuv:db'
-const empty = (): LocalDb => ({ students: {}, orgs: {}, activities: {}, regs: {}, credits: {} })
+const empty = (): LocalDb => ({ students: {}, orgs: {}, activities: {}, regs: {}, credits: {}, announcements: [], messages: [], dms: [], notices: [] })
 
 const load = (): LocalDb => {
   try {
@@ -70,6 +74,7 @@ function watch<T>(select: (db: LocalDb) => T, cb: (v: T) => void) {
   }
 }
 
+const byTimeAsc = <T extends { at: number }>(xs: T[]) => xs.sort((a, b) => a.at - b.at)
 const byTimeDesc = <T extends { at: number }>(xs: T[]) => xs.sort((a, b) => b.at - a.at)
 
 export function createLocalApi(): Api {
@@ -80,6 +85,10 @@ export function createLocalApi(): Api {
     createStudent: (s) =>
       tx((db) => {
         db.students[s.id] ??= s
+      }),
+    updateStudent: (id, patch) =>
+      tx((db) => {
+        if (db.students[id]) Object.assign(db.students[id], patch)
       }),
     getOrg: async (code) => load().orgs[code] ?? null,
     getActivity: async (id) => load().activities[id] ?? null,
@@ -173,6 +182,63 @@ export function createLocalApi(): Api {
       tx((db) => {
         const act = db.activities[a]
         if (act) Object.assign(act, patch)
+      }),
+
+    listActivities: async () => Object.values(load().activities),
+    listCredits: async (a) => byTimeAsc(Object.values(load().credits[a] ?? {})),
+    studentRegistrations: async (s) =>
+      Object.entries(load().regs).flatMap(([activityId, regs]) => (regs[s] ? [{ ...regs[s], activityId }] : [])),
+    studentCredits: async (s) =>
+      Object.entries(load().credits).flatMap(([activityId, credits]) => (credits[s] ? [{ ...credits[s], activityId }] : [])),
+
+    register: (a, student) =>
+      tx((db): RegisterResult => {
+        const act = db.activities[a]
+        const regs = (db.regs[a] ??= {})
+        const reg = regs[student.id]
+        if (!act) return 'full'
+        if (reg && !reg.cancelledAt) return 'already'
+        if (act.capLimit && act.regCount >= act.capacity) return 'full'
+        regs[student.id] = { studentId: student.id, name: student.name, at: Date.now(), ...(reg?.late && { late: true }) }
+        act.regCount += 1
+        return 'ok'
+      }),
+
+    cancelRegistration: (a, s, late) =>
+      tx((db) => {
+        const reg = db.regs[a]?.[s]
+        if (!reg || reg.cancelledAt) return
+        reg.cancelledAt = Date.now()
+        if (late) reg.late = true
+        else delete reg.late
+        const act = db.activities[a]
+        if (act) act.regCount = Math.max(0, act.regCount - 1)
+      }),
+
+    listNotices: async (s) => byTimeDesc(load().notices.filter((n) => n.studentId === s)).slice(0, 60),
+    addNotice: (n) =>
+      tx((db) => {
+        db.notices.push({ body: '', ...n, id: newId(), at: Date.now(), read: false })
+      }),
+    markNoticesRead: (s) =>
+      tx((db) => {
+        for (const n of db.notices) if (n.studentId === s) n.read = true
+      }),
+
+    listAnnouncements: async (a) => byTimeDesc(load().announcements.filter((x) => x.activityId === a)),
+    listMessages: async (a) => byTimeAsc(load().messages.filter((m) => m.activityId === a)),
+    sendMessage: (m) =>
+      tx((db) => {
+        db.messages.push({ ...m, id: newId(), at: Date.now() })
+      }),
+    listDms: async (a, s) => byTimeAsc(load().dms.filter((m) => m.activityId === a && m.studentId === s)),
+    sendDm: (m) =>
+      tx((db) => {
+        db.dms.push({ ...m, id: newId(), at: Date.now(), read: false })
+      }),
+    markDmsRead: (a, s, readerIsSup) =>
+      tx((db) => {
+        for (const m of db.dms) if (m.activityId === a && m.studentId === s && m.fromSup !== readerIsSup) m.read = true
       }),
 
     closeRoster: (a) =>

@@ -157,6 +157,35 @@ describe('register', () => {
   })
 })
 
+describe('student side calls', () => {
+  it('register, late cancel flag, and reading my rows as remote.ts does', async () => {
+    const reg = async (s: string) => (await db.query<{ register: boolean }>('select register($1,$2,$3)', ['a1', s, `นิสิต ${s}`])).rows[0].register
+    expect(await reg('65000001')).toBe(true)
+    expect(await reg('65000001')).toBe(false)
+    await db.query('select cancel_registration($1,$2)', ['a1', '65000001'])
+    await db.query('update registrations set late = $3 where activity_id = $1 and student_id = $2', ['a1', '65000001', true])
+    const mine = (await db.query<{ activity_id: string; late: boolean; cancelled_at: string | null }>('select * from registrations where student_id = $1', ['65000001'])).rows
+    expect(mine).toMatchObject([{ activity_id: 'a1', late: true }])
+    expect(mine[0].cancelled_at).not.toBeNull()
+    expect((await act()).reg_count).toBe(0)
+    expect(await reg('65000001')).toBe(true)
+    expect((await act()).reg_count).toBe(1)
+  })
+
+  it('stores notices, messages and private messages with the columns remote.ts writes', async () => {
+    await db.query(`insert into students (id, name) values ('65000002', 'x')`)
+    await db.query(`update students set reminders = $2, notify = $3 where id = $1`, ['65000002', ['a1'], { enabled: true }])
+    await db.query(`insert into notices (student_id, kind, title, body, activity_id, "to") values ('65000002', 'credit', 't', '', 'a1', null)`)
+    await db.query(`update notices set read = true where student_id = '65000002' and read = false`)
+    await db.query(`insert into messages (activity_id, author_id, author_name, text, sup) values ('a1', '65000002', 'x', 'hi', false)`)
+    await db.query(`insert into dms (activity_id, student_id, from_sup, author_name, text) values ('a1', '65000002', true, 'sup', 'ok')`)
+    await db.query(`update dms set read = true where activity_id = 'a1' and student_id = '65000002' and from_sup = true and read = false`)
+    expect((await db.query<{ reminders: string[] }>(`select reminders from students where id = '65000002'`)).rows[0].reminders).toEqual(['a1'])
+    expect((await db.query(`select 1 from notices where student_id = '65000002' and read`)).rows).toHaveLength(1)
+    expect((await db.query(`select 1 from dms where read`)).rows).toHaveLength(1)
+  })
+})
+
 describe('access', () => {
   it('get_org returns the org for a code and nothing for a wrong one', async () => {
     await db.exec(seed)

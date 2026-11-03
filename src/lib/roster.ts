@@ -37,3 +37,16 @@ export function rosterRows(regs: Registration[], credits: Credit[], filter: Rost
     .filter((r) => keep[filter](r) && match(r))
     .sort((a, b) => (b.credit?.at ?? -1) - (a.credit?.at ?? -1) || a.name.localeCompare(b.name, 'th'))
 }
+
+export interface NumberedCredit {
+  n: number
+  credit: Credit
+}
+
+/** The credited list in the order hours were given, numbered, then narrowed by an id prefix or a name fragment. Numbers stay put while searching. */
+export function creditList(credits: Credit[], q: string): NumberedCredit[] {
+  const query = q.trim()
+  const all = [...credits].sort((a, b) => a.at - b.at).map((credit, i) => ({ n: i + 1, credit }))
+  if (!query) return all
+  return all.filter(({ credit: c }) => (/^\d+$/.test(query) ? c.studentId.startsWith(query) : c.name.includes(query)))
+}

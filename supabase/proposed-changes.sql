@@ -1,0 +1,73 @@
+-- Proposed changes to supabase/schema.sql, NOT applied. The student side works without any of them
+-- (it uses the schema as it is). Each block says what it would improve; take what you need.
+
+-- 1. Live chat. The student chat and private thread poll every 4 seconds because messages and dms are not
+--    in the realtime publication. Adding them gives instant delivery, but each open chat then holds a realtime
+--    connection (the free plan allows 200 at once), so only worth it for activities with a small chat.
+-- alter publication supabase_realtime add table public.messages;
+-- alter publication supabase_realtime add table public.dms;
+-- alter table messages replica identity full;
+-- alter table dms replica identity full;
+
+-- 2. Late cancel decided by the server. cancel_registration does not know the free-cancel deadline, so the app
+--    reads the deadline from the activity and writes registrations.late itself right after calling the function
+--    (a second request, and a client can set it wrongly). This version does it in one call.
+--    remote.ts would then call cancel_registration only and drop the extra update.
+-- create or replace function cancel_registration(p_activity text, p_student text) returns void
+-- language plpgsql as $$
+-- declare
+--   act activities;
+-- begin
+--   select * into act from activities where id = p_activity for update;
+--   update registrations
+--     set cancelled_at = now(),
+--         late = now() > act.start_at - make_interval(days => coalesce(act.cancel_days, 2))
+--     where activity_id = p_activity and student_id = p_student and cancelled_at is null;
+--   if found then
+--     update activities set reg_count = greatest(0, reg_count - 1) where id = p_activity;
+--   end if;
+-- end $$;
+
+-- 3. Notices written by the server. Today the student app writes "registered" and "credit" notices itself at the
+--    moment of the action, and "open" (a reminder fired) and "recorded" lazily when the student next opens the app.
+--    Nothing creates "announce" or "chat" notices yet. Triggers would cover all of them for every student, even
+--    ones who never open the app, and let the supervisor and admin screens stay free of notice code.
+-- create or replace function notice_on_announcement() returns trigger language plpgsql as $$
+-- begin
+--   insert into notices (student_id, kind, title, body, activity_id)
+--   select r.student_id, 'announce', 'ประกาศจากผู้คุม', left(new.text, 140), new.activity_id
+--   from registrations r where r.activity_id = new.activity_id and r.cancelled_at is null;
+--   return new;
+-- end $$;
+-- drop trigger if exists announcements_notice on announcements;
+-- create trigger announcements_notice after insert on announcements for each row execute function notice_on_announcement();
+--
+-- create or replace function notice_on_sup_dm() returns trigger language plpgsql as $$
+-- begin
+--   if new.from_sup then
+--     insert into notices (student_id, kind, title, body, activity_id, "to")
+--     values (new.student_id, 'chat', 'ผู้คุมตอบข้อความ', left(new.text, 140), new.activity_id, '/a/' || new.activity_id || '/dm');
+--   end if;
+--   return new;
+-- end $$;
+-- drop trigger if exists dms_notice on dms;
+-- create trigger dms_notice after insert on dms for each row execute function notice_on_sup_dm();
+--
+-- create or replace function notice_on_recorded() returns trigger language plpgsql as $$
+-- begin
+--   if new.recorded_at is not null and old.recorded_at is null then
+--     insert into notices (student_id, kind, title, body, activity_id)
+--     select c.student_id, 'recorded', 'บันทึกชั่วโมงลงระบบแล้ว', new.title, new.id from credits c where c.activity_id = new.id;
+--   end if;
+--   return new;
+-- end $$;
+-- drop trigger if exists activities_recorded_notice on activities;
+-- create trigger activities_recorded_notice after update on activities for each row execute function notice_on_recorded();
+-- (If these triggers are added, drop the lazy "recorded" producer in src/data/mine.ts to avoid double notices.)
+
+-- 4. Newest-first notice list per student without sorting the whole table.
+-- create index if not exists notices_student_at_idx on notices (student_id, at desc);
+
+-- 5. Waiving a lost credit (supervisor gives it back). registrations.waived already exists and the student app
+--    reads it; only the supervisor screen to set it is missing, no SQL needed:
+--    update registrations set waived = true where activity_id = $1 and student_id = $2;

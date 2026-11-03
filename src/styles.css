@@ -40,27 +40,27 @@
   --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg: #161514;
-    --color-surface: #1f1e1c;
-    --color-surface-2: #2a2826;
-    --color-ink: #edebe7;
-    --color-muted: #a5a19a;
-    --color-line: #37342f;
-    --color-accent: #f2702a;
-    --color-accent-strong: #e8590c;
-    --color-accent-soft: #3a2316;
-    --color-on-accent: #1a1716;
-    --color-ok: #5cc48d;
-    --color-ok-soft: #173325;
-    --color-warn: #e8b04a;
-    --color-warn-soft: #382a10;
-    --color-bad: #f27a6e;
-    --color-bad-soft: #3b1a17;
-    --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -8px rgb(0 0 0 / 0.5);
-    --shadow-lift: 0 2px 4px rgb(0 0 0 / 0.3), 0 24px 48px -16px rgb(0 0 0 / 0.6);
-  }
+/* Dark is the only theme for now (user choice 3 Nov). The QR screen stays white on its own. */
+:root {
+  color-scheme: dark;
+  --color-bg: #161514;
+  --color-surface: #1f1e1c;
+  --color-surface-2: #2a2826;
+  --color-ink: #edebe7;
+  --color-muted: #a5a19a;
+  --color-line: #37342f;
+  --color-accent: #f2702a;
+  --color-accent-strong: #e8590c;
+  --color-accent-soft: #3a2316;
+  --color-on-accent: #1a1716;
+  --color-ok: #5cc48d;
+  --color-ok-soft: #173325;
+  --color-warn: #e8b04a;
+  --color-warn-soft: #382a10;
+  --color-bad: #f27a6e;
+  --color-bad-soft: #3b1a17;
+  --shadow-soft: 0 1px 2px rgb(0 0 0 / 0.3), 0 8px 24px -8px rgb(0 0 0 / 0.5);
+  --shadow-lift: 0 2px 4px rgb(0 0 0 / 0.3), 0 24px 48px -16px rgb(0 0 0 / 0.6);
 }
 
 @layer base {
@@ -104,18 +104,6 @@
   &:active {
     transform: scale(0.97);
   }
-}
-
-/* Ticket perforation: two side notches plus a dashed tear line. */
-.ticket {
-  --notch: 11px;
-  mask:
-    radial-gradient(circle var(--notch) at 0 var(--perf-y, 50%), #0000 98%, #000) left / 51% 100% no-repeat,
-    radial-gradient(circle var(--notch) at 100% var(--perf-y, 50%), #0000 98%, #000) right / 51% 100% no-repeat;
-}
-.ticket-perf {
-  margin: 0 calc(var(--notch) + 6px);
-  border-top: 2px dashed var(--color-line);
 }
 
 @utility no-scrollbar {

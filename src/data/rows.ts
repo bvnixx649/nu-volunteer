@@ -1,4 +1,19 @@
-import type { Activity, ActivityEdit, Credit, CreditFlag, NewActivity, Org, Registration, Student } from './types'
+import type {
+  Activity,
+  ActivityEdit,
+  Announcement,
+  ChatMsg,
+  Credit,
+  CreditFlag,
+  DirectMsg,
+  MyCredit,
+  MyRegistration,
+  NewActivity,
+  Notice,
+  Org,
+  Registration,
+  Student,
+} from './types'
 
 /** Database rows (snake_case, timestamptz as ISO strings) and the one place they become the camelCase types (ms numbers). */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -9,7 +24,13 @@ const opt = <T>(v: T | null | undefined) => v ?? undefined
 /** Drops keys without a value, so optional fields stay absent like in local.ts. */
 const defined = <T extends object>(o: T): T => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== undefined)) as T
 
-export const toStudent = (r: Row): Student => ({ id: r.id, name: r.name, createdAt: ms(r.created_at) ?? 0 })
+export const toStudent = (r: Row): Student => ({
+  id: r.id,
+  name: r.name,
+  createdAt: ms(r.created_at) ?? 0,
+  reminders: r.reminders ?? [],
+  notify: r.notify ?? {},
+})
 
 export const toOrg = (r: Row): Org => ({ code: r.code, name: r.name, admin: r.admin })
 
@@ -124,3 +145,48 @@ export const fromActivityPatch = (p: ActivityEdit): Row => columns(p)
 export const fromNewActivity = (id: string, a: NewActivity): Row => ({ id, ...columns(a) })
 
 export const fromStudent = (s: Student): Row => ({ id: s.id, name: s.name, created_at: new Date(s.createdAt).toISOString() })
+
+export const toMyRegistration = (r: Row): MyRegistration => ({ ...toRegistration(r), activityId: r.activity_id })
+export const toMyCredit = (r: Row): MyCredit => ({ ...toCredit(r), activityId: r.activity_id })
+
+export const toNotice = (r: Row): Notice =>
+  defined({
+    id: r.id,
+    studentId: r.student_id,
+    kind: r.kind,
+    title: r.title,
+    body: r.body ?? '',
+    activityId: opt(r.activity_id),
+    to: opt(r.to),
+    at: ms(r.at) ?? 0,
+    read: !!r.read,
+  })
+
+export const toAnnouncement = (r: Row): Announcement => ({
+  id: r.id,
+  activityId: r.activity_id,
+  text: r.text,
+  images: r.images ?? [],
+  at: ms(r.at) ?? 0,
+})
+
+export const toChatMsg = (r: Row): ChatMsg => ({
+  id: r.id,
+  activityId: r.activity_id,
+  authorId: r.author_id,
+  authorName: r.author_name,
+  text: r.text,
+  at: ms(r.at) ?? 0,
+  sup: !!r.sup,
+})
+
+export const toDirectMsg = (r: Row): DirectMsg => ({
+  id: r.id,
+  activityId: r.activity_id,
+  studentId: r.student_id,
+  fromSup: !!r.from_sup,
+  authorName: r.author_name,
+  text: r.text,
+  at: ms(r.at) ?? 0,
+  read: !!r.read,
+})

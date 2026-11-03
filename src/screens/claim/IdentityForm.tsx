@@ -3,9 +3,9 @@ import { Button } from '../../ui/Button'
 import { Field } from '../../ui/Field'
 import { cleanName, isStudentId } from '../../lib/format'
 
-type Props = { onSubmit: (id: string, name: string) => Promise<void> | void; initialId?: string }
+type Props = { onSubmit: (id: string, name: string) => Promise<void> | void; initialId?: string; submitLabel?: string }
 
-export function IdentityForm({ onSubmit, initialId = '' }: Props) {
+export function IdentityForm({ onSubmit, initialId = '', submitLabel = 'รับชั่วโมง' }: Props) {
   const [id, setId] = useState(initialId)
   const [name, setName] = useState('')
   const [tried, setTried] = useState(false)
@@ -49,7 +49,7 @@ export function IdentityForm({ onSubmit, initialId = '' }: Props) {
       />
       <p className="text-sm text-muted">กรอกครั้งเดียว ครั้งต่อไปเครื่องนี้จำไว้ให้</p>
       <Button size="lg" type="submit" loading={busy} className="mt-2 w-full">
-        รับชั่วโมง
+        {submitLabel}
       </Button>
     </form>
   )

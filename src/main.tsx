@@ -11,7 +11,7 @@ createRoot(document.getElementById('root')!).render(
     {/* The user runs Reduce Motion on their iPad and still wants every animation. */}
     <MotionConfig reducedMotion="never">
       <App />
-      <Toaster position="top-center" />
+      <Toaster position="top-center" theme="dark" />
     </MotionConfig>
   </StrictMode>,
 )

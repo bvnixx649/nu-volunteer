@@ -188,3 +188,57 @@ describe('roster', () => {
     expect((await api.getActivity('a1'))?.closedAt).toBe(closed)
   })
 })
+
+describe('student side', () => {
+  const me = { id: '65010009', name: 'นิสิต ทดสอบ' }
+
+  it('registers once, respects the seat limit and reopens after a cancel', async () => {
+    resetLocal({ activities: { a1: { ...activity, capLimit: true, capacity: 1 } } })
+    api = createLocalApi()
+    expect(await api.register('a1', me)).toBe('ok')
+    expect(await api.register('a1', me)).toBe('already')
+    expect(await api.register('a1', { id: '65010010', name: 'อีกคน' })).toBe('full')
+    await api.cancelRegistration('a1', me.id, false)
+    expect(await api.getActivity('a1')).toMatchObject({ regCount: 0 })
+    expect(await api.register('a1', { id: '65010010', name: 'อีกคน' })).toBe('ok')
+  })
+
+  it('records a late cancel on the registration', async () => {
+    await api.register('a1', me)
+    await api.cancelRegistration('a1', me.id, true)
+    expect(await api.studentRegistrations(me.id)).toMatchObject([{ activityId: 'a1', late: true }])
+    expect((await api.studentRegistrations(me.id))[0].cancelledAt).toBeTypeOf('number')
+  })
+
+  it('lists a student own credits with their activity and the activity credits oldest first', async () => {
+    await api.claim(input('65000005'))
+    await new Promise((r) => setTimeout(r, 5))
+    await api.claim(input(me.id, 'dev-2'))
+    expect((await api.listCredits('a1')).map((c) => c.studentId)).toEqual(['65000005', me.id])
+    expect(await api.studentCredits(me.id)).toMatchObject([{ activityId: 'a1', studentId: me.id }])
+  })
+
+  it('keeps notices per student, newest first, and marks them read', async () => {
+    await api.addNotice({ studentId: me.id, kind: 'registered', title: 'หนึ่ง' })
+    await new Promise((r) => setTimeout(r, 5))
+    await api.addNotice({ studentId: me.id, kind: 'credit', title: 'สอง' })
+    await api.addNotice({ studentId: 'other', kind: 'credit', title: 'ของคนอื่น' })
+    expect((await api.listNotices(me.id)).map((n) => n.title)).toEqual(['สอง', 'หนึ่ง'])
+    await api.markNoticesRead(me.id)
+    expect((await api.listNotices(me.id)).every((n) => n.read)).toBe(true)
+    expect((await api.listNotices('other'))[0].read).toBe(false)
+  })
+
+  it('updates reminders and notify switches on the student', async () => {
+    await api.createStudent({ ...me, createdAt: 1 })
+    await api.updateStudent(me.id, { reminders: ['a1'], notify: { enabled: true, openings: true, announcements: false, messages: true } })
+    expect(await api.getStudent(me.id)).toMatchObject({ reminders: ['a1'], notify: { enabled: true, announcements: false } })
+  })
+
+  it('marks only the other side messages in a thread as read', async () => {
+    await api.sendDm({ activityId: 'a1', studentId: me.id, fromSup: false, authorName: me.name, text: 'ไม่สบาย' })
+    await api.sendDm({ activityId: 'a1', studentId: me.id, fromSup: true, authorName: 'ผู้คุม', text: 'รับทราบ' })
+    await api.markDmsRead('a1', me.id, false)
+    expect((await api.listDms('a1', me.id)).map((m) => [m.fromSup, m.read])).toEqual([[false, false], [true, true]])
+  })
+})

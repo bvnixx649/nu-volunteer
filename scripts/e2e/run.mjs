@@ -17,7 +17,7 @@ const only = process.argv.slice(2).find((a) => !a.startsWith('--'))
 const specs = readdirSync(here).filter((f) => f.endsWith('.mjs') && f !== 'run.mjs' && (!only || f.startsWith(only)))
 const mode = remote ? 'remote' : 'local'
 
-const server = await createServer({ root: join(here, '../..'), server: { port: 5199, strictPort: true }, logLevel: 'error' })
+const server = await createServer({ root: join(here, '../..'), server: { port: 5199, strictPort: true, fs: { allow: [join(here, '../..'), ...(process.env.E2E_FS_ALLOW ? [process.env.E2E_FS_ALLOW] : [])] } }, logLevel: 'error' })
 await server.listen()
 const base = 'http://localhost:5199/nu-volunteer/'
 const browser = await chromium.launch()

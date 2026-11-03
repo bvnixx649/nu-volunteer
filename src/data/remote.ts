@@ -1,6 +1,21 @@
 import type { Api, ClaimInput, ClaimResult, Unsub } from './api'
 import { newId } from '../lib/id'
-import { fromActivityPatch, fromNewActivity, fromStudent, toActivity, toCredit, toOrg, toRegistration, toStudent } from './rows'
+import {
+  fromActivityPatch,
+  fromNewActivity,
+  fromStudent,
+  toActivity,
+  toAnnouncement,
+  toChatMsg,
+  toCredit,
+  toDirectMsg,
+  toMyCredit,
+  toMyRegistration,
+  toNotice,
+  toOrg,
+  toRegistration,
+  toStudent,
+} from './rows'
 import { ready, supabase } from './supabase'
 
 /**
@@ -159,6 +174,62 @@ export function createRemoteApi(): Api {
     async updateActivity(id, patch) {
       const row = fromActivityPatch(patch)
       if (Object.keys(row).length) await must(supabase.from('activities').update(row).eq('id', id))
+    },
+    async listActivities() {
+      return ((await must(supabase.from('activities').select('*'))) ?? []).map(toActivity)
+    },
+    async listCredits(a) {
+      return ((await must(supabase.from('credits').select('*').eq('activity_id', a).order('at', { ascending: true }))) ?? []).map(toCredit)
+    },
+    async studentRegistrations(s) {
+      return ((await must(supabase.from('registrations').select('*').eq('student_id', s))) ?? []).map(toMyRegistration)
+    },
+    async studentCredits(s) {
+      return ((await must(supabase.from('credits').select('*').eq('student_id', s))) ?? []).map(toMyCredit)
+    },
+    async register(a, student) {
+      const ok = await rpc<boolean>('register', { p_activity: a, p_student: student.id, p_name: student.name })
+      if (ok) return 'ok'
+      // The function says false for both reasons; a live registration of this student means "already".
+      const reg = await must(supabase.from('registrations').select('cancelled_at').eq('activity_id', a).eq('student_id', student.id).maybeSingle())
+      return reg && !reg.cancelled_at ? 'already' : 'full'
+    },
+    async cancelRegistration(a, s, late) {
+      await rpc('cancel_registration', { p_activity: a, p_student: s })
+      // The function does not know about the deadline, so the late flag is written after it.
+      await must(supabase.from('registrations').update({ late }).eq('activity_id', a).eq('student_id', s))
+    },
+    async updateStudent(id, patch) {
+      await must(supabase.from('students').update(patch).eq('id', id))
+    },
+    async listNotices(s) {
+      return ((await must(supabase.from('notices').select('*').eq('student_id', s).order('at', { ascending: false }).limit(60))) ?? []).map(toNotice)
+    },
+    async addNotice(n) {
+      await must(
+        supabase.from('notices').insert({ student_id: n.studentId, kind: n.kind, title: n.title, body: n.body ?? '', activity_id: n.activityId ?? null, to: n.to ?? null }),
+      )
+    },
+    async markNoticesRead(s) {
+      await must(supabase.from('notices').update({ read: true }).eq('student_id', s).eq('read', false))
+    },
+    async listAnnouncements(a) {
+      return ((await must(supabase.from('announcements').select('*').eq('activity_id', a).order('at', { ascending: false }))) ?? []).map(toAnnouncement)
+    },
+    async listMessages(a) {
+      return ((await must(supabase.from('messages').select('*').eq('activity_id', a).order('at', { ascending: true }).limit(500))) ?? []).map(toChatMsg)
+    },
+    async sendMessage(m) {
+      await must(supabase.from('messages').insert({ activity_id: m.activityId, author_id: m.authorId, author_name: m.authorName, text: m.text, sup: m.sup }))
+    },
+    async listDms(a, s) {
+      return ((await must(supabase.from('dms').select('*').eq('activity_id', a).eq('student_id', s).order('at', { ascending: true }))) ?? []).map(toDirectMsg)
+    },
+    async sendDm(m) {
+      await must(supabase.from('dms').insert({ activity_id: m.activityId, student_id: m.studentId, from_sup: m.fromSup, author_name: m.authorName, text: m.text }))
+    },
+    async markDmsRead(a, s, readerIsSup) {
+      await must(supabase.from('dms').update({ read: true }).eq('activity_id', a).eq('student_id', s).eq('from_sup', !readerIsSup).eq('read', false))
     },
     async submitRoster(a) {
       await rpc('submit_roster', { p_activity: a })

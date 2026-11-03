@@ -79,6 +79,8 @@ export default function Claim() {
         })
         if (res.ok) {
           haptic.success()
+          // The inbox note is a convenience; it must never hold up or break the success screen.
+          api.addNotice({ studentId: s.id, kind: 'credit', title: `ได้รับ ${res.credit.hours} ชั่วโมง`, body: activity.title, activityId: activity.id }).catch(() => {})
           setView({ kind: 'success', credit: res.credit })
         } else fail({ reason: res.reason, credit: res.credit })
       } catch {
@@ -161,7 +163,7 @@ export default function Claim() {
 
           {view.kind === 'checking' && <Checking stage={view.stage} />}
 
-          {view.kind === 'success' && <Success credit={view.credit} title={title ?? ''} />}
+          {view.kind === 'success' && <Success credit={view.credit} title={title ?? ''} activityId={payload?.a ?? ''} />}
 
           {view.kind === 'fail' && (
             <Failure

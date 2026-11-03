@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { fromActivityPatch, fromNewActivity, fromStudent, toActivity, toCredit, toRegistration } from './rows'
+import { fromActivityPatch, fromNewActivity, fromStudent, toActivity, toCredit, toMyRegistration, toNotice, toRegistration, toStudent } from './rows'
 
 const row = {
   id: 'a1', title: 't', category_key: 'blood', org: 'o', org_code: 'X', poster: '', description: '', place: 'p',
@@ -46,5 +46,22 @@ describe('rows', () => {
     const out = fromNewActivity('abc', input)
     expect(out).toMatchObject({ id: 'abc', title: 't', category_key: 'blood', walk_in: true, supervisor_name: 'ก', start_at: '2026-11-20T01:00:00.000Z' })
     for (const k of ['created_at', 'reg_count', 'credit_count']) expect(k in out).toBe(false)
+  })
+})
+
+describe('student rows', () => {
+  it('maps a notice with its optional fields left out when null', () => {
+    const n = toNotice({ id: 'n1', student_id: '65010001', kind: 'credit', title: 'ได้รับ 6 ชั่วโมง', body: 'งาน', activity_id: null, to: null, at: '2026-11-20T03:00:00Z', read: false })
+    expect(n).toEqual({ id: 'n1', studentId: '65010001', kind: 'credit', title: 'ได้รับ 6 ชั่วโมง', body: 'งาน', at: Date.parse('2026-11-20T03:00:00Z'), read: false })
+  })
+  it('maps a registration with its activity id and the late flag', () => {
+    expect(toMyRegistration({ activity_id: 'a1', student_id: '65010001', name: 'x', at: '2026-11-01T00:00:00Z', cancelled_at: '2026-11-02T00:00:00Z', late: true, waived: false, walk_in: false })).toMatchObject({
+      activityId: 'a1',
+      late: true,
+      cancelledAt: Date.parse('2026-11-02T00:00:00Z'),
+    })
+  })
+  it('gives a student without reminders an empty list', () => {
+    expect(toStudent({ id: '65010001', name: 'x', created_at: '2026-11-01T00:00:00Z', reminders: null, notify: null })).toMatchObject({ reminders: [], notify: {} })
   })
 })

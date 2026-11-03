@@ -3,10 +3,67 @@ export type QrMode = 'dynamic' | 'static'
 export type LocMode = 'on' | 'off'
 export type CreditFlag = 'location' | 'device'
 
+/** Device-notification switches, stored per student. `enabled` is the master switch. */
+export interface NotifyPrefs {
+  enabled: boolean
+  openings: boolean
+  announcements: boolean
+  messages: boolean
+}
+
 export interface Student {
   id: string
   name: string
   createdAt: number
+  /** Activities whose registration opening the student asked to be reminded about. */
+  reminders?: string[]
+  notify?: Partial<NotifyPrefs>
+}
+
+export type NoticeKind = 'registered' | 'announce' | 'credit' | 'recorded' | 'chat' | 'open'
+
+export interface Notice {
+  id: string
+  studentId: string
+  kind: NoticeKind
+  title: string
+  body: string
+  activityId?: string
+  /** Where tapping the notice goes. Defaults to the activity page. */
+  to?: string
+  at: number
+  read: boolean
+}
+
+export interface Announcement {
+  id: string
+  activityId: string
+  text: string
+  images: string[]
+  at: number
+}
+
+export interface ChatMsg {
+  id: string
+  activityId: string
+  authorId: string
+  authorName: string
+  text: string
+  at: number
+  sup: boolean
+}
+
+/** Private thread between one student and the supervisors of one activity. */
+export interface DirectMsg {
+  id: string
+  activityId: string
+  studentId: string
+  fromSup: boolean
+  authorName: string
+  text: string
+  at: number
+  /** Read by the other side. */
+  read: boolean
 }
 
 export interface Org {
@@ -63,6 +120,9 @@ export interface Registration {
   waived?: boolean
 }
 
+/** A registration seen from the student's side, which needs to know the activity. */
+export type MyRegistration = Registration & { activityId: string }
+
 export interface Credit {
   studentId: string
   name: string
@@ -79,6 +139,8 @@ export interface Credit {
   editedAt?: number
   reason?: string
 }
+
+export type MyCredit = Credit & { activityId: string }
 
 /** What createActivity takes: everything but the id, the server time and the counters. */
 export type NewActivity = Omit<Activity, 'id' | 'createdAt' | 'regCount' | 'creditCount'>

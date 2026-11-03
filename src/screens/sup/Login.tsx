@@ -39,7 +39,7 @@ export default function Login() {
           autoComplete="off"
           value={code}
           onChange={(e) => {
-            setCode(e.target.value)
+            setCode(e.target.value.toUpperCase())
             setError(undefined)
           }}
           error={error}

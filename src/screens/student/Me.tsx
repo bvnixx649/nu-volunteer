@@ -1,0 +1,176 @@
+import { useMemo, useState, type ReactNode } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { Bell, CaretRight, ShieldCheck, SignOut } from '@phosphor-icons/react'
+import { useMine } from '../../data/mine'
+import { CATEGORIES, CATEGORY_KEYS } from '../../data/categories'
+import { STRIKE_LIMIT } from '../../config'
+import { fmtHours, thDate } from '../../lib/format'
+import { useNow } from '../../lib/hooks'
+import { creditsLeft, semesterEnd, semesterNumber, strikesOf } from '../../lib/student'
+import { useDevice } from '../../store'
+import { Button } from '../../ui/Button'
+import { CountUp } from '../../ui/CountUp'
+import { InstallCard } from '../../ui/InstallCard'
+import { Sheet } from '../../ui/Sheet'
+
+const card = 'rounded-[var(--radius-card)] bg-surface p-5 shadow-soft'
+
+function Chip({ tone, children }: { tone: string; children: ReactNode }) {
+  return <span className={`inline-flex h-6 items-center rounded-full px-2.5 text-[13px] font-medium whitespace-nowrap ${tone}`}>{children}</span>
+}
+
+function Menu({ icon, label, hint, onClick, danger }: { icon: ReactNode; label: string; hint?: string; onClick: () => void; danger?: boolean }) {
+  return (
+    <button onClick={onClick} className="pressable flex min-h-16 w-full items-center gap-4 px-5 text-left">
+      <span className={danger ? 'text-bad' : 'text-muted'}>{icon}</span>
+      <span className="min-w-0 flex-1">
+        <span className={`block font-medium ${danger ? 'text-bad' : ''}`}>{label}</span>
+        {hint && <span className="block truncate text-sm text-muted">{hint}</span>}
+      </span>
+      {!danger && <CaretRight size={18} className="text-muted" />}
+    </button>
+  )
+}
+
+/** Transcript, history, credits and settings. */
+export default function Me() {
+  const nav = useNavigate()
+  const { student, activities, regs, credits } = useMine()
+  const sup = useDevice((s) => s.sup)
+  const signOut = useDevice((s) => s.signOut)
+  const [confirm, setConfirm] = useState(false)
+  const t = useNow()
+  const byId = useMemo(() => new Map(activities.map((a) => [a.id, a])), [activities])
+
+  const history = useMemo(() => [...credits].sort((a, b) => b.at - a.at), [credits])
+  const total = credits.reduce((s, c) => s + c.hours, 0)
+  const perCategory = CATEGORY_KEYS.map((k) => ({ k, hours: credits.filter((c) => byId.get(c.activityId)?.categoryKey === k).reduce((s, c) => s + c.hours, 0) })).filter((x) => x.hours > 0)
+  const strikes = useMemo(() => strikesOf(activities, regs, credits, t), [activities, regs, credits, t])
+  const left = creditsLeft(strikes)
+
+  return (
+    <main className="mx-auto max-w-lg px-5 pt-[calc(1.5rem+env(safe-area-inset-top,0px))]">
+      <h1 className="text-3xl leading-tight font-bold tracking-tight break-words">{student?.name}</h1>
+      <p className="num mt-1 text-muted">{student?.id}</p>
+
+      <section className={`${card} mt-6`}>
+        <h2 className="text-muted">Transcript จิตอาสา</h2>
+        <p className="mt-2 flex items-baseline gap-2">
+          <CountUp value={total} className="text-7xl leading-none font-bold tracking-tighter" />
+          <span className="text-xl font-bold text-accent">ชั่วโมง</span>
+        </p>
+        <p className="num mt-2 text-muted">จาก {credits.length} กิจกรรม</p>
+        {perCategory.length > 0 && (
+          <ul className="mt-4 divide-y divide-line border-t border-line">
+            {perCategory.map(({ k, hours }) => (
+              <li key={k} className="flex items-center justify-between py-3">
+                <span>{CATEGORIES[k].label}</span>
+                <span className="num font-semibold">{fmtHours(hours)} ชม.</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <section className={`${card} mt-4`}>
+        <h2 className="text-xl font-semibold">ประวัติเข้าร่วมกิจกรรม</h2>
+        {history.length === 0 ? (
+          <p className="mt-3 text-muted">ยังไม่มีกิจกรรมที่ได้รับชั่วโมง</p>
+        ) : (
+          <ul className="mt-2 divide-y divide-line">
+            {history.map((c) => {
+              const a = byId.get(c.activityId)
+              return (
+                <li key={c.activityId}>
+                  <Link to={`/a/${c.activityId}`} className="pressable flex items-start gap-3 py-4">
+                    <div className="min-w-0 flex-1">
+                      <p className="line-clamp-2 leading-snug">{a?.title ?? 'กิจกรรมจิตอาสา'}</p>
+                      <p className="num mt-1 text-sm text-muted">
+                        {thDate(c.at)} {c.method === 'manual' ? 'ยืนยันโดยผู้คุม' : 'สแกน QR'}
+                      </p>
+                      <div className="mt-2">
+                        {a?.recordedAt ? <Chip tone="bg-ok-soft text-ok">บันทึกลงระบบแล้ว</Chip> : a?.submittedAt ? <Chip tone="bg-warn-soft text-warn">รอศูนย์บันทึก</Chip> : <Chip tone="bg-surface-2 text-muted">รอผู้คุมส่งรายชื่อ</Chip>}
+                      </div>
+                    </div>
+                    <p className="num text-lg font-bold">+{fmtHours(c.hours)}</p>
+                  </Link>
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </section>
+
+      <section className={`${card} mt-4`}>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-semibold">เครดิตการเข้าร่วม</h2>
+            <p className="mt-1 text-sm text-muted">
+              ภาคการศึกษาที่ {semesterNumber(t)} รีเซ็ต {thDate(semesterEnd(t))}
+            </p>
+          </div>
+          <p className={`num text-4xl leading-none font-bold ${left <= 1 ? 'text-accent-strong' : ''}`}>
+            {left}
+            <span className="text-lg font-semibold text-muted">/{STRIKE_LIMIT}</span>
+          </p>
+        </div>
+        <div className="mt-4 flex gap-2" aria-hidden>
+          {Array.from({ length: STRIKE_LIMIT }, (_, i) => (
+            <span key={i} className={`h-2 flex-1 rounded-full ${i < left ? 'bg-accent' : 'bg-surface-2'}`} />
+          ))}
+        </div>
+        <p className="mt-4 text-sm text-muted">
+          {left === 0 ? 'เครดิตหมดแล้ว สมัครกิจกรรมใหม่ไม่ได้จนถึงภาคการศึกษาหน้า' : 'ยกเลิกหลังกำหนดหรือไม่มาจะถูกหัก 1 ครั้ง ถ้าหมดจะสมัครกิจกรรมไม่ได้จนจบภาค'}
+        </p>
+        {strikes.length > 0 && (
+          <ul className="mt-3 divide-y divide-line border-t border-line">
+            {strikes.map((x) => (
+              <li key={`${x.kind}-${x.a.id}`}>
+                <Link to={`/a/${x.a.id}/dm`} className="pressable flex items-center gap-3 py-3.5">
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate">{x.a.title}</p>
+                    <p className="num text-sm text-muted">
+                      {thDate(x.at)} {x.kind === 'late' ? 'ยกเลิกหลังกำหนด' : 'ลงทะเบียนแต่ไม่มา'}
+                    </p>
+                    {!x.waived && <p className="text-sm font-medium text-accent-strong">แตะเพื่อแจ้งเหตุผลกับผู้คุม</p>}
+                  </div>
+                  {x.waived ? <Chip tone="bg-ok-soft text-ok">คืนแล้ว</Chip> : <Chip tone="bg-bad-soft text-bad">-1</Chip>}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <div className="mt-4">
+        <InstallCard />
+      </div>
+
+      <div className="mt-4 divide-y divide-line overflow-hidden rounded-[var(--radius-card)] bg-surface shadow-soft">
+        <Menu icon={<Bell size={24} />} label="การแจ้งเตือน" onClick={() => nav('/settings/notify')} />
+        <Menu icon={<ShieldCheck size={24} />} label="โหมดผู้คุมกิจกรรม" hint={sup ? sup.orgName : 'ใช้รหัสจากศูนย์จิตอาสา'} onClick={() => nav(sup ? '/sup' : '/sup/login')} />
+        <Menu icon={<SignOut size={24} />} label="ออกจากระบบ" danger onClick={() => setConfirm(true)} />
+      </div>
+
+      <Sheet open={confirm} onClose={() => setConfirm(false)} title="ออกจากระบบ">
+        <div className="flex flex-col gap-4">
+          <p className="text-muted">ชั่วโมงที่สะสมไว้ยังอยู่ เข้าใหม่ได้ด้วยรหัสนิสิตและชื่อ</p>
+          <Button
+            size="lg"
+            variant="danger"
+            className="w-full"
+            onClick={() => {
+              signOut()
+              nav('/welcome', { replace: true })
+            }}
+          >
+            ออกจากระบบ
+          </Button>
+          <Button size="lg" variant="ghost" className="w-full" onClick={() => setConfirm(false)}>
+            ยกเลิก
+          </Button>
+        </div>
+      </Sheet>
+    </main>
+  )
+}

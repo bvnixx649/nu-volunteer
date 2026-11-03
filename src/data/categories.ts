@@ -36,7 +36,7 @@ export const CATEGORIES: Record<CategoryKey, CategoryPreset> = {
     reasons: [],
     description:
       'สิ่งที่ต้องเตรียม: บัตรนิสิต นอนหลับให้พอ และทานอาหารก่อนมา\nผู้บริจาคอายุ 17 ปีขึ้นไป น้ำหนัก 45 กิโลกรัมขึ้นไป สุขภาพแข็งแรง\nคนที่ไม่ผ่านการคัดกรองก็ได้ชั่วโมงเต็ม',
-    posters: p('blood'),
+    posters: p('blood', 'blood-2', 'blood-3', 'blood-4', 'blood-5'),
   },
   setup: {
     label: 'จัดสถานที่',
