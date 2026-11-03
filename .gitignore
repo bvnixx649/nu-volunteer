@@ -2,3 +2,5 @@ node_modules
 dist
 .claude
 *.log
+.superpowers
+scripts/e2e/out

@@ -1,0 +1,10 @@
+{
+  "name": "จิตอาสา มน.",
+  "short_name": "จิตอาสา มน.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#F6F5F3",
+  "theme_color": "#E8590C",
+  "lang": "th"
+}
