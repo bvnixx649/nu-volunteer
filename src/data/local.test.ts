@@ -98,3 +98,66 @@ describe('students', () => {
     expect(await api.getStudent('65999999')).toBeNull()
   })
 })
+
+describe('roster', () => {
+  const addReg = (id: string) =>
+    resetLocal({
+      activities: { a1: { ...activity, regCount: 1, creditCount: 0 } },
+      regs: { a1: { [id]: { studentId: id, name: 'ลงชื่อไว้', at: 1 } } },
+    })
+
+  it('removes a registration together with its credit and lowers both counters', async () => {
+    await api.claim(input('65000020'))
+    await api.removeRegistration('a1', '65000020')
+    expect(await api.getRegistration('a1', '65000020')).toBeNull()
+    expect(await api.getCredit('a1', '65000020')).toBeNull()
+    expect(await api.getActivity('a1')).toMatchObject({ regCount: 0, creditCount: 0 })
+  })
+
+  it('removes a registration that has no credit and leaves creditCount alone', async () => {
+    await api.claim(input('65000021'))
+    addReg('65000022')
+    await api.removeRegistration('a1', '65000022')
+    expect(await api.getRegistration('a1', '65000022')).toBeNull()
+    expect(await api.getActivity('a1')).toMatchObject({ regCount: 0, creditCount: 0 })
+  })
+
+  it('never takes the counters below 0 and ignores unknown people', async () => {
+    resetLocal({
+      activities: { a1: { ...activity, regCount: 0, creditCount: 0 } },
+      regs: { a1: { '65000023': { studentId: '65000023', name: 'x', at: 1 } } },
+      credits: { a1: { '65000023': { studentId: '65000023', name: 'x', hours: 6, fullHours: 6, at: 1, method: 'qr', flags: [] } } },
+    })
+    await api.removeRegistration('a1', '65000023')
+    await api.removeRegistration('a1', '65999999')
+    expect(await api.getActivity('a1')).toMatchObject({ regCount: 0, creditCount: 0 })
+  })
+
+  it('closes the roster once and keeps the first time', async () => {
+    await api.closeRoster('a1')
+    const first = (await api.getActivity('a1'))?.closedAt
+    expect(first).toBeGreaterThan(0)
+    await new Promise((r) => setTimeout(r, 5))
+    await api.closeRoster('a1')
+    expect((await api.getActivity('a1'))?.closedAt).toBe(first)
+  })
+
+  it('submits the roster and closes it at the same time when it was still open', async () => {
+    await api.submitRoster('a1')
+    const a = await api.getActivity('a1')
+    expect(a?.submittedAt).toBeGreaterThan(0)
+    expect(a?.closedAt).toBe(a?.submittedAt)
+    const t = a?.submittedAt
+    await new Promise((r) => setTimeout(r, 5))
+    await api.submitRoster('a1')
+    expect((await api.getActivity('a1'))?.submittedAt).toBe(t)
+  })
+
+  it('keeps the earlier closing time when submitting', async () => {
+    await api.closeRoster('a1')
+    const closed = (await api.getActivity('a1'))?.closedAt
+    await new Promise((r) => setTimeout(r, 5))
+    await api.submitRoster('a1')
+    expect((await api.getActivity('a1'))?.closedAt).toBe(closed)
+  })
+})

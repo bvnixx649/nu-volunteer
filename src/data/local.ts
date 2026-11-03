@@ -145,5 +145,34 @@ export function createLocalApi(): Api {
         const act = db.activities[a]
         if (act) act.creditCount = Math.max(0, act.creditCount - 1)
       }),
+
+    removeRegistration: (a, s) =>
+      tx((db) => {
+        const act = db.activities[a]
+        if (db.regs[a]?.[s]) {
+          const wasActive = !db.regs[a][s].cancelledAt
+          delete db.regs[a][s]
+          if (act && wasActive) act.regCount = Math.max(0, act.regCount - 1)
+        }
+        if (db.credits[a]?.[s]) {
+          delete db.credits[a][s]
+          if (act) act.creditCount = Math.max(0, act.creditCount - 1)
+        }
+      }),
+
+    closeRoster: (a) =>
+      tx((db) => {
+        const act = db.activities[a]
+        if (act && !act.closedAt) act.closedAt = Date.now()
+      }),
+
+    submitRoster: (a) =>
+      tx((db) => {
+        const act = db.activities[a]
+        if (!act || act.submittedAt) return
+        const t = Date.now()
+        act.submittedAt = t
+        act.closedAt ??= t
+      }),
   }
 }

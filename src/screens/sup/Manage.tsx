@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
-import { CaretLeft, QrCode, UserPlus } from '@phosphor-icons/react'
+import { CaretLeft, FileXls, QrCode, UserPlus } from '@phosphor-icons/react'
+import { toast } from 'sonner'
 import { api, now } from '../../data/api'
 import type { Activity, Credit, Registration } from '../../data/types'
 import { thDate, thTime } from '../../lib/format'
+import { downloadSupXlsx } from '../../lib/excel'
 import { rosterRows, type RosterRow } from '../../lib/roster'
+import { canEdit, closedAt, stage } from '../../lib/stage'
 import { useDevice } from '../../store'
 import { Button } from '../../ui/Button'
 import { Counter } from '../../ui/Counter'
@@ -12,6 +15,7 @@ import { Roster, Flags } from './Roster'
 import { EditHoursSheet } from './EditHoursSheet'
 import { AddPersonSheet } from './AddPersonSheet'
 import { PullToQr } from './PullToQr'
+import { StageBar } from './StageBar'
 
 const useWide = () => {
   const q = '(min-width: 900px)'
@@ -56,9 +60,23 @@ export default function Manage() {
   if (!activity) return <p className="p-6 text-muted">ไม่พบกิจกรรมนี้</p>
 
   const selected = find(selectedId)
+  const editable = canEdit(activity)
+  const closed = !!closedAt(activity, now())
+  const st = stage(activity)
+  const started = st !== 'scheduled' && st !== 'open'
+  /** After the end, closing and sending the roster take over as the main action. */
+  const ended = started && st !== 'live'
   const pick = (r: RosterRow) => {
     setSelectedId(r.studentId)
-    if (!wide) setEditing(r.studentId)
+    if (!wide && editable) setEditing(r.studentId)
+  }
+  const exportXlsx = async () => {
+    try {
+      const out = await downloadSupXlsx(activity, regs, credits)
+      toast.success('ดาวน์โหลดไฟล์ Excel แล้ว', { description: `${out.length} รายชื่อ ได้ชั่วโมง ${out.filter((r) => r['สถานะ'] !== 'ไม่มา').length} คน` })
+    } catch {
+      toast.error('สร้างไฟล์ Excel ไม่ได้')
+    }
   }
 
   return (
@@ -71,6 +89,8 @@ export default function Manage() {
         <p className="num mt-1 text-muted">
           {thDate(activity.start)} {thTime(activity.start)} ถึง {thTime(activity.end)} น. {activity.place}
         </p>
+
+        <StageBar activity={activity} regs={regs} credits={credits} />
 
         <section className="mt-6 rounded-[var(--radius-card)] bg-surface p-5 shadow-soft">
           <div className="flex items-end justify-between gap-4">
@@ -85,17 +105,23 @@ export default function Manage() {
             </p>
           </div>
           <div className="mt-5 grid grid-cols-[1fr_auto] gap-3">
-            <Button size="lg" onClick={openQr}>
+            <Button size="lg" variant={ended ? 'secondary' : 'primary'} onClick={openQr}>
               <QrCode size={22} weight="bold" /> เปิด QR
             </Button>
-            <Button size="lg" variant="secondary" onClick={() => setAdding(true)} aria-label="เพิ่มคนเอง">
+            <Button size="lg" variant="secondary" disabled={!editable} onClick={() => setAdding(true)} aria-label="เพิ่มคนเอง">
               <UserPlus size={22} />
             </Button>
           </div>
+          {!editable && <p className="mt-3 text-sm text-muted">ส่งรายชื่อแล้ว แก้ไม่ได้</p>}
+          {started && (
+            <Button variant="secondary" className="mt-3 w-full" onClick={exportXlsx}>
+              <FileXls size={20} /> โหลด Excel
+            </Button>
+          )}
         </section>
 
         <div className="mt-8 grid gap-6 min-[900px]:grid-cols-[1fr_360px]">
-          <Roster regs={regs} credits={credits} selected={wide ? selectedId : undefined} onSelect={pick} />
+          <Roster regs={regs} credits={credits} selected={wide ? selectedId : undefined} closed={closed} onSelect={pick} />
           {wide && (
             <aside className="sticky top-4 self-start rounded-[var(--radius-card)] bg-surface p-5 shadow-soft">
               {selected ? (
@@ -110,11 +136,15 @@ export default function Manage() {
                     </p>
                   )}
                   <div className="flex flex-wrap gap-1.5 empty:hidden">
-                    <Flags row={selected} />
+                    <Flags row={selected} closed={closed} />
                   </div>
-                  <Button className="mt-2" onClick={() => setEditing(selected.studentId)}>
-                    {selected.credit ? 'แก้ชั่วโมง' : 'ให้ชั่วโมง'}
-                  </Button>
+                  {editable ? (
+                    <Button className="mt-2" onClick={() => setEditing(selected.studentId)}>
+                      {selected.credit ? 'แก้ชั่วโมง' : 'ให้ชั่วโมง'}
+                    </Button>
+                  ) : (
+                    <p className="text-sm text-muted">ส่งรายชื่อแล้ว แก้ไม่ได้</p>
+                  )}
                 </div>
               ) : (
                 <p className="text-muted">เลือกชื่อทางซ้ายเพื่อดูรายละเอียดหรือแก้ชั่วโมง</p>

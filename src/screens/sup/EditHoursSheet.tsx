@@ -25,6 +25,7 @@ export function EditHoursSheet({ row, activity, by, onClose }: Props) {
   const [reason, setReason] = useState('')
   const [other, setOther] = useState('')
   const [confirmRemove, setConfirmRemove] = useState(false)
+  const [confirmDrop, setConfirmDrop] = useState(false)
   const [busy, setBusy] = useState(false)
 
   useEffect(() => {
@@ -35,6 +36,7 @@ export function EditHoursSheet({ row, activity, by, onClose }: Props) {
     setReason(r && !known ? OTHER : r)
     setOther(r && !known ? r : '')
     setConfirmRemove(false)
+    setConfirmDrop(false)
   }, [row, full, activity.categoryKey])
 
   const hours = validHours(input, full)
@@ -64,6 +66,13 @@ export function EditHoursSheet({ row, activity, by, onClose }: Props) {
     if (!row) return
     if (!confirmRemove) return setConfirmRemove(true)
     await api.removeCredit(activity.id, row.studentId)
+    onClose()
+  }
+
+  const drop = async () => {
+    if (!row) return
+    if (!confirmDrop) return setConfirmDrop(true)
+    await api.removeRegistration(activity.id, row.studentId)
     onClose()
   }
 
@@ -114,6 +123,9 @@ export function EditHoursSheet({ row, activity, by, onClose }: Props) {
               {confirmRemove ? 'กดอีกครั้งเพื่อยกเลิกชั่วโมงของคนนี้' : 'ยกเลิกชั่วโมง'}
             </Button>
           )}
+          <Button variant="danger" className="w-full" onClick={drop}>
+            {confirmDrop ? 'กดอีกครั้งเพื่อลบคนนี้ออกจากรายชื่อ' : 'ลบออกจากรายชื่อ'}
+          </Button>
         </div>
       )}
     </Sheet>

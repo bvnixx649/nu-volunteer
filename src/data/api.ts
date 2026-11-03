@@ -41,6 +41,12 @@ export interface Api {
   claim(input: ClaimInput): Promise<ClaimResult>
   setHours(activityId: string, studentId: string, hours: number, reason: string, by: string): Promise<void>
   removeCredit(activityId: string, studentId: string): Promise<void>
+  /** Deletes the registration and its credit, if any, and lowers regCount and creditCount (never below 0). All or nothing. */
+  removeRegistration(activityId: string, studentId: string): Promise<void>
+  /** Sets closedAt to server time unless it is already set. */
+  closeRoster(activityId: string): Promise<void>
+  /** Sets submittedAt unless already set, and closedAt too if the roster was still open. */
+  submitRoster(activityId: string): Promise<void>
 }
 
 if (import.meta.env.DEV) seedIfEmpty(FIXTURE())

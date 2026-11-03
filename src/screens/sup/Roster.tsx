@@ -18,13 +18,16 @@ type Props = {
   regs: Registration[]
   credits: Credit[]
   selected?: string
+  /** Roster is closed: registered people without a credit are shown as not coming. */
+  closed?: boolean
   onSelect: (row: RosterRow) => void
 }
 
-export function Flags({ row }: { row: RosterRow }) {
+export function Flags({ row, closed }: { row: RosterRow; closed?: boolean }) {
   const c = row.credit
   return (
     <>
+      {closed && row.reg && !c && <Flag kind="noShow">ไม่มา</Flag>}
       {row.reg?.walkIn && <Flag kind="walkIn">มาเพิ่ม</Flag>}
       {c?.flags.includes('location') && (
         <Flag kind="location">{c.distance !== undefined ? `ตำแหน่งไม่ผ่าน ${Math.round(c.distance)} ม.` : 'ตำแหน่งไม่ผ่าน'}</Flag>
@@ -36,7 +39,7 @@ export function Flags({ row }: { row: RosterRow }) {
 }
 
 /** Live roster: search, five filters, one row per person. Updates as scans arrive from any device. */
-export function Roster({ regs, credits, selected, onSelect }: Props) {
+export function Roster({ regs, credits, selected, closed, onSelect }: Props) {
   const [filter, setFilter] = useState<RosterFilter>('all')
   const [q, setQ] = useState('')
   const all = useMemo(() => rosterRows(regs, credits, 'all', ''), [regs, credits])
@@ -83,11 +86,11 @@ export function Roster({ regs, credits, selected, onSelect }: Props) {
                     {r.credit && <> สแกน {thTime(r.credit.at)} น.</>}
                   </p>
                   <div className="mt-1.5 flex flex-wrap gap-1.5 empty:hidden">
-                    <Flags row={r} />
+                    <Flags row={r} closed={closed} />
                   </div>
                 </div>
                 <p className={`num shrink-0 pt-0.5 font-semibold ${r.credit ? '' : 'text-muted'}`}>
-                  {r.credit ? `${r.credit.hours} ชม.` : 'ยังไม่สแกน'}
+                  {r.credit ? `${r.credit.hours} ชม.` : closed && r.reg ? '0 ชม.' : 'ยังไม่สแกน'}
                 </p>
               </button>
             </li>

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 
 const tones = {
   walkIn: 'bg-surface-2 text-ink',
+  noShow: 'bg-surface-2 text-muted',
   location: 'bg-warn-soft text-warn',
   device: 'bg-bad-soft text-bad',
   edited: 'bg-accent-soft text-accent-strong',
