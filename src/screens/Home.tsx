@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { motion } from 'motion/react'
 import { create } from 'zustand'
@@ -7,32 +7,54 @@ import { now as serverNow } from '../data/api'
 import { useMine } from '../data/mine'
 import { CATEGORIES, CATEGORY_KEYS } from '../data/categories'
 import type { CategoryKey } from '../data/types'
-import { SOON_DAYS } from '../config'
-import { buildFeed, liveForScan, type When, WHEN } from '../lib/student'
+import { buildFeed, liveForScan } from '../lib/student'
 import { busyDays, dayKey } from '../lib/home'
-import { thDate, thTime } from '../lib/format'
+import { fmtHours, thDate, thTime } from '../lib/format'
 import { sendPending, usePending } from '../lib/pending'
 import { Button } from '../ui/Button'
-import { Chip } from '../ui/Chip'
 import { CountUp } from '../ui/CountUp'
 import { LinkButton } from '../ui/LinkButton'
 import { MonthCalendar } from './sup/home/MonthCalendar'
 import { ActivityCard } from './student/ActivityCard'
 
 /** Filters survive a trip to the detail page and back. */
-const useUi = create<{ view: 'list' | 'cal'; when: When; seatsOnly: boolean; category: CategoryKey | null; set: (p: Partial<{ view: 'list' | 'cal'; when: When; seatsOnly: boolean; category: CategoryKey | null }>) => void }>((set) => ({
+const useUi = create<{ view: 'list' | 'cal'; category: CategoryKey | null; set: (p: Partial<{ view: 'list' | 'cal'; category: CategoryKey | null }>) => void }>((set) => ({
   view: 'list',
-  when: 'all',
-  seatsOnly: false,
   category: null,
   set: (p) => set(p),
 }))
 
+const WEEKDAYS = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์']
+const MONTHS = ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.', 'ก.ค.', 'ส.ค.', 'ก.ย.', 'ต.ค.', 'พ.ย.', 'ธ.ค.']
+const startOfDay = (t: number) => new Date(t).setHours(0, 0, 0, 0)
+
+/** "วันนี้", "พรุ่งนี้", else "ศุกร์ 6 พ.ย.". */
+function dayHeading(ms: number, now: number) {
+  const diff = Math.round((startOfDay(ms) - startOfDay(now)) / 86_400_000)
+  if (diff === 0) return 'วันนี้'
+  if (diff === 1) return 'พรุ่งนี้'
+  const d = new Date(ms)
+  return `${WEEKDAYS[d.getDay()]} ${d.getDate()} ${MONTHS[d.getMonth()]}`
+}
+
+function FilterChip({ selected, onClick, children }: { selected: boolean; onClick: () => void; children: ReactNode }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={selected}
+      onClick={onClick}
+      className={`pressable min-h-10 shrink-0 rounded-full px-4 text-[15px] font-medium transition-colors ${selected ? 'bg-ink text-bg' : 'bg-surface-2 text-ink'}`}
+    >
+      {children}
+    </button>
+  )
+}
+
 function Skeleton() {
   return (
-    <div className="flex flex-col gap-4" aria-hidden>
+    <div className="flex flex-col gap-5" aria-hidden>
       {[0, 1, 2].map((i) => (
-        <div key={i} className="h-30 animate-pulse rounded-[var(--radius-card)] bg-surface" />
+        <div key={i} className="aspect-video animate-pulse rounded-[var(--radius-card)] bg-surface" />
       ))}
     </div>
   )
@@ -51,24 +73,40 @@ export default function Home() {
   const [day, setDay] = useState<string>()
 
   const total = useMemo(() => credits.reduce((t, c) => t + c.hours, 0), [credits])
-  const feed = useMemo(
-    () => buildFeed({ activities, regs, credits, now, when: ui.view === 'cal' ? 'all' : ui.when, seatsOnly: ui.seatsOnly, category: ui.category }),
-    [activities, regs, credits, now, ui.view, ui.when, ui.seatsOnly, ui.category],
-  )
+  const feed = useMemo(() => buildFeed({ activities, regs, credits, now, when: 'all', seatsOnly: false, category: ui.category }), [activities, regs, credits, now, ui.category])
   const live = useMemo(() => liveForScan(activities, regs, credits, now), [activities, regs, credits, now])
   const dayItems = day ? feed.items.filter((f) => dayKey(f.a.start) === day) : []
-  const filtered = ui.when !== 'all' || ui.seatsOnly || ui.category !== null
   const firstName = student?.name.split(' ')[0] ?? ''
+  const initial = [...(student?.name ?? '')][0] ?? ''
 
-  const sections = [
-    { title: 'ใกล้ถึงวัน', sub: `เริ่มภายใน ${SOON_DAYS} วัน`, list: feed.soon },
-    { title: 'เปิดรับสมัคร', sub: '', list: feed.open },
-    { title: 'ยังไม่เปิดรับ', sub: 'ตั้งเตือนล่วงหน้าได้', list: feed.notYet },
-  ].filter((s) => s.list.length)
+  const groups = useMemo(() => {
+    const out: { key: string; ms: number; list: typeof feed.items }[] = []
+    for (const f of feed.items) {
+      const key = dayKey(f.a.start)
+      const last = out[out.length - 1]
+      if (last && last.key === key) last.list.push(f)
+      else out.push({ key, ms: f.a.start, list: [f] })
+    }
+    return out
+  }, [feed])
 
   return (
-    <main className="mx-auto max-w-lg px-5 pt-[calc(1.5rem+env(safe-area-inset-top,0px))]">
-      <h1 className="text-3xl leading-tight font-bold tracking-tight break-words">{firstName ? `สวัสดี ${firstName}` : 'จิตอาสา มน.'}</h1>
+    <main className="mx-auto max-w-lg px-5 pt-[calc(1.25rem+env(safe-area-inset-top,0px))]">
+      <header className="flex items-center gap-3">
+        <h1 className="min-w-0 flex-1 truncate text-xl font-bold tracking-tight">{firstName ? `สวัสดี ${firstName}` : 'จิตอาสา มน.'}</h1>
+        <button
+          type="button"
+          aria-label={ui.view === 'cal' ? 'ดูเป็นรายการ' : 'ดูเป็นปฏิทิน'}
+          aria-pressed={ui.view === 'cal'}
+          onClick={() => ui.set({ view: ui.view === 'cal' ? 'list' : 'cal' })}
+          className="pressable grid size-11 shrink-0 place-items-center rounded-full bg-surface-2 text-ink"
+        >
+          {ui.view === 'cal' ? <ListBullets size={22} weight="bold" /> : <CalendarBlank size={22} weight="bold" />}
+        </button>
+        <Link to="/me" aria-label="โปรไฟล์ของฉัน" className="pressable grid size-11 shrink-0 place-items-center rounded-full bg-ink text-lg font-bold text-bg">
+          {initial}
+        </Link>
+      </header>
 
       {pending.length > 0 && (
         <section className="mt-5 flex items-center gap-3 rounded-[var(--radius-card)] bg-warn-soft p-4" aria-label="การสแกนรอส่ง">
@@ -88,18 +126,15 @@ export default function Home() {
         </section>
       )}
 
-      <Link to="/me" className="pressable mt-5 flex items-end justify-between gap-4 rounded-[var(--radius-card)] bg-surface p-5 shadow-soft">
-        <div>
-          <p className="text-muted">ชั่วโมงจิตอาสาสะสม</p>
-          <p className="mt-1 flex items-baseline gap-2">
-            <CountUp value={total} className="text-6xl leading-none font-bold tracking-tight" />
-            <span className="font-semibold text-muted">ชั่วโมง</span>
-          </p>
-        </div>
-        <span className="flex items-center gap-1 pb-1 text-sm font-medium text-accent">
-          ดู Transcript <CaretRight size={16} weight="bold" />
-        </span>
-      </Link>
+      <div className="mt-6 flex items-end justify-between gap-3">
+        <p className="flex min-w-0 items-baseline gap-2">
+          <CountUp value={total} className="text-6xl leading-none font-bold tracking-tight" />
+          <span className="font-semibold text-muted">ชั่วโมงจิตอาสา</span>
+        </p>
+        <Link to="/me" className="pressable inline-flex min-h-11 shrink-0 items-center gap-0.5 pl-2 text-sm text-muted">
+          ดูประวัติ <CaretRight size={14} weight="bold" />
+        </Link>
+      </div>
 
       {live.map((a, i) => (
         <motion.section
@@ -107,69 +142,36 @@ export default function Home() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.45, ease: [0.23, 1, 0.32, 1], delay: 0.1 + i * 0.05 }}
-          className="mt-4 rounded-[var(--radius-card)] bg-accent-soft p-5"
+          className="mt-6 rounded-[var(--radius-card)] bg-ink p-5 text-bg"
           aria-label="กิจกรรมที่กำลังดำเนินอยู่"
         >
-          <p className="flex items-center gap-2 text-sm font-semibold text-accent">
-            <span className="size-2 animate-pulse rounded-full bg-accent" /> กำลังดำเนินอยู่ ถึง {thTime(a.end)} น.
-          </p>
-          <Link to={`/a/${a.id}`} className="mt-2 line-clamp-2 block text-lg leading-snug font-semibold">
+          <span className="num inline-flex h-7 items-center gap-2 rounded-md bg-bg/10 px-2.5 text-[13px] font-medium">
+            <span className="size-2 animate-pulse rounded-full bg-accent-strong" /> กำลังดำเนินการ ถึง {thTime(a.end)} น.
+          </span>
+          <Link to={`/a/${a.id}`} className="mt-3 line-clamp-2 block text-lg leading-snug font-semibold">
             {a.title}
           </Link>
-          <p className="mt-1 text-muted">สแกน QR ที่งานเพื่อรับ {a.hours} ชั่วโมง</p>
+          <p className="num mt-1 text-sm opacity-70">จบแล้วสแกน QR ที่โต๊ะผู้ดูแลเพื่อรับ {fmtHours(a.hours)} ชม.</p>
           <LinkButton to="/scan" variant="primary" className="mt-4 w-full">
             <QrCode size={22} weight="bold" /> สแกนรับชั่วโมง
           </LinkButton>
         </motion.section>
       ))}
 
-      <div className="mt-9 flex items-center justify-between gap-3">
-        <h2 className="text-2xl font-bold tracking-tight">กิจกรรมจิตอาสา</h2>
-        <div role="group" aria-label="รูปแบบการแสดง" className="flex rounded-full bg-surface-2 p-1">
-          {(
-            [
-              ['list', 'ดูเป็นรายการ', ListBullets],
-              ['cal', 'ดูเป็นปฏิทิน', CalendarBlank],
-            ] as const
-          ).map(([k, label, Icon]) => (
-            <button
-              key={k}
-              aria-label={label}
-              aria-pressed={ui.view === k}
-              onClick={() => ui.set({ view: k })}
-              className={`pressable grid size-11 place-items-center rounded-full transition-colors ${ui.view === k ? 'bg-surface text-ink shadow-soft' : 'text-muted'}`}
-            >
-              <Icon size={22} weight="bold" />
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <div className="no-scrollbar -mx-5 mt-4 flex gap-2 overflow-x-auto px-5" role="group" aria-label="กรองตามหมวด">
-        <Chip selected={ui.category === null} onClick={() => ui.set({ category: null })}>
-          ทุกหมวด
-        </Chip>
+      <div className="no-scrollbar -mx-5 mt-6 flex gap-2 overflow-x-auto px-5" role="group" aria-label="กรองตามหมวด">
+        <FilterChip selected={ui.category === null} onClick={() => ui.set({ category: null })}>
+          ทั้งหมด
+        </FilterChip>
         {CATEGORY_KEYS.filter((k) => k !== 'other' || ui.category === 'other' || activities.some((a) => a.categoryKey === 'other')).map((k) => (
-          <Chip key={k} selected={ui.category === k} onClick={() => ui.set({ category: k })}>
+          <FilterChip key={k} selected={ui.category === k} onClick={() => ui.set({ category: k })}>
             {CATEGORIES[k].label}
-          </Chip>
+          </FilterChip>
         ))}
       </div>
-      <div className="no-scrollbar -mx-5 mt-2 flex gap-2 overflow-x-auto px-5" role="group" aria-label="กรองกิจกรรม">
-        {ui.view === 'list' &&
-          WHEN.map((w) => (
-            <Chip key={w.key} selected={ui.when === w.key} onClick={() => ui.set({ when: w.key })}>
-              {w.label}
-            </Chip>
-          ))}
-        <Chip selected={ui.seatsOnly} onClick={() => ui.set({ seatsOnly: !ui.seatsOnly })}>
-          ยังมีที่ว่าง
-        </Chip>
-      </div>
-      {filtered && ui.view === 'list' && (
+      {ui.category !== null && ui.view === 'list' && (
         <p className="num mt-3 text-sm text-muted">
           พบ {feed.items.length} กิจกรรม{' '}
-          <button className="font-semibold text-accent" onClick={() => ui.set({ when: 'all', seatsOnly: false, category: null })}>
+          <button className="font-semibold text-ink underline underline-offset-2" onClick={() => ui.set({ category: null })}>
             ล้างตัวกรอง
           </button>
         </p>
@@ -205,21 +207,16 @@ export default function Home() {
           )}
         </div>
       ) : feed.items.length === 0 ? (
-        <div className="mt-6 rounded-[var(--radius-card)] bg-surface px-6 py-12 text-center shadow-soft">
-          <p className="text-lg font-semibold">{filtered ? 'ไม่พบกิจกรรมตามตัวกรอง' : 'ยังไม่มีกิจกรรมเปิดรับ'}</p>
-          <p className="mt-2 text-muted">{filtered ? 'ลองเปลี่ยนหมวดหรือวัน หรือล้างตัวกรอง' : 'กิจกรรมใหม่จะแสดงที่นี่'}</p>
+        <div className="mt-6 rounded-[var(--radius-card)] bg-surface px-6 py-12 text-center">
+          <p className="text-lg font-semibold">{ui.category !== null ? 'ไม่พบกิจกรรมตามตัวกรอง' : 'ยังไม่มีกิจกรรมเปิดรับ'}</p>
+          <p className="mt-2 text-muted">{ui.category !== null ? 'ลองเปลี่ยนหมวด หรือล้างตัวกรอง' : 'กิจกรรมใหม่จะแสดงที่นี่'}</p>
         </div>
       ) : (
-        sections.map((s) => (
-          <section key={s.title} className="mt-8">
-            <div className="mb-4 flex items-baseline justify-between gap-3">
-              <h3 className="text-lg font-semibold">
-                {s.title} <span className="num text-muted">{s.list.length}</span>
-              </h3>
-              {s.sub && <span className="text-sm text-muted">{s.sub}</span>}
-            </div>
-            <div className="flex flex-col gap-4">
-              {s.list.map((f, i) => (
+        groups.map((g) => (
+          <section key={g.key} className="mt-7">
+            <h2 className="num mb-3 text-sm font-medium text-muted">{dayHeading(g.ms, now)}</h2>
+            <div className="flex flex-col gap-6">
+              {g.list.map((f, i) => (
                 <ActivityCard key={f.a.id} {...f} now={now} index={i} />
               ))}
             </div>

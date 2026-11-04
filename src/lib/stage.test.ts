@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canEdit, closedAt, daysToSubmit, stage, stepOf, STEPS, STAGE_LABEL, submitDeadline } from './stage'
+import { canEdit, closedAt, daysToSubmit, stage, STAGE_LABEL, submitDeadline } from './stage'
 import type { Activity } from '../data/types'
 
 const H = 3600_000
@@ -29,16 +29,14 @@ describe('stage', () => {
   })
 })
 
-describe('stepOf', () => {
-  it('maps every stage onto the six steps', () => {
-    expect(STEPS).toHaveLength(6)
-    expect(stepOf('scheduled')).toEqual({ index: 0, done: false })
-    expect(stepOf('closing')).toEqual({ index: 3, done: false })
-    expect(stepOf('waiting')).toEqual({ index: 5, done: false })
-    expect(stepOf('done')).toEqual({ index: 5, done: true })
-  })
-  it('has a label for every stage', () => {
+describe('STAGE_LABEL', () => {
+  it('has a plain label for every stage', () => {
+    expect(STAGE_LABEL.scheduled).toBe('ยังไม่เปิดรับ')
+    expect(STAGE_LABEL.live).toBe('กำลังดำเนินการ')
+    expect(STAGE_LABEL.closing).toBe('รอตรวจรายชื่อ')
     expect(STAGE_LABEL.submit).toBe('รอส่งรายชื่อ')
+    expect(STAGE_LABEL.waiting).toBe('ส่งรายชื่อแล้ว')
+    expect(STAGE_LABEL.done).toBe('บันทึกแล้ว')
   })
 })
 

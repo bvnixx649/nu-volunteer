@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { activityYear, busyDays, dayKey, groupByStatus, liveNow, monthGrid, onDay, todos, visibleTo, yearStats } from './home'
+import { activityYear, busyDays, dayKey, liveNow, monthGrid, onDay, orderedActivities, visibleTo, yearStats } from './home'
 import type { Activity } from '../data/types'
 
 const H = 3600_000
@@ -21,30 +21,17 @@ describe('home helpers', () => {
     expect(liveNow([live, act(), act({ start: t0 + DAY, end: t0 + DAY + H })], t0)).toEqual([live])
   })
 
-  it('derives to-dos: close, then submit with days left and overdue flag', () => {
+  it('orders one list: action first, then upcoming by start, then sent newest first, live left out', () => {
     const closing = act({ start: t0 - 5 * H, end: t0 - H })
-    const submit = act({ end: t0 - 3 * DAY, start: t0 - 3 * DAY - H })
     const late = act({ end: t0 - 40 * DAY, start: t0 - 40 * DAY - H })
-    const sent = act({ end: t0 - 3 * DAY, start: t0 - 3 * DAY - H, submittedAt: 1 })
-    const rows = todos([submit, late, sent, closing], t0)
-    expect(rows.map((r) => r.kind)).toEqual(['close', 'submit', 'submit'])
-    expect(rows[0].activity).toBe(closing)
-    expect(rows[1].activity).toBe(late)
-    expect(rows[1].overdue).toBe(true)
-    expect(rows[2].days).toBe(27)
-    expect(rows[2].overdue).toBe(false)
-    expect(todos([sent], t0)).toEqual([])
-  })
-
-  it('groups by status, drops empty groups and live ones', () => {
-    const up = act({ start: t0 + DAY, end: t0 + DAY + H })
+    const soon = act({ start: t0 + DAY, end: t0 + DAY + H })
+    const later = act({ start: t0 + 3 * DAY, end: t0 + 3 * DAY + H })
     const live = act({ start: t0 - H, end: t0 + H })
-    const closing = act()
-    const done = act({ submittedAt: 1 })
-    const g = groupByStatus([up, live, closing, done], t0)
-    expect(g.map((x) => x.title)).toEqual(['กำลังจะมาถึง', 'รอปิดหรือส่งรายชื่อ', 'ส่งแล้ว'])
-    expect(g.flatMap((x) => x.items)).not.toContain(live)
-    expect(groupByStatus([up], t0).map((x) => x.key)).toEqual(['upcoming'])
+    const sentOld = act({ end: t0 - 9 * DAY, start: t0 - 9 * DAY - H, submittedAt: 1 })
+    const sentNew = act({ end: t0 - 3 * DAY, start: t0 - 3 * DAY - H, recordedAt: 1 })
+    const rows = orderedActivities([sentOld, later, live, closing, sentNew, soon, late], t0)
+    expect(rows).toEqual([late, closing, soon, later, sentNew, sentOld])
+    expect(new Set(rows).size).toBe(rows.length)
   })
 
   it('filters by day', () => {
@@ -76,21 +63,13 @@ describe('home helpers', () => {
     expect(activityYear(new Date(2027, 4, 1).getTime()).label).toBe(2570)
   })
 
-  it('computes year stats and the turn-up KPI over ended capped activities', () => {
-    const a = act({ start: new Date(2026, 6, 1, 9).getTime(), end: new Date(2026, 6, 1, 12).getTime(), capLimit: true, capacity: 100, creditCount: 80 })
-    const b = act({ start: new Date(2026, 7, 1, 9).getTime(), end: new Date(2026, 7, 1, 12).getTime(), capLimit: true, capacity: 100, creditCount: 40 })
-    const open = act({ start: new Date(2026, 7, 2, 9).getTime(), end: new Date(2026, 7, 2, 12).getTime(), creditCount: 10 })
-    const old = act({ start: new Date(2026, 1, 1).getTime(), end: new Date(2026, 1, 1, 3).getTime(), capLimit: true, capacity: 10, creditCount: 10 })
+  it('computes year stats over activities that have started', () => {
+    const a = act({ start: new Date(2026, 6, 1, 9).getTime(), end: new Date(2026, 6, 1, 12).getTime(), creditCount: 80 })
+    const b = act({ start: new Date(2026, 7, 1, 9).getTime(), end: new Date(2026, 7, 1, 12).getTime(), creditCount: 40 })
+    const old = act({ start: new Date(2026, 1, 1).getTime(), end: new Date(2026, 1, 1, 3).getTime(), creditCount: 10 })
     const future = act({ start: new Date(2026, 11, 1).getTime(), end: new Date(2026, 11, 1, 3).getTime() })
-    const s = yearStats([a, b, open, old, future], new Date(2026, 10, 3).getTime())
-    expect(s.label).toBe(2569)
-    expect(s.activities).toBe(3)
-    expect(s.people).toBe(130)
-    expect(s.kpi).toEqual({ credited: 120, capacity: 200, percent: 60 })
-  })
-
-  it('has no KPI without ended capped activities', () => {
-    expect(yearStats([act({ start: t0 - DAY, end: t0 - DAY + H })], t0).kpi).toBeNull()
-    expect(yearStats([], t0)).toMatchObject({ activities: 0, people: 0, kpi: null })
+    const s = yearStats([a, b, old, future], new Date(2026, 10, 3).getTime())
+    expect(s).toEqual({ label: 2569, activities: 2, people: 120 })
+    expect(yearStats([], t0)).toEqual({ label: 2569, activities: 0, people: 0 })
   })
 })

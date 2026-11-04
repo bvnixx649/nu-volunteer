@@ -6,7 +6,7 @@ import { HOUR_CHIPS } from '../../config'
 import { categoryOf, CATEGORIES, BUILTIN_KEYS } from '../../data/categories'
 import type { CategoryKey, Template } from '../../data/types'
 import { checkinSummary } from '../../lib/checkin'
-import { isBottleDraft, toMs, ymd, posterChoices, type Draft } from '../../lib/draft'
+import { fixDate, isBottleDraft, MAX_DATE, MIN_DATE, toMs, ymd, posterChoices, type Draft } from '../../lib/draft'
 import { thDate, thTime } from '../../lib/format'
 import { getFix, type GeoError } from '../../lib/geo'
 import { resizeToDataUrl } from '../../lib/image'
@@ -321,7 +321,7 @@ export function StepDetails({ d, set, errors, advancedOpen, onAdvanced }: StepPr
       <Field label="ชื่อกิจกรรม" value={d.title} onChange={(e) => set({ title: e.target.value })} error={errors.title} autoComplete="off" />
 
       <div className="flex flex-col gap-5">
-        <Field label="วันที่จัดกิจกรรม" type="date" value={d.date} onChange={(e) => set({ date: e.target.value })} error={errors.date} />
+        <Field label="วันที่จัดกิจกรรม" type="date" min={MIN_DATE} max={MAX_DATE} value={d.date} onChange={(e) => set({ date: fixDate(e.target.value) })} error={errors.date} />
         <div className="grid grid-cols-2 items-start gap-3">
           <Field label="เวลาเริ่ม" type="time" className="min-w-0" value={d.startT} onChange={(e) => set({ startT: e.target.value })} error={errors.startT} />
           <Field label="เวลาจบ" type="time" className="min-w-0" value={d.endT} onChange={(e) => set({ endT: e.target.value })} error={errors.endT} />
@@ -440,7 +440,7 @@ export function StepDetails({ d, set, errors, advancedOpen, onAdvanced }: StepPr
                 <Reveal show={d.scheduled}>
                   <div className="flex flex-col gap-4 pb-3">
                     <div className="grid grid-cols-2 items-start gap-3">
-                      <Field label="วันที่เปิดรับ" type="date" className="min-w-0" value={d.openDate} onChange={(e) => set({ openDate: e.target.value })} error={errors.openDate} />
+                      <Field label="วันที่เปิดรับ" type="date" min={MIN_DATE} max={MAX_DATE} className="min-w-0" value={d.openDate} onChange={(e) => set({ openDate: fixDate(e.target.value) })} error={errors.openDate} />
                       <Field label="เวลาเปิดรับ" type="time" className="min-w-0" value={d.openT} onChange={(e) => set({ openT: e.target.value })} />
                     </div>
                     <Switch checked={d.hideUntilOpen} onChange={(v) => set({ hideUntilOpen: v })} label="ซ่อนจนถึงเวลาเปิดรับ" />

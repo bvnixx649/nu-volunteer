@@ -19,12 +19,13 @@ import { AddPersonSheet } from './AddPersonSheet'
 import { BottleSheet } from './BottleSheet'
 import { CheckinSettingsSheet } from './CheckinSettingsSheet'
 import { PullToQr } from './PullToQr'
-import { StageBar } from './StageBar'
+import { StageActions } from './StageActions'
+import { StatusTag } from '../../ui/StatusTag'
 
-/** A tappable list row inside a card: icon, title with a detail line, chevron. */
+/** A tappable row inside the inset grouped list: icon, title with a detail line, chevron. */
 function Row({ icon, title, detail, onClick, disabled }: { icon: ReactNode; title: string; detail: string; onClick: () => void; disabled?: boolean }) {
   return (
-    <button type="button" onClick={onClick} disabled={disabled} className="pressable flex w-full items-center gap-3.5 py-3.5 text-left disabled:opacity-45">
+    <button type="button" onClick={onClick} disabled={disabled} className="pressable flex min-h-16 w-full items-center gap-3.5 px-4 py-3 text-left disabled:opacity-45">
       <span className="text-muted">{icon}</span>
       <span className="min-w-0 flex-1">
         <span className="block font-semibold">{title}</span>
@@ -87,6 +88,8 @@ export default function Manage() {
   const started = st !== 'scheduled' && st !== 'open'
   /** After the end, closing and sending the roster take over as the main action. */
   const ended = started && st !== 'live'
+  /** The QR button is the one orange button only while the activity runs (or on its day). */
+  const running = !ended && isLive(activity)
   const pick = (r: RosterRow) => {
     setSelectedId(r.studentId)
     if (!wide && editable) setEditing(r.studentId)
@@ -106,12 +109,11 @@ export default function Manage() {
         <Link to="/sup" className="pressable -ml-2 inline-flex items-center gap-1 rounded-full px-2 py-2 text-muted">
           <CaretLeft size={18} /> กิจกรรมทั้งหมด
         </Link>
+        <div className="mt-3"><StatusTag stage={st} /></div>
         <h1 className="mt-2 text-2xl leading-snug font-bold tracking-tight">{activity.title}</h1>
-        <p className="num mt-1 text-muted">
+        <p className="num mt-1 text-sm text-muted">
           {thDate(activity.start)} {thTime(activity.start)} ถึง {thTime(activity.end)} น. {activity.place}
         </p>
-
-        <StageBar activity={activity} regs={regs} credits={credits} />
 
         <section className="mt-6 rounded-[var(--radius-card)] bg-surface p-5 shadow-soft">
           <div className="flex items-end justify-between gap-4">
@@ -136,12 +138,12 @@ export default function Manage() {
             </p>
           </div>
           {bottle ? (
-            <Button size="lg" className="mt-5 w-full" disabled={!editable} onClick={() => setBottles(true)}>
+            <Button size="lg" variant={ended ? 'secondary' : 'primary'} className="mt-5 w-full" disabled={!editable} onClick={() => setBottles(true)}>
               <Recycle size={22} weight="bold" /> บันทึกขวด
             </Button>
           ) : (
             <div className="mt-5 grid grid-cols-[1fr_auto] gap-3">
-              <Button size="lg" variant={ended ? 'secondary' : 'primary'} onClick={openQr}>
+              <Button size="lg" variant={running ? 'primary' : 'secondary'} onClick={openQr}>
                 <QrCode size={22} weight="bold" /> เปิด QR
               </Button>
               <Button size="lg" variant="secondary" className="px-5" disabled={!editable} onClick={() => setAdding(true)}>
@@ -150,13 +152,18 @@ export default function Manage() {
             </div>
           )}
           {!editable && <p className="mt-3 text-sm text-muted">ส่งรายชื่อแล้ว แก้ไม่ได้</p>}
-          <div className="mt-4 -mb-2 divide-y divide-line border-t border-line">
-            {!bottle && <Row icon={<GearSix size={22} />} disabled={!editable} onClick={() => setSettings(true)} title="ตั้งค่าการเช็คชื่อ" detail={checkinSummary(activity)} />}
-            {editable && <Row icon={<PencilSimple size={22} />} onClick={() => nav(`/sup/edit/${id}`)} title="แก้ไขกิจกรรม" detail="ชื่อ รูป วันเวลา และสถานที่" />}
-            <Row icon={<ListChecks size={22} />} onClick={() => nav(`/sup/a/${id}/roster`)} title="ตรวจสอบรายชื่อ" detail="ตารางเดียวกับไฟล์ Excel" />
-            {started && <Row icon={<FileXls size={22} />} onClick={exportXlsx} title="โหลด Excel" detail="รายชื่อพร้อมชั่วโมงรายคน" />}
-          </div>
         </section>
+
+        <section className="mt-4 divide-y divide-line overflow-hidden rounded-[var(--radius-card)] bg-surface shadow-soft">
+          {!bottle && <Row icon={<GearSix size={22} />} disabled={!editable} onClick={() => setSettings(true)} title="ตั้งค่าการเช็คชื่อ" detail={checkinSummary(activity)} />}
+          {editable && <Row icon={<PencilSimple size={22} />} onClick={() => nav(`/sup/edit/${id}`)} title="แก้ไขกิจกรรม" detail="ชื่อ รูป วันเวลา และสถานที่" />}
+          <Row icon={<ListChecks size={22} />} onClick={() => nav(`/sup/a/${id}/roster`)} title="ตรวจสอบรายชื่อ" detail="ตารางเดียวกับไฟล์ Excel" />
+          {started && <Row icon={<FileXls size={22} />} onClick={exportXlsx} title="โหลด Excel" detail="รายชื่อพร้อมชั่วโมงรายคน" />}
+        </section>
+
+        <div className="mt-4 flex flex-col gap-4 empty:hidden">
+          <StageActions activity={activity} regs={regs} credits={credits} />
+        </div>
 
         <div className="mt-8 grid gap-6 min-[900px]:grid-cols-[1fr_360px]">
           <Roster regs={regs} credits={credits} selected={wide ? selectedId : undefined} closed={closed} onSelect={pick} />

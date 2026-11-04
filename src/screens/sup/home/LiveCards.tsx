@@ -10,7 +10,7 @@ export function LiveCards({ list, showOrg }: { list: Activity[]; showOrg: boolea
   if (!list.length) return null
   return (
     <section>
-      <h2 className="mb-3 text-lg font-semibold">กำลังจัดตอนนี้</h2>
+      <h2 className="mb-3 text-lg font-semibold">กำลังดำเนินการ</h2>
       <ul className="flex flex-col gap-4">
         {list.map((a) => (
           <li key={a.id} className="rounded-[var(--radius-card)] bg-surface p-5 shadow-lift">

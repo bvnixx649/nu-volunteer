@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { CATEGORIES, categoryOf } from '../data/categories'
 import type { Activity } from '../data/types'
-import { applyCategory, applyTemplate, blankDraft, check, draftOf, isDirty, posterChoices, toEdit, toNewActivity, type Draft } from './draft'
+import { thDate } from './format'
+import { applyCategory, applyTemplate, blankDraft, check, draftOf, fixDate, isDirty, toMs, posterChoices, toEdit, toNewActivity, type Draft } from './draft'
 
 const none = new Set<string>()
 const filled = (over: Partial<Draft> = {}): Draft => ({
@@ -157,5 +158,21 @@ describe('applyTemplate', () => {
   it('does not fall back to blood for "other"', () => {
     expect(categoryOf('other').label).toBe('อื่น ๆ')
     expect(categoryOf('removed-key').label).toBe(CATEGORIES.blood.label)
+  })
+})
+
+describe('Buddhist year typed into a date input', () => {
+  it('turns a year above 2400 back into CE so it cannot show as 3112', () => {
+    expect(fixDate('2569-11-03')).toBe('2026-11-03')
+    expect(fixDate('2026-11-03')).toBe('2026-11-03')
+    expect(fixDate('')).toBe('')
+    const ms = toMs('2569-11-03', '09:00')
+    expect(new Date(ms).getFullYear()).toBe(2026)
+    expect(thDate(ms)).toBe('3 พ.ย. 2569')
+  })
+  it('rejects years outside the sensible range', () => {
+    expect(check(2, filled({ date: '0202-11-03' })).errors.date).toBeTruthy()
+    expect(check(2, filled({ date: '2026-11-03' })).errors.date).toBeUndefined()
+    expect(check(2, filled({ date: '2569-11-03' })).ok).toBe(true)
   })
 })

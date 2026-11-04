@@ -84,7 +84,7 @@ export default async function ({ browser, base, load, shot }) {
     await page.getByLabel('ชื่อผู้ดูแล').fill('พี่เต้')
     await page.getByLabel('รหัส', { exact: true }).fill('NUVOL69')
     await page.getByRole('button', { name: 'เข้าใช้งาน' }).click()
-    await page.getByRole('heading', { name: 'สวัสดี พี่เต้' }).waitFor()
+    await page.getByText('กองกิจการนิสิต มหาวิทยาลัยนเรศวร').waitFor()
     await page.goto(`${base}#/sup/a/test-blood`)
     await page.getByText('ทดสอบ ส่งภายหลัง').first().waitFor()
     await page.getByText('ส่งภายหลัง', { exact: true }).first().waitFor()

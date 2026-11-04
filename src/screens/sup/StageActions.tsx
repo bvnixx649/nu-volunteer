@@ -1,19 +1,18 @@
 import { useState } from 'react'
-import { motion } from 'motion/react'
 import { toast } from 'sonner'
 import { CheckCircle, SealCheck } from '@phosphor-icons/react'
 import { api } from '../../data/api'
 import type { Activity, Credit, Registration } from '../../data/types'
 import { AUTO_CLOSE_H } from '../../config'
 import { thDate, thTime } from '../../lib/format'
-import { daysToSubmit, stage, STAGE_LABEL, stepOf, STEPS, submitDeadline } from '../../lib/stage'
+import { daysToSubmit, stage, submitDeadline } from '../../lib/stage'
 import { Button } from '../../ui/Button'
 import { Sheet } from '../../ui/Sheet'
 
 type Props = { activity: Activity; regs: Registration[]; credits: Credit[] }
 
 const stamp = (ms: number) => `${thDate(ms)} ${thTime(ms)} น.`
-const card = 'mt-4 rounded-[var(--radius-card)] bg-surface p-5 shadow-soft'
+const card = 'rounded-[var(--radius-card)] bg-surface p-5 shadow-soft'
 
 function Stat({ value, label }: { value: number; label: string }) {
   return (
@@ -24,11 +23,9 @@ function Stat({ value, label }: { value: number; label: string }) {
   )
 }
 
-/** Where the activity is in the six steps, and the one thing the supervisor should do next. */
-export function StageBar({ activity, regs, credits }: Props) {
+/** The step after the activity ends: close the roster, send it to the centre, or a note that it is sent. */
+export function StageActions({ activity, regs, credits }: Props) {
   const s = stage(activity)
-  const { index, done } = stepOf(s)
-  const next = done ? undefined : STEPS[index + 1]
   const [asking, setAsking] = useState<'close' | 'submit'>()
   const [busy, setBusy] = useState(false)
 
@@ -49,79 +46,45 @@ export function StageBar({ activity, regs, credits }: Props) {
   }
 
   return (
-    <section className="mt-6">
-      <div className="flex items-baseline justify-between gap-3">
-        <p className="text-lg font-semibold">{STAGE_LABEL[s]}</p>
-        {next && <p className="text-sm text-muted">ต่อไป {next}</p>}
-      </div>
-      <ol className="mt-2.5 flex gap-1">
-        {STEPS.map((label, i) => {
-          const filled = i < index || (i === index && done)
-          const current = i === index && !done
-          return (
-            <li key={label} aria-current={current ? 'step' : undefined} className="relative h-1.5 flex-1 overflow-hidden rounded-full bg-line">
-              <span className="sr-only">{label}</span>
-              {(filled || current) && (
-                <motion.span
-                  className="absolute inset-0 origin-left rounded-full bg-accent"
-                  initial={{ scaleX: current ? 0 : 1 }}
-                  animate={{ scaleX: 1 }}
-                  transition={{ duration: 0.7, ease: [0.23, 1, 0.32, 1], delay: 0.15 }}
-                />
-              )}
-            </li>
-          )
-        })}
-      </ol>
-
+    <>
       {s === 'closing' && (
-        <div className={card}>
-          <h2 className="text-xl font-bold tracking-tight">ตรวจรายชื่อแล้วปิด</h2>
-          <p className="mt-1.5 text-muted">เพิ่มชั่วโมงผู้ที่มาแต่สแกนไม่ได้ก่อน ผู้ลงทะเบียนที่ไม่ได้ชั่วโมงจะนับว่าไม่มา</p>
-          <p className="num mt-3 text-sm text-muted">
-            ระบบปิดให้อัตโนมัติ {stamp(activity.end + AUTO_CLOSE_H * 3600_000)}
-          </p>
-          <Button size="lg" className="mt-5 w-full" onClick={() => setAsking('close')}>
+        <section className={card}>
+          <p className="text-muted">เพิ่มชั่วโมงผู้ที่มาแต่สแกนไม่ได้ก่อน ผู้ลงทะเบียนที่ไม่ได้ชั่วโมงจะนับว่าไม่มา</p>
+          <p className="num mt-2 text-sm text-muted">ระบบปิดให้อัตโนมัติ {stamp(activity.end + AUTO_CLOSE_H * 3600_000)}</p>
+          <Button size="lg" className="mt-4 w-full" onClick={() => setAsking('close')}>
             ปิดรายชื่อ
           </Button>
-        </div>
+        </section>
       )}
 
       {s === 'submit' && (
-        <div className={card}>
-          {days > 0 ? (
-            <p className="flex items-baseline gap-2">
-              <span className="num text-5xl leading-none font-bold tracking-tight">{days}</span>
-              <span className="text-lg font-semibold">วัน</span>
-            </p>
-          ) : (
-            <p className="text-3xl font-bold tracking-tight text-bad">เลยกำหนดส่งแล้ว</p>
-          )}
-          <p className="num mt-2 text-muted">ส่งรายชื่อให้ศูนย์จิตอาสาภายใน {thDate(submitDeadline(activity))}</p>
-          <Button size="lg" className="mt-5 w-full" onClick={() => setAsking('submit')}>
+        <section className={card}>
+          <p className={`num font-semibold ${days > 0 ? '' : 'text-bad'}`}>{days > 0 ? `เหลือ ${days} วัน` : 'เลยกำหนดส่งแล้ว'}</p>
+          <p className="num mt-1 text-muted">ส่งรายชื่อให้ศูนย์จิตอาสาภายใน {thDate(submitDeadline(activity))} ส่งแล้วแก้ไม่ได้</p>
+          <Button size="lg" className="mt-4 w-full" onClick={() => setAsking('submit')}>
             ส่งรายชื่อให้ศูนย์
           </Button>
-        </div>
+        </section>
       )}
 
       {s === 'waiting' && activity.submittedAt && (
-        <div className={`${card} flex gap-3`}>
-          <CheckCircle size={26} weight="fill" className="shrink-0 text-accent" />
+        <section className={`${card} flex gap-3`}>
+          <CheckCircle size={26} weight="fill" className="shrink-0 text-ok" />
           <div>
             <p className="font-semibold">ส่งรายชื่อให้ศูนย์แล้ว</p>
             <p className="num mt-0.5 text-sm text-muted">{stamp(activity.submittedAt)} รอศูนย์จิตอาสาบันทึกชั่วโมง</p>
           </div>
-        </div>
+        </section>
       )}
 
       {s === 'done' && activity.recordedAt && (
-        <div className={`${card} flex gap-3`}>
+        <section className={`${card} flex gap-3`}>
           <SealCheck size={26} weight="fill" className="shrink-0 text-ok" />
           <div>
             <p className="font-semibold">ศูนย์บันทึกชั่วโมงแล้ว</p>
             <p className="num mt-0.5 text-sm text-muted">{thDate(activity.recordedAt)}</p>
           </div>
-        </div>
+        </section>
       )}
 
       <Sheet open={asking === 'close'} onClose={() => setAsking(undefined)} title="ปิดรายชื่อ">
@@ -152,6 +115,6 @@ export function StageBar({ activity, regs, credits }: Props) {
           ยังไม่ส่ง
         </Button>
       </Sheet>
-    </section>
+    </>
   )
 }

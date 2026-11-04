@@ -128,8 +128,22 @@ export const hm = (ms: number) => {
   const d = new Date(ms)
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
+/** Years the date inputs accept (CE). Anything outside is a typo. */
+export const MIN_DATE = '2020-01-01'
+export const MAX_DATE = '2100-12-31'
+
+/**
+ * A date input value in CE. A Buddhist year typed into the input (2569-11-03) is read as CE by the browser and
+ * would be shown as 3112 after thDate adds 543, so a year above 2400 is taken as BE and brought back to CE.
+ */
+export function fixDate(date: string) {
+  const m = /^(\d{4,6})-(\d{2})-(\d{2})$/.exec(date)
+  if (!m || +m[1] <= 2400) return date
+  return `${String(+m[1] - 543).padStart(4, '0')}-${m[2]}-${m[3]}`
+}
+
 /** Local date and time inputs to epoch ms, NaN when either is empty or malformed. */
-export const toMs = (date: string, time: string) => (date && time ? new Date(`${date}T${time}`).getTime() : NaN)
+export const toMs = (date: string, time: string) => (date && time ? new Date(`${fixDate(date)}T${time}`).getTime() : NaN)
 
 export function draftOf(a: Activity): Draft {
   return {
@@ -217,6 +231,7 @@ export function check(step: number, d: Draft): Check {
   const bottle = isBottleDraft(d)
   need('title', d.title.trim().length > 0, 'ใส่ชื่อกิจกรรม')
   need('date', !!d.date, 'เลือกวันที่')
+  if (d.date && (fixDate(d.date) < MIN_DATE || fixDate(d.date) > MAX_DATE)) bad('date', 'ปีของวันที่ไม่ถูกต้อง')
   need('startT', !!d.startT, 'ใส่เวลาเริ่ม')
   need('endT', !!d.endT, 'ใส่เวลาจบ')
   need('place', d.place.trim().length > 0, 'ใส่สถานที่')

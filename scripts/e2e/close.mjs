@@ -30,9 +30,9 @@ export default async function ({ browser, base, shot }) {
   await page.getByRole('link', { name: /เก็บขยะริมแม่น้ำน่าน/ }).first().click()
   await page.getByRole('heading', { name: 'เก็บขยะริมแม่น้ำน่าน' }).waitFor()
 
-  // Stage bar: six steps, step 4 is current.
-  expect((await page.locator('ol > li').count()) === 6, 'stage bar has six steps')
-  expect((await page.locator('li[aria-current="step"]').innerText()) === 'ปิดรายชื่อ', 'current step is ปิดรายชื่อ')
+  // Status tag above the title; no progress bar.
+  await page.getByText('รอตรวจรายชื่อ', { exact: true }).waitFor()
+  expect((await page.locator('ol > li').count()) === 0, 'no stage bar')
   await page.getByText(/ระบบปิดให้อัตโนมัติ/).waitFor()
   await noOverflow('closing')
   await both('close-1-closing')
@@ -45,7 +45,7 @@ export default async function ({ browser, base, shot }) {
   await both('close-2-confirm')
   await sheet.getByRole('button', { name: 'ปิดรายชื่อ', exact: true }).click()
   await page.getByRole('dialog').waitFor({ state: 'detached' })
-  await page.locator('li[aria-current="step"]', { hasText: 'ส่งรายชื่อ' }).waitFor()
+  await page.getByText('รอส่งรายชื่อ', { exact: true }).waitFor()
   await page.getByText(/ส่งรายชื่อให้ศูนย์จิตอาสาภายใน/).waitFor()
   await page.getByText('ไม่มา', { exact: true }).waitFor()
   expect((await page.getByText('ไม่มา', { exact: true }).count()) === 1, 'exactly one no-show flag')
@@ -77,7 +77,7 @@ export default async function ({ browser, base, shot }) {
   await send.getByRole('button', { name: 'ส่งรายชื่อ', exact: true }).click()
   await page.getByRole('dialog').waitFor({ state: 'detached' })
   await page.getByText(/รอศูนย์จิตอาสาบันทึกชั่วโมง/).waitFor()
-  await page.locator('li[aria-current="step"]', { hasText: 'บันทึกแล้ว' }).waitFor()
+  await page.getByText('ส่งรายชื่อแล้ว', { exact: true }).waitFor()
 
   // Locked: reason shown, add disabled, rows no longer open the edit sheet.
   await page.getByText('ส่งรายชื่อแล้ว แก้ไม่ได้').waitFor()

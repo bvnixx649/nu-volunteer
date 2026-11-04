@@ -197,7 +197,7 @@ export default function ActivityDetail() {
 
   return (
     <>
-      <main className="mx-auto max-w-lg pb-[calc(8.5rem+env(safe-area-inset-bottom,0px))]">
+      <main className="mx-auto max-w-lg pb-[calc(7.5rem+env(safe-area-inset-bottom,0px))]">
         <div className="relative">
           <img src={a.poster} alt="" className="aspect-[4/3] w-full bg-surface-2 object-cover" />
           <div className="absolute inset-x-0 top-0 flex justify-between px-4 pt-[calc(0.75rem+env(safe-area-inset-top,0px))]">
@@ -246,10 +246,10 @@ export default function ActivityDetail() {
                     เปิดรับสมัคร {thDate(a.opensAt!)} {thTime(a.opensAt!)} น.
                   </p>
                 )}
-                <p className={scheduled ? 'text-muted' : 'font-semibold'}>
-                  ยกเลิกฟรีได้ถึง {thDate(freeUntil)} {thTime(freeUntil)} น.
+                <p className={`num ${scheduled ? 'text-muted' : 'font-semibold'}`}>
+                  ยกเลิกได้ถึง {thDate(freeUntil)} {thTime(freeUntil)} น.
                 </p>
-                <p className="text-muted">ยกเลิกหลังกำหนดหรือไม่มา จะถูกหักสิทธิ์ยกเลิก 1 ครั้ง</p>
+                {(registered || left <= 1) && <p className="text-sm text-muted">ยกเลิกหลังกำหนดหรือไม่มา จะถูกหักสิทธิ์ 1 ครั้ง</p>}
               </Fact>
             )}
             <Fact icon={<HourglassMedium size={22} />}>

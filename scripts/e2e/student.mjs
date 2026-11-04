@@ -86,7 +86,7 @@ export default async function ({ browser, base, load, shot: rawShot }) {
   await page.getByText('พบ 1 กิจกรรม').waitFor()
   await page.getByRole('button', { name: 'แลกขวด', exact: true }).click()
   await page.getByText('ไม่พบกิจกรรมตามตัวกรอง').waitFor()
-  await page.getByRole('button', { name: 'ทุกหมวด' }).click()
+  await page.getByRole('button', { name: 'ทั้งหมด', exact: true }).click()
   const text = await page.locator('main').innerText()
   expect(!/[·—]/.test(text), 'no middle dot or em-dash on screen')
 
@@ -136,7 +136,7 @@ export default async function ({ browser, base, load, shot: rawShot }) {
 
   // Profile: transcript, credits, long name.
   await page.goto(`${base}#/me`)
-  await page.getByText('Transcript จิตอาสา').waitFor()
+  await page.getByText('บันทึกชั่วโมงจิตอาสา', { exact: true }).waitFor()
   await page.getByText('สิทธิ์ยกเลิก').waitFor()
   await page.waitForTimeout(900)
   await noOverflow('profile')

@@ -50,55 +50,62 @@ export default async function ({ browser, base, shot }) {
   await page.getByLabel('ชื่อผู้ดูแล').fill('พี่เต้')
   await page.getByLabel('รหัส', { exact: true }).fill('NUVOL69')
   await page.getByRole('button', { name: 'เข้าใช้งาน' }).click()
-  await page.getByRole('heading', { name: 'สวัสดี พี่เต้' }).waitFor()
+  await page.getByText('กองกิจการนิสิต มหาวิทยาลัยนเรศวร').waitFor()
 
-  // Big create button.
+  // Round floating create button, bottom right, clear of the home list.
   const create = page.getByRole('link', { name: 'สร้างกิจกรรม' })
   await create.waitFor()
   expect((await create.getAttribute('href')).endsWith('#/sup/new'), 'create button links to /sup/new')
   const box = await create.boundingBox()
-  expect(box.height >= 56 && box.width >= 300, `create button is ${box.width}x${box.height}`)
+  expect(Math.round(box.width) === 56 && Math.round(box.height) === 56, `create button is ${box.width}x${box.height}`)
+  expect(box.x + box.width <= 390 && box.y + box.height <= 844, 'create button is inside the screen')
 
   // Live card for the blood activity.
-  await page.getByRole('heading', { name: 'กำลังจัดตอนนี้' }).waitFor()
+  await page.getByRole('heading', { name: 'กำลังดำเนินการ' }).waitFor()
   const qr = page.getByRole('link', { name: 'เปิด QR' })
   expect((await qr.count()) === 1, 'one live card')
   expect((await qr.getAttribute('href')).endsWith('/sup/a/test-blood/qr'), 'QR button links to the QR screen')
   await page.getByRole('link', { name: /บริจาคโลหิต ครั้งที่ 2\/2569/ }).waitFor()
   await page.waitForFunction(() => [...document.querySelectorAll('[data-value]')].some((e) => e.textContent === '7'))
 
-  // To-do rows: the ended river clean-up still needs its roster closed.
-  await page.getByRole('heading', { name: 'ต้องทำต่อ' }).waitFor()
-  const todo = page.getByRole('link', { name: /^ปิดรายชื่อ\s*เก็บขยะริมแม่น้ำน่าน/ })
-  expect((await todo.count()) === 1, 'one to-do row for the ended activity')
-
-  // Status groups and stats.
-  await page.getByRole('heading', { name: 'กำลังจะมาถึง' }).waitFor()
-  await page.getByRole('heading', { name: 'รอปิดหรือส่งรายชื่อ' }).waitFor()
+  // One list of every other activity, each with a status tag. No separate to-do section.
+  await page.getByRole('heading', { name: 'กิจกรรมทั้งหมด' }).waitFor()
+  expect((await page.getByRole('heading', { name: 'ต้องทำต่อ' }).count()) === 0, 'no separate to-do section')
+  const todo = page.getByRole('link', { name: /เก็บขยะริมแม่น้ำน่าน/ })
+  expect((await todo.count()) === 1, 'the ended activity appears once')
+  await todo.getByText('รอตรวจรายชื่อ', { exact: true }).waitFor()
+  await page.getByRole('link', { name: /ปลูกป่าชายเลน/ }).getByText('เปิดรับสมัคร', { exact: true }).waitFor()
+  await page.getByText('ลงทะเบียน 12 คน').waitFor()
   await page.getByRole('heading', { name: /^ปีกิจกรรม \d{4}$/ }).waitFor()
   const body = await page.locator('main').innerText()
   expect(!/[·—]/.test(body), 'no middle dot or em-dash on screen')
+  expect(!body.includes('มาจริงเทียบ'), 'no turn-up percentage')
 
   await noOverflow('home')
   await both('home-1-top')
   await page.getByRole('heading', { name: /^ปีกิจกรรม/ }).scrollIntoViewIfNeeded()
   await both('home-2-lower')
+  await page.evaluate(() => scrollTo(0, 0))
 
-  // Calendar: today has a dot, tapping filters the list, tapping again clears it.
+  // Calendar sheet: today has a dot, picking a day closes the sheet and filters the list, the chip clears it.
   const today = new Date().getDate()
+  await page.getByRole('button', { name: 'ปฏิทิน' }).click()
   const cell = page.getByRole('button', { name: `วันที่ ${today} มีกิจกรรม` })
   await page.getByRole('heading', { name: /^(มกราคม|กุมภาพันธ์|มีนาคม|เมษายน|พฤษภาคม|มิถุนายน|กรกฎาคม|สิงหาคม|กันยายน|ตุลาคม|พฤศจิกายน|ธันวาคม) \d{4}$/ }).waitFor()
+  await both('home-3-calendar')
   await cell.click()
-  await page.getByText(/^กิจกรรมวันที่/).waitFor()
+  await page.getByRole('dialog').waitFor({ state: 'detached' })
+  const chip = page.getByRole('button', { name: /^ล้างตัวกรองวันที่/ })
+  await chip.waitFor()
   expect((await page.getByRole('link', { name: /ปลูกป่าชายเลน/ }).count()) === 0, 'other day is hidden while filtered')
   expect((await page.getByRole('link', { name: /เก็บขยะริมแม่น้ำน่าน/ }).count()) >= 1, 'ended activity is on today')
   await noOverflow('filtered')
-  await both('home-3-filtered')
-  await cell.click()
-  await page.getByText(/^กิจกรรมวันที่/).waitFor({ state: 'detached' })
+  await both('home-4-filtered')
+  await chip.click()
+  await chip.waitFor({ state: 'detached' })
   await page.getByRole('link', { name: /ปลูกป่าชายเลน/ }).waitFor()
 
-  // A to-do row opens the manage page.
+  // A list row opens the manage page.
   await todo.click()
   await page.getByRole('heading', { name: 'เก็บขยะริมแม่น้ำน่าน' }).waitFor()
 

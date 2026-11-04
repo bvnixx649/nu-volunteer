@@ -11,8 +11,6 @@ const DAY = 24 * H
  */
 export type Stage = 'scheduled' | 'open' | 'live' | 'closing' | 'submit' | 'waiting' | 'done'
 
-export const STEPS = ['รอเปิดรับ', 'เปิดรับ', 'กำลังจัด', 'ปิดรายชื่อ', 'ส่งรายชื่อ', 'บันทึกแล้ว'] as const
-
 /** Roster close time: set by the supervisor, or AUTO_CLOSE_H after the end. */
 export function closedAt(a: Activity, now = serverNow()) {
   if (a.closedAt) return a.closedAt
@@ -29,33 +27,13 @@ export function stage(a: Activity, now = serverNow()): Stage {
   return 'open'
 }
 
-/** Index of the current step in STEPS, and whether that step is finished. */
-export function stepOf(s: Stage): { index: number; done: boolean } {
-  switch (s) {
-    case 'scheduled':
-      return { index: 0, done: false }
-    case 'open':
-      return { index: 1, done: false }
-    case 'live':
-      return { index: 2, done: false }
-    case 'closing':
-      return { index: 3, done: false }
-    case 'submit':
-      return { index: 4, done: false }
-    case 'waiting':
-      return { index: 5, done: false }
-    case 'done':
-      return { index: 5, done: true }
-  }
-}
-
 export const STAGE_LABEL: Record<Stage, string> = {
-  scheduled: 'รอเปิดรับ',
+  scheduled: 'ยังไม่เปิดรับ',
   open: 'เปิดรับสมัคร',
-  live: 'กำลังจัด',
-  closing: 'รอปิดรายชื่อ',
+  live: 'กำลังดำเนินการ',
+  closing: 'รอตรวจรายชื่อ',
   submit: 'รอส่งรายชื่อ',
-  waiting: 'รอศูนย์บันทึก',
+  waiting: 'ส่งรายชื่อแล้ว',
   done: 'บันทึกแล้ว',
 }
 

@@ -1,19 +1,20 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, Navigate } from 'react-router-dom'
-import { Plus, SignOut } from '@phosphor-icons/react'
+import { CalendarBlank, Plus, SignOut, X } from '@phosphor-icons/react'
 import { api, now as serverNow } from '../../data/api'
 import type { Activity } from '../../data/types'
 import { thDate } from '../../lib/format'
-import { busyDays, groupByStatus, liveNow, onDay, todos, visibleTo, yearStats } from '../../lib/home'
-import { Button } from '../../ui/Button'
+import { busyDays, liveNow, onDay, orderedActivities, visibleTo, yearStats } from '../../lib/home'
+import { Sheet } from '../../ui/Sheet'
 import { useDevice } from '../../store'
-import { ActivityGroups } from './home/ActivityGroups'
+import { ActivityList } from './home/ActivityList'
 import { LiveCards } from './home/LiveCards'
 import { MonthCalendar } from './home/MonthCalendar'
-import { TodoList } from './home/TodoList'
 import { YearStats } from './home/YearStats'
 
-/** Supervisor home: what to do next, the calendar, activity-year numbers, and activities by status. */
+const iconBtn = 'pressable relative grid size-11 shrink-0 place-items-center rounded-full text-muted hover:bg-surface-2'
+
+/** Supervisor home: what is running now, every activity in one list with its status, and the activity-year numbers. */
 export default function SupHome() {
   const { sup, clearSup } = useDevice()
   const [list, setList] = useState<Activity[] | null>(null)
@@ -22,12 +23,11 @@ export default function SupHome() {
     const d = new Date(serverNow())
     return { year: d.getFullYear(), month: d.getMonth() }
   })
+  const [calOpen, setCalOpen] = useState(false)
   const [day, setDay] = useState<string>()
-  const listRef = useRef<HTMLDivElement>(null)
-  // On a phone the list sits below the calendar, so picking a day brings the filtered list into view.
   const pickDay = (key?: string) => {
     setDay(key)
-    if (key) requestAnimationFrame(() => listRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+    if (key) setCalOpen(false)
   }
   useEffect(() => api.watchActivities(setList), [])
   // Stages change with the clock, so look again every 30 seconds.
@@ -38,80 +38,83 @@ export default function SupHome() {
 
   const now = useMemo(() => serverNow(), [list, tick]) // eslint-disable-line react-hooks/exhaustive-deps
   const mine = useMemo(() => (sup && list ? visibleTo(list, sup) : []), [list, sup])
-  const view = useMemo(() => {
-    const shown = day ? onDay(mine, day) : mine
-    return {
+  const view = useMemo(
+    () => ({
       live: liveNow(mine, now),
-      todo: todos(mine, now),
       busy: busyDays(mine),
       stats: yearStats(mine, now),
-      groups: groupByStatus(shown, now),
-    }
-  }, [mine, now, day])
+      rows: orderedActivities(day ? onDay(mine, day) : mine, now),
+    }),
+    [mine, now, day],
+  )
 
   if (!sup) return <Navigate to="/sup/login" replace />
   const dayStart = day ? new Date(`${day}T00:00:00`).getTime() : 0
+  const base = import.meta.env.BASE_URL
 
   return (
-    <main className="mx-auto max-w-2xl px-5 pt-[calc(2rem+env(safe-area-inset-top,0px))] pb-12 min-[900px]:max-w-5xl">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="text-muted">{sup.orgName}</p>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight">สวัสดี {sup.name}</h1>
+    <main className="mx-auto max-w-2xl px-5 pt-[calc(1rem+env(safe-area-inset-top,0px))] pb-[calc(7rem+env(safe-area-inset-bottom,0px))]">
+      <header className="flex items-center gap-3">
+        <img src={`${base}nu-emblem.png`} alt="" width={36} height={36} className="size-9 shrink-0 rounded-full object-cover" />
+        <div className="min-w-0 flex-1">
+          <p className="leading-tight font-semibold">ศูนย์จิตอาสา</p>
+          <p className="text-[13px] leading-tight text-muted">กองกิจการนิสิต มหาวิทยาลัยนเรศวร</p>
         </div>
-        <button onClick={clearSup} className="pressable flex items-center gap-1.5 rounded-full px-3 py-2 text-muted" aria-label="ออกจากระบบ">
-          <SignOut size={20} />
+        <button onClick={() => setCalOpen(true)} className={iconBtn} aria-label="ปฏิทิน">
+          <CalendarBlank size={22} />
+          {day && <span className="absolute top-2.5 right-2.5 size-2 rounded-full bg-accent" />}
         </button>
-      </div>
+        <button onClick={clearSup} className={iconBtn} aria-label="ออกจากระบบ">
+          <SignOut size={22} />
+        </button>
+      </header>
 
-      <div className="mt-8 grid gap-y-10 min-[900px]:grid-cols-[minmax(0,1fr)_22rem] min-[900px]:gap-x-12">
-        <div className="flex flex-col gap-10 min-[900px]:col-start-1 min-[900px]:row-start-1">
-          <Link
-            to="/sup/new"
-            className="pressable inline-flex min-h-14 items-center justify-center gap-2 rounded-full bg-accent-strong px-7 text-[17px] font-semibold text-on-accent shadow-soft"
-          >
-            <Plus size={22} weight="bold" />
-            สร้างกิจกรรม
-          </Link>
-          <LiveCards list={view.live} showOrg={sup.admin} />
-          <TodoList rows={view.todo} showOrg={sup.admin} />
-        </div>
+      <div className="mt-6 flex flex-col gap-10">
+        <LiveCards list={view.live} showOrg={sup.admin} />
 
-        <div className="min-[900px]:col-start-2 min-[900px]:row-start-1">
-          <MonthCalendar
-            year={cal.year}
-            month={cal.month}
-            onMonth={(year, month) => setCal({ year, month })}
-            busy={view.busy}
-            selected={day}
-            onSelect={pickDay}
-            now={now}
-          />
-        </div>
-
-        <div ref={listRef} className="scroll-mt-4 min-[900px]:col-start-1 min-[900px]:row-start-2">
+        <div>
           {day && (
-            <div className="mb-4 flex items-center justify-between gap-3">
-              <p className="num text-lg font-semibold">กิจกรรมวันที่ {thDate(dayStart)}</p>
-              <Button variant="secondary" onClick={() => setDay(undefined)}>
-                ดูทั้งหมด
-              </Button>
-            </div>
+            <button
+              onClick={() => setDay(undefined)}
+              className="pressable num mb-4 inline-flex min-h-10 items-center gap-2 rounded-full bg-surface-2 pr-3 pl-4 text-[15px] font-medium"
+              aria-label={`ล้างตัวกรองวันที่ ${thDate(dayStart)}`}
+            >
+              {thDate(dayStart)}
+              <span className="inline-flex items-center gap-1 text-muted">
+                ล้าง <X size={14} weight="bold" />
+              </span>
+            </button>
           )}
-          <ActivityGroups groups={view.groups} showOrg={sup.admin} />
-          {list && !view.groups.length && (day || !mine.length) && (
+          <ActivityList list={view.rows} showOrg={sup.admin} now={now} />
+          {list && !view.rows.length && (day || !mine.length) && (
             <p className="rounded-[var(--radius-card)] bg-surface px-5 py-8 text-center text-muted">
-              {day ? 'ไม่มีกิจกรรมอื่นในวันนี้' : 'ยังไม่มีกิจกรรม กดสร้างกิจกรรมเพื่อเริ่ม'}
+              {day ? 'ไม่มีกิจกรรมอื่นในวันนี้' : 'ยังไม่มีกิจกรรม กดปุ่ม + เพื่อสร้างกิจกรรม'}
             </p>
           )}
         </div>
 
-        {list && (
-          <div className="min-[900px]:col-start-2 min-[900px]:row-start-2 min-[900px]:self-start">
-            <YearStats stats={view.stats} now={now} />
-          </div>
-        )}
+        {list && <YearStats stats={view.stats} now={now} />}
       </div>
+
+      <Link
+        to="/sup/new"
+        aria-label="สร้างกิจกรรม"
+        className="pressable fixed right-5 bottom-[calc(1.25rem+env(safe-area-inset-bottom,0px))] z-30 grid size-14 place-items-center rounded-full bg-ink text-bg shadow-lift"
+      >
+        <Plus size={26} weight="bold" />
+      </Link>
+
+      <Sheet open={calOpen} onClose={() => setCalOpen(false)} title="เลือกวัน">
+        <MonthCalendar
+          year={cal.year}
+          month={cal.month}
+          onMonth={(year, month) => setCal({ year, month })}
+          busy={view.busy}
+          selected={day}
+          onSelect={pickDay}
+          now={now}
+        />
+      </Sheet>
     </main>
   )
 }

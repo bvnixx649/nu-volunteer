@@ -16,7 +16,7 @@ import { Sheet } from '../../ui/Sheet'
 const card = 'rounded-[var(--radius-card)] bg-surface p-5 shadow-soft'
 
 function Chip({ tone, children }: { tone: string; children: ReactNode }) {
-  return <span className={`inline-flex h-6 items-center rounded-full px-2.5 text-[13px] font-medium whitespace-nowrap ${tone}`}>{children}</span>
+  return <span className={`inline-flex h-6 items-center rounded-md px-2 text-xs font-medium whitespace-nowrap ${tone}`}>{children}</span>
 }
 
 function Menu({ icon, label, hint, onClick, danger }: { icon: ReactNode; label: string; hint?: string; onClick: () => void; danger?: boolean }) {
@@ -50,14 +50,27 @@ export default function Me() {
 
   return (
     <main className="mx-auto max-w-lg px-5 pt-[calc(1.5rem+env(safe-area-inset-top,0px))]">
-      <h1 className="text-3xl leading-tight font-bold tracking-tight break-words">{student?.name}</h1>
-      <p className="num mt-1 text-muted">{student?.id}</p>
+      <div className="flex items-center gap-4">
+        <span aria-hidden className="grid size-14 shrink-0 place-items-center rounded-full bg-ink text-2xl font-bold text-bg">
+          {[...(student?.name ?? '')][0]}
+        </span>
+        <div className="min-w-0">
+          <h1 className="line-clamp-2 text-[22px] leading-snug font-bold tracking-tight break-words">{student?.name}</h1>
+          <p className="num text-sm text-muted">รหัสนิสิต {student?.id}</p>
+        </div>
+      </div>
 
-      <section className={`${card} mt-6`}>
-        <h2 className="text-muted">Transcript จิตอาสา</h2>
-        <p className="mt-2 flex items-baseline gap-2">
-          <CountUp value={total} className="text-7xl leading-none font-bold tracking-tighter" />
-          <span className="text-xl font-bold text-accent">ชั่วโมง</span>
+      <section className={`${card} mt-6`} aria-label="บันทึกชั่วโมงจิตอาสา">
+        <div className="flex items-center gap-3">
+          <img src={`${import.meta.env.BASE_URL}nu-emblem.png`} alt="" width={40} height={40} className="size-10 shrink-0 object-contain" />
+          <div className="min-w-0">
+            <h2 className="font-semibold">บันทึกชั่วโมงจิตอาสา</h2>
+            <p className="num text-sm text-muted">มหาวิทยาลัยนเรศวร ปีการศึกษา 2569</p>
+          </div>
+        </div>
+        <p className="mt-5 flex items-baseline gap-2">
+          <CountUp value={total} className="text-6xl leading-none font-bold tracking-tight" />
+          <span className="font-semibold text-muted">ชั่วโมง</span>
         </p>
         <p className="num mt-2 text-muted">จาก {credits.length} กิจกรรม</p>
         {perCategory.length > 0 && (
@@ -88,11 +101,11 @@ export default function Me() {
                       <p className="num mt-1 text-sm text-muted">
                         {thDate(c.at)} {c.items !== undefined ? `แลกขวด ${c.items} ขวด` : c.method === 'manual' ? 'ยืนยันโดยผู้ดูแล' : 'สแกน QR'}
                       </p>
-                      <div className="mt-2">
-                        {a?.recordedAt ? <Chip tone="bg-ok-soft text-ok">บันทึกลงระบบแล้ว</Chip> : a?.submittedAt ? <Chip tone="bg-warn-soft text-warn">รอศูนย์บันทึก</Chip> : <Chip tone="bg-surface-2 text-muted">รอส่งรายชื่อ</Chip>}
-                      </div>
                     </div>
-                    <p className="num text-lg font-bold">+{fmtHours(c.hours)}</p>
+                    <div className="flex shrink-0 flex-col items-end gap-1.5">
+                      <p className="num text-lg leading-none font-bold">+{fmtHours(c.hours)}</p>
+                      {a?.recordedAt ? <Chip tone="bg-ok-soft text-ok">บันทึกลงระบบแล้ว</Chip> : a?.submittedAt ? <Chip tone="bg-warn-soft text-warn">รอศูนย์บันทึก</Chip> : <Chip tone="bg-surface-2 text-muted">รอส่งรายชื่อ</Chip>}
+                    </div>
                   </Link>
                 </li>
               )
@@ -102,25 +115,11 @@ export default function Me() {
       </section>
 
       <section className={`${card} mt-4`}>
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <h2 className="text-xl font-semibold">สิทธิ์ยกเลิก</h2>
-            <p className="mt-1 text-sm text-muted">
-              ภาคการศึกษาที่ {semesterNumber(t)} เริ่มใหม่ {thDate(semesterEnd(t))}
-            </p>
-          </div>
-          <p className={`num text-4xl leading-none font-bold ${left <= 1 ? 'text-accent' : ''}`}>
-            {left}
-            <span className="text-lg font-semibold text-muted">/{STRIKE_LIMIT}</span>
-          </p>
-        </div>
-        <div className="mt-4 flex gap-2" aria-hidden>
-          {Array.from({ length: STRIKE_LIMIT }, (_, i) => (
-            <span key={i} className={`h-2 flex-1 rounded-full ${i < left ? 'bg-accent' : 'bg-surface-2'}`} />
-          ))}
-        </div>
-        <p className="mt-4 text-sm text-muted">
-          {left === 0 ? 'สิทธิ์หมดแล้ว ลงทะเบียนไม่ได้จนจบภาค' : 'ยกเลิกหลังกำหนดหรือไม่มา จะถูกหักสิทธิ์ 1 ครั้ง'}
+        <p className="num font-semibold">
+          สิทธิ์ยกเลิกคงเหลือ <span className={left === 0 ? 'text-bad' : ''}>{left}</span> จาก {STRIKE_LIMIT}
+        </p>
+        <p className="num mt-1 text-sm text-muted">
+          {left === 0 ? 'สิทธิ์หมดแล้ว ลงทะเบียนไม่ได้จนจบภาค' : 'ยกเลิกหลังกำหนดหรือไม่มา จะถูกหักสิทธิ์ 1 ครั้ง'} ภาคการศึกษาที่ {semesterNumber(t)} เริ่มใหม่ {thDate(semesterEnd(t))}
         </p>
         {strikes.length > 0 && (
           <ul className="mt-3 divide-y divide-line border-t border-line">
