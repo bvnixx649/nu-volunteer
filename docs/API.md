@@ -128,4 +128,4 @@ Realtime ไม่ได้ส่งข้อมูลที่เปลี่�
 - **สถิติ:** โหลดกิจกรรมทั้งหมดมาคำนวณในแอป (`src/lib/home.ts`)
 - **Excel:** สร้างไฟล์ในเบราว์เซอร์ (`src/lib/excel.ts`)
 
-ถ้าจะย้ายงานพวกนี้ไปหลังบ้าน ใช้ Supabase Edge Functions หรือ Postgres function เพิ่ม แล้วปิดสิทธิ์เขียนตรงของตารางใน RLS ได้ หน้าจอไม่ต้องแก้ เพราะหน้าจอเรียกผ่าน `api.ts` อย่างเดียว แก้แค่ `remote.ts` ดูจุดที่ตั้งใจทำแบบง่ายไว้ใน `docs/SPEC.md` ข้อ 16 และข้อเสนอใน `supabase/proposed-changes.sql`
+ถ้าจะย้ายงานพวกนี้ไปหลังบ้าน ใช้ Supabase Edge Functions หรือ Postgres function เพิ่ม แล้วปิดสิทธิ์เขียนตรงของตารางใน RLS ได้ หน้าจอไม่ต้องแก้ เพราะหน้าจอเรียกผ่าน `api.ts` อย่างเดียว แก้แค่ `remote.ts` ข้อเสนอการปรับฐานข้อมูลอยู่ใน `supabase/proposed-changes.sql`

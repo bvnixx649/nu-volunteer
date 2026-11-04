@@ -4,3 +4,10 @@ dist
 *.log
 .superpowers
 scripts/e2e/out
+
+# Internal notes stay on this machine only; the public repo keeps the API and database docs.
+CLAUDE.md
+docs/*
+!docs/API.md
+!docs/database.html
+.archify/
