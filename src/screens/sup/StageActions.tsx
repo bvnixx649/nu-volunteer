@@ -31,7 +31,6 @@ export function StageActions({ activity, regs, credits }: Props) {
 
   const got = credits.length
   const missed = regs.filter((r) => !r.cancelledAt && !credits.some((c) => c.studentId === r.studentId)).length
-  const total = credits.reduce((sum, c) => sum + c.hours, 0)
   const days = daysToSubmit(activity)
 
   const run = async (fn: (id: string) => Promise<void>, ok: string) => {
@@ -104,7 +103,7 @@ export function StageActions({ activity, regs, credits }: Props) {
       <Sheet open={asking === 'submit'} onClose={() => setAsking(undefined)} title="ส่งรายชื่อให้ศูนย์">
         <div className="grid grid-cols-2 gap-3">
           <Stat value={got} label="ได้รับชั่วโมง (คน)" />
-          <Stat value={total} label="ชั่วโมงรวม" />
+          <Stat value={missed} label="ไม่เข้าร่วม (คน)" />
         </div>
         <p className="mt-4 font-medium text-bad">ส่งแล้วแก้รายชื่อและชั่วโมงไม่ได้อีก</p>
         <p className="mt-2 text-muted">ศูนย์จิตอาสาจะได้รับแจ้งให้บันทึกชั่วโมง</p>

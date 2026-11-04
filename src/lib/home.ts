@@ -1,5 +1,6 @@
 import type { Activity } from '../data/types'
-import { stage, type Stage } from './stage'
+import { fmtHours, thDate, thDayMonth, thTime } from './format'
+import { daysToSubmit, stage, type Stage } from './stage'
 
 /** The supervisor home's pure logic: one ordered activity list, calendar grid, activity year, KPI. */
 
@@ -80,6 +81,67 @@ export function groupActivities(list: Activity[], now: number): Groups {
     ;(r === 0 ? g.todo : r === 1 ? g.upcoming : g.sent).push(a)
   }
   return g
+}
+
+/** The nearest this many upcoming activities are shown as big poster cards; the rest are compact rows. */
+export const BIG_UPCOMING = 3
+
+export interface UpcomingSplit {
+  /** With nothing live, the nearest upcoming activity is the hero card at the top and is not repeated below. */
+  hero?: Activity
+  big: Activity[]
+  small: Activity[]
+}
+
+/** Splits the upcoming list (already in start order) into the hero card, the big poster cards and the compact rows. */
+export function splitUpcoming(upcoming: Activity[], hasLive: boolean): UpcomingSplit {
+  const rest = hasLive ? upcoming : upcoming.slice(1)
+  return { hero: hasLive ? undefined : upcoming[0], big: rest.slice(0, BIG_UPCOMING), small: rest.slice(BIG_UPCOMING) }
+}
+
+const n = (v: number) => v.toLocaleString('th-TH')
+
+/** The one short muted line beside a row's status tag. */
+export function rowSub(a: Activity, s: Stage, now: number): string {
+  switch (s) {
+    case 'closing':
+      return `ได้รับชั่วโมง ${n(a.creditCount)} คน`
+    case 'submit': {
+      const days = daysToSubmit(a, now)
+      return days > 0 ? `อีก ${days} วัน` : 'เลยกำหนดส่งแล้ว'
+    }
+    case 'open':
+      if (a.itemsPerHour) return `${a.itemsPerHour} ขวด = 1 ชั่วโมง`
+      return a.capLimit && a.capacity > 0 ? `ลงทะเบียน ${n(a.regCount)} จาก ${n(a.capacity)} คน` : `ลงทะเบียน ${n(a.regCount)} คน`
+    case 'scheduled':
+      return a.opensAt ? `เปิดรับ ${thDayMonth(a.opensAt)} ${thTime(a.opensAt)} น.` : 'ยังไม่เปิดรับ'
+    default:
+      return `ส่งแล้ว ${thDate(a.submittedAt ?? a.recordedAt ?? a.end)}`
+  }
+}
+
+export interface RegInfo {
+  /** Left text under a poster card. */
+  text: string
+  /** Right text: seats left, the bottle cap or how many are taken. */
+  side?: string
+  /** 0 to 1 share of the seats taken; only when the activity limits its numbers and is open. */
+  fill?: number
+}
+
+/** What a poster card says about registration: seat bar and seats left, a head count, the bottle rate, or when it opens. */
+export function regInfo(a: Activity, now: number): RegInfo {
+  if (a.itemsPerHour) return { text: `${a.itemsPerHour} ขวด = 1 ชั่วโมง`, side: `สูงสุด ${fmtHours(a.hours)} ชั่วโมง` }
+  const limited = a.capLimit && a.capacity > 0
+  if (stage(a, now) === 'scheduled' && a.opensAt)
+    return { text: `เปิดรับ ${thDayMonth(a.opensAt)} ${thTime(a.opensAt)} น.`, side: limited ? `รับ ${n(a.capacity)} คน` : undefined }
+  if (!limited) return { text: `ลงทะเบียนแล้ว ${n(a.regCount)} คน` }
+  const left = Math.max(0, a.capacity - a.regCount)
+  return {
+    text: `ลงทะเบียนแล้ว ${n(a.regCount)} จาก ${n(a.capacity)} คน`,
+    side: left ? `เหลือ ${n(left)} ที่` : 'เต็มแล้ว',
+    fill: Math.min(1, a.regCount / a.capacity),
+  }
 }
 
 export interface Cell {

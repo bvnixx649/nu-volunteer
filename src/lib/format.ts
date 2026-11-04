@@ -44,6 +44,14 @@ export function dateTile(ms: number, now: number) {
   return { dow: rel === 0 ? 'วันนี้' : rel === 1 ? 'พรุ่งนี้' : WEEKDAYS_SHORT[d.getDay()], day: d.getDate(), mon: MONTHS[d.getMonth()] }
 }
 
+/** How far away a day is, as the supervisor home says it: "วันนี้", "พรุ่งนี้" or "อีก 16 วัน". Days already past count as today. */
+export function daysAway(ms: number, now: number) {
+  const d = Math.round((startOfDay(ms) - startOfDay(now)) / DAY)
+  if (d <= 0) return 'วันนี้'
+  if (d === 1) return 'พรุ่งนี้'
+  return `อีก ${d} วัน`
+}
+
 /** How long ago, in words. Falls back to the date after a week. */
 export function timeAgo(ms: number, now = Date.now()) {
   const m = Math.floor((now - ms) / 60_000)

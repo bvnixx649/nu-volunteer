@@ -17,7 +17,10 @@ startPendingSync()
 // Students arrive on /claim over mobile data, so supervisor screens load only when someone opens them.
 const Login = lazy(() => import('./screens/sup/Login'))
 const SupHome = lazy(() => import('./screens/sup/SupHome'))
-const Overview = lazy(() => import('./screens/sup/Overview'))
+const SupShell = lazy(() => import('./screens/sup/SupShell'))
+const SupCalendar = lazy(() => import('./screens/sup/SupCalendar'))
+const SupStats = lazy(() => import('./screens/sup/SupStats'))
+const SupMe = lazy(() => import('./screens/sup/SupMe'))
 const Manage = lazy(() => import('./screens/sup/Manage'))
 const QrScreen = lazy(() => import('./screens/sup/QrScreen'))
 const SupRoster = lazy(() => import('./screens/sup/SupRoster'))
@@ -53,8 +56,14 @@ export default function App() {
             <Route path="/settings/notify" element={<NotifySettings />} />
           </Route>
           <Route path="/sup/login" element={<Login />} />
-          <Route path="/sup" element={<SupHome />} />
-          <Route path="/sup/overview" element={<Overview />} />
+          <Route element={<SupShell />}>
+            <Route path="/sup" element={<SupHome />} />
+            <Route path="/sup/calendar" element={<SupCalendar />} />
+            <Route path="/sup/stats" element={<SupStats />} />
+            <Route path="/sup/me" element={<SupMe />} />
+          </Route>
+          {/* The old calendar and statistics page, kept so saved links still work. */}
+          <Route path="/sup/overview" element={<Navigate to="/sup/calendar" replace />} />
           <Route path="/sup/new" element={<Editor />} />
           <Route path="/sup/edit/:id" element={<Editor />} />
           <Route path="/sup/a/:id" element={<Manage />} />

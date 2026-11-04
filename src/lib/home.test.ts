@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { activityYear, busyDays, countInMonth, dayKey, fillBasis, fillPercent, groupActivities, liveNow, monthGrid, onDay, orderedActivities, stagesByDay, visibleTo, yearOverview, yearStats } from './home'
+import { activityYear, busyDays, countInMonth, dayKey, fillBasis, fillPercent, groupActivities, liveNow, monthGrid, onDay, orderedActivities, regInfo, rowSub, splitUpcoming, stagesByDay, visibleTo, yearOverview, yearStats } from './home'
 import type { Activity } from '../data/types'
 
 const H = 3600_000
@@ -140,5 +140,55 @@ describe('home helpers', () => {
       const prev = at(2, 1, { creditCount: 99 })
       expect(yearOverview([prev], now).monthly.every((n) => n === 0)).toBe(true)
     })
+  })
+})
+
+describe('upcoming split', () => {
+  const up = (i: number) => act({ id: `u${i}`, start: t0 + i * DAY, end: t0 + i * DAY + H })
+  const five = [1, 2, 3, 4, 5].map(up)
+
+  it('makes the nearest the hero when nothing is live, and does not repeat it', () => {
+    const s = splitUpcoming(five, false)
+    expect(s.hero).toBe(five[0])
+    expect(s.big).toEqual(five.slice(1, 4))
+    expect(s.small).toEqual([five[4]])
+  })
+
+  it('has no hero while something is live: three big cards then rows', () => {
+    const s = splitUpcoming(five, true)
+    expect(s.hero).toBeUndefined()
+    expect(s.big).toEqual(five.slice(0, 3))
+    expect(s.small).toEqual(five.slice(3))
+  })
+
+  it('copes with nothing upcoming', () => {
+    expect(splitUpcoming([], false)).toEqual({ hero: undefined, big: [], small: [] })
+  })
+})
+
+describe('poster card texts', () => {
+  it('says seats and what is left, or full', () => {
+    const a = act({ start: t0 + DAY, end: t0 + DAY + H, capLimit: true, capacity: 300, regCount: 182 })
+    expect(regInfo(a, t0)).toEqual({ text: 'ลงทะเบียนแล้ว 182 จาก 300 คน', side: 'เหลือ 118 ที่', fill: 182 / 300 })
+    expect(regInfo({ ...a, regCount: 300 }, t0).side).toBe('เต็มแล้ว')
+  })
+
+  it('gives a head count without a limit, the rate for bottles, and the opening time before it opens', () => {
+    const open = act({ start: t0 + DAY, end: t0 + DAY + H, regCount: 12 })
+    expect(regInfo(open, t0)).toEqual({ text: 'ลงทะเบียนแล้ว 12 คน' })
+    expect(regInfo({ ...open, itemsPerHour: 10, hours: 3 }, t0)).toEqual({ text: '10 ขวด = 1 ชั่วโมง', side: 'สูงสุด 3 ชั่วโมง' })
+    const soon = act({ start: t0 + 9 * DAY, end: t0 + 9 * DAY + H, opensAt: new Date(2026, 10, 25, 9).getTime(), capLimit: true, capacity: 40 })
+    expect(regInfo(soon, t0)).toEqual({ text: 'เปิดรับ 25 พ.ย. 09:00 น.', side: 'รับ 40 คน' })
+  })
+
+  it('writes one short line per row stage', () => {
+    const ended = act({ start: t0 - 5 * H, end: t0 - H, creditCount: 36 })
+    expect(rowSub(ended, 'closing', t0)).toBe('ได้รับชั่วโมง 36 คน')
+    expect(rowSub(ended, 'submit', t0)).toBe('อีก 30 วัน')
+    expect(rowSub(ended, 'submit', t0 + 40 * DAY)).toBe('เลยกำหนดส่งแล้ว')
+    const open = act({ start: t0 + DAY, end: t0 + DAY + H, capLimit: true, capacity: 30, regCount: 12 })
+    expect(rowSub(open, 'open', t0)).toBe('ลงทะเบียน 12 จาก 30 คน')
+    const sent = act({ submittedAt: new Date(2026, 9, 26, 9).getTime() })
+    expect(rowSub(sent, 'waiting', t0)).toBe('ส่งแล้ว 26 ต.ค. 2569')
   })
 })

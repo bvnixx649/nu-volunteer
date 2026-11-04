@@ -67,11 +67,12 @@ export default async function ({ browser, base, shot }) {
   await page.getByRole('button', { name: /ปวีณา มาสาย/ }).waitFor({ state: 'detached', timeout: 8000 })
   await page.getByText('ไม่เข้าร่วม', { exact: true }).waitFor({ state: 'detached', timeout: 8000 })
 
-  // Submit: confirm sheet shows people and total hours (5+3+5 = 13) and the warning.
+  // Submit: confirm sheet shows who got hours and who did not (the no-show was removed), no total of hours, and the warning.
   await page.getByRole('button', { name: 'ส่งรายชื่อให้ศูนย์' }).click()
   const send = page.getByRole('dialog', { name: 'ส่งรายชื่อให้ศูนย์' })
   await send.locator('.num').first().waitFor()
-  expect((await send.locator('.num').allInnerTexts()).join(',') === '3,13', 'submit sheet shows 3 people and 13 hours')
+  expect((await send.locator('.num').allInnerTexts()).join(',') === '3,0', 'submit sheet shows 3 got hours and 0 not attending')
+  expect(!(await send.getByText('ชั่วโมงรวม').count()), 'submit sheet has no total hours')
   await send.getByText('แก้รายชื่อและชั่วโมงไม่ได้อีก').waitFor()
   await both('close-4-submit')
   await send.getByRole('button', { name: 'ส่งรายชื่อ', exact: true }).click()

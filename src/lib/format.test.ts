@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cleanName, dateTile, isStudentId, thDate, thDayMonth, thTime } from './format'
+import { cleanName, dateTile, daysAway, isStudentId, thDate, thDayMonth, thTime } from './format'
 
 describe('format', () => {
   it('accepts only 8-digit student ids', () => {
@@ -29,5 +29,14 @@ describe('dateTile', () => {
     expect(dateTile(new Date(2026, 10, 5, 23).getTime(), now)).toEqual({ dow: 'พรุ่งนี้', day: 5, mon: 'พ.ย.' })
     expect(dateTile(new Date(2026, 10, 20, 8).getTime(), now)).toEqual({ dow: 'ศ.', day: 20, mon: 'พ.ย.' })
     expect(dateTile(new Date(2026, 10, 8, 8).getTime(), now).dow).toBe('อา.')
+  })
+})
+
+describe('daysAway', () => {
+  const now = new Date(2026, 10, 4, 15).getTime()
+  it('says today, tomorrow or how many days', () => {
+    expect(daysAway(new Date(2026, 10, 4, 23).getTime(), now)).toBe('วันนี้')
+    expect(daysAway(new Date(2026, 10, 5, 8).getTime(), now)).toBe('พรุ่งนี้')
+    expect(daysAway(new Date(2026, 10, 20, 8).getTime(), now)).toBe('อีก 16 วัน')
   })
 })
