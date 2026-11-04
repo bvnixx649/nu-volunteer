@@ -1,0 +1,1 @@
+var e=[10,15],t=(e=10)=>e*1e3,n=(e=10)=>Math.ceil(60/e),r=18e5,i=[150,200,300],a=[1,5,6,9,18],o=.7,s=.9;export{o as a,t as c,s as i,e as n,r as o,i as r,n as s,a as t};
