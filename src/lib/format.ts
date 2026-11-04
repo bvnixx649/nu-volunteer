@@ -29,6 +29,15 @@ export function relDay(ms: number, now: number) {
   return thDate(ms)
 }
 
+const WEEKDAYS_SHORT = ['อา.', 'จ.', 'อ.', 'พ.', 'พฤ.', 'ศ.', 'ส.']
+
+/** The date tile on an activity card: "วันนี้" or "พรุ่งนี้" over the day number when it applies, else the short weekday. */
+export function dateTile(ms: number, now: number) {
+  const d = new Date(ms)
+  const rel = Math.round((startOfDay(ms) - startOfDay(now)) / DAY)
+  return { dow: rel === 0 ? 'วันนี้' : rel === 1 ? 'พรุ่งนี้' : WEEKDAYS_SHORT[d.getDay()], day: d.getDate(), mon: MONTHS[d.getMonth()] }
+}
+
 /** How long ago, in words. Falls back to the date after a week. */
 export function timeAgo(ms: number, now = Date.now()) {
   const m = Math.floor((now - ms) / 60_000)

@@ -1,16 +1,19 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'motion/react'
 import { CheckCircle } from '@phosphor-icons/react'
+import { toast } from 'sonner'
 import { api } from '../../data/api'
 import type { Credit } from '../../data/types'
-import { thTime } from '../../lib/format'
+import { haptic } from '../../lib/device'
+import { thDate, thTime } from '../../lib/format'
 import { CountUp } from '../../ui/CountUp'
 import { LinkButton } from '../../ui/LinkButton'
 
-const rise = (i: number) => ({
-  initial: { opacity: 0, y: 16 },
+/** Everything after the ring fades up in order, starting as the ring closes. `at` is the start in ms. */
+const later = (at: number) => ({
+  initial: { opacity: 0, y: 14 },
   animate: { opacity: 1, y: 0 },
-  transition: { duration: 0.5, delay: 0.08 * i, ease: [0.23, 1, 0.32, 1] as const },
+  transition: { duration: 0.6, delay: at / 1000, ease: [0.23, 1, 0.32, 1] as const },
 })
 
 /** The two people before you and you, with your place in the order. Own row comes from the credit just written. */
@@ -21,57 +24,136 @@ export function neighbours(list: Credit[], own: Credit) {
 }
 
 function RosterRow({ n, c, own }: { n: number; c: Credit; own?: boolean }) {
-  return (
-    <li
-      data-own={own || undefined}
-      className={`grid grid-cols-[1.75rem_5.25rem_minmax(0,1fr)_auto] items-center gap-x-2 px-4 py-3.5 text-[15px] ${
-        own ? 'bg-accent-soft font-bold shadow-[inset_3px_0_0_var(--color-accent)]' : 'text-muted'
-      }`}
-    >
-      <span className="num">{n}</span>
+  const grid = 'grid grid-cols-[34px_82px_minmax(0,1fr)_44px] items-center gap-x-2 text-sm'
+  const cells = (
+    <>
+      <span className={`num ${own ? 'text-accent' : ''}`}>{n}</span>
       <span className="num">{c.studentId}</span>
       <span className="truncate">{c.name}</span>
-      <span className={`num ${own ? 'text-accent' : ''}`}>{thTime(c.at)}</span>
-    </li>
+      <span className={`num text-right ${own ? 'text-accent' : ''}`}>{thTime(c.at)}</span>
+    </>
+  )
+  if (!own) return <li className={`${grid} border-t border-white/5 px-[18px] py-[11px] text-muted`}>{cells}</li>
+  return (
+    <motion.li
+      data-own
+      initial={{ opacity: 0, x: -18 }}
+      animate={{ opacity: 1, x: 0 }}
+      transition={{ duration: 0.6, delay: 1.2, ease: [0.23, 1, 0.32, 1] }}
+      className={`${grid} mx-2 mt-0.5 rounded-[14px] bg-[rgba(242,112,42,0.14)] px-2.5 py-[11px] font-semibold shadow-[inset_0_0_0_1px_rgba(242,112,42,0.35)]`}
+    >
+      {cells}
+    </motion.li>
   )
 }
 
-/** Hours first, then who you are, then your place in the roster. Reads the list once; the claim page never subscribes (SPEC 2.84). */
+/** The cumulative total counts from what it was before this credit. `delay` keeps the start near 1.15 s even if the read finishes late. */
+type Total = { from: number; to: number; delay: number }
+
+/** Hours first, then who you are, then your place in the roster. Reads the roster once; the claim page never subscribes (SPEC 2.84). */
 export function Success({ credit, title, activityId }: { credit: Credit; title: string; activityId: string }) {
   const [list, setList] = useState<Credit[]>([])
+  /** undefined while loading, null when the read failed (the total block is then hidden). */
+  const [total, setTotal] = useState<Total | null | undefined>(undefined)
+  const t0 = useRef(performance.now())
+
+  useEffect(() => {
+    // A "ลงทะเบียนแล้ว" toast from the detail page can still be on screen and covers the ring.
+    toast.dismiss()
+    // The vibration is synced to the ring closing and fires only here, not when the claim returns.
+    const id = setTimeout(() => haptic.success(), 950)
+    return () => clearTimeout(id)
+  }, [])
+
   useEffect(() => {
     api.listCredits(activityId).then(setList, () => setList([]))
   }, [activityId])
-  const { before, n, total } = neighbours(list, credit)
+
+  useEffect(() => {
+    let live = true
+    api.studentCredits(credit.studentId).then(
+      (mine) => {
+        if (!live) return
+        // The credit just written is normally in the list; if the read raced ahead of it, add it once.
+        const counted = mine.some((c) => c.activityId === activityId)
+        const sum = Math.round((mine.reduce((s, c) => s + c.hours, 0) + (counted ? 0 : credit.hours)) * 10) / 10
+        const waited = (performance.now() - t0.current) / 1000
+        setTotal({ from: Math.max(0, Math.round((sum - credit.hours) * 10) / 10), to: sum, delay: Math.max(0.05, 1.15 - waited) })
+      },
+      () => live && setTotal(null),
+    )
+    return () => {
+      live = false
+    }
+  }, [credit.studentId, credit.hours, activityId])
+
+  const { before, n, total: people } = neighbours(list, credit)
 
   return (
-    <div className="flex flex-col">
-      <motion.div {...rise(0)} className="flex items-center gap-2 text-ok">
-        <CheckCircle size={24} weight="fill" />
-        <span className="font-semibold">รับชั่วโมงแล้ว</span>
-      </motion.div>
-
-      <motion.div {...rise(1)} className="mt-3 flex items-baseline gap-3">
-        <CountUp value={credit.hours} className="text-[128px] leading-[0.9] font-bold tracking-tighter" />
-        <span className="text-2xl font-bold text-accent">ชั่วโมง</span>
-      </motion.div>
-      {title && (
-        <motion.p {...rise(2)} className="mt-2 line-clamp-2 text-muted">
-          {title}
-        </motion.p>
-      )}
-
-      <motion.div {...rise(3)} className="mt-8">
-        <h1 className="text-3xl leading-tight font-bold break-words">{credit.name}</h1>
-        <p className="num mt-1 text-muted">{credit.studentId}</p>
-      </motion.div>
-
-      <motion.section {...rise(4)} className="mt-8" aria-label="รายชื่อในงาน">
-        <div className="mb-3 flex items-baseline justify-between">
-          <h2 className="text-lg font-semibold">รายชื่อในงาน</h2>
-          <p className="num text-muted">{total} คน</p>
+    <div className="flex flex-col pb-4">
+      <div className="stamp-hero relative mx-auto mt-6 size-[228px]">
+        <div aria-hidden className="stamp-glow pointer-events-none absolute -inset-[70px] rounded-full bg-[radial-gradient(closest-side,rgba(92,196,141,0.30),rgba(92,196,141,0))]" />
+        <svg className="stamp-ring absolute inset-0" width="228" height="228" viewBox="0 0 228 228" aria-hidden>
+          <defs>
+            <linearGradient id="ring-green" x1="0" y1="0" x2="1" y2="1">
+              <stop offset="0" stopColor="#7fd8a6" />
+              <stop offset="1" stopColor="#3fae74" />
+            </linearGradient>
+          </defs>
+          <circle cx="114" cy="114" r="96" fill="none" stroke="rgba(92,196,141,0.12)" strokeWidth="14" />
+          <circle className="stamp-arc" cx="114" cy="114" r="96" fill="none" stroke="url(#ring-green)" strokeWidth="14" strokeLinecap="round" transform="rotate(-90 114 114)" />
+        </svg>
+        <div className="absolute inset-x-0 top-[60px] h-20 text-center leading-[80px]">
+          <span className="relative inline-block text-[84px] font-semibold tracking-[-0.04em]">
+            <span aria-hidden className="absolute top-0 right-full pr-0.5 text-[44px] font-medium text-ok">
+              +
+            </span>
+            <CountUp value={credit.hours} delay={0.12} duration={0.82} />
+          </span>
         </div>
-        <ul className="divide-y divide-line overflow-hidden rounded-[var(--radius-card)] bg-surface shadow-soft">
+        <div className="absolute inset-x-0 top-[146px] text-center text-base text-muted">ชั่วโมง</div>
+      </div>
+
+      <div className="mt-[18px] flex justify-center">
+        <span className="stamp-badge inline-flex h-9 items-center gap-2 rounded-full bg-[rgba(92,196,141,0.14)] pr-3.5 pl-2.5 text-[15px] font-semibold text-ok">
+          <CheckCircle size={20} weight="fill" />
+          บันทึกชั่วโมงแล้ว
+        </span>
+      </div>
+
+      <motion.div {...later(900)} className="px-4 pt-3.5 text-center">
+        {title && <h1 className="line-clamp-2 text-[22px] leading-[1.35] font-semibold break-words">{title}</h1>}
+        <p className="num mt-1 text-sm text-muted">
+          {thDate(credit.at)} เวลา {thTime(credit.at)} น.
+        </p>
+      </motion.div>
+
+      <motion.section {...later(980)} className="mt-[22px] rounded-[28px] border border-white/[0.06] bg-white/[0.03] p-1.5" aria-label="ชื่อและชั่วโมงสะสม">
+        <div className="flex items-center gap-3 rounded-[22px] bg-gradient-to-b from-[#25221f] to-[#1c1a18] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+          <img src={`${import.meta.env.BASE_URL}nu-emblem.png`} alt="ตรามหาวิทยาลัยนเรศวร" className="size-11 shrink-0 rounded-full bg-white p-[3px]" />
+          <div className="min-w-0 flex-1">
+            <h2 className="text-base font-semibold break-words">{credit.name}</h2>
+            <p className="num text-[13px] text-muted">{credit.studentId}</p>
+          </div>
+          {total !== null && (
+            <div className="shrink-0 text-right" style={{ opacity: total ? 1 : 0 }} aria-hidden={!total}>
+              <p className="text-xs text-muted">ชั่วโมงสะสม</p>
+              <p className="text-[28px] leading-[1.1] font-semibold tracking-[-0.03em]">
+                {total ? <CountUp value={total.to} from={total.from} delay={total.delay} duration={0.9} /> : <span className="num">0</span>}
+              </p>
+            </div>
+          )}
+        </div>
+      </motion.section>
+
+      <motion.section {...later(1060)} className="mt-3 overflow-hidden rounded-3xl border border-white/[0.06] bg-[#1c1b19] pt-4 pb-1.5" aria-label="รายชื่อในงาน">
+        <div className="flex items-baseline justify-between px-[18px] pb-2.5">
+          <h2 className="text-[15px] font-semibold">รายชื่อในงาน</h2>
+          <p className="text-[13px] text-muted">
+            <span className="num">{people}</span> คน
+          </p>
+        </div>
+        <ul>
           {before.map(({ c, n }) => (
             <RosterRow key={c.studentId} n={n} c={c} />
           ))}
@@ -79,11 +161,13 @@ export function Success({ credit, title, activityId }: { credit: Credit; title: 
         </ul>
       </motion.section>
 
-      <motion.div {...rise(5)} className="mt-8 flex flex-col gap-3">
-        <LinkButton to={`/a/${activityId}/roster`} variant="primary">
+      <motion.div {...later(1140)} className="flex flex-col gap-1.5 pt-[22px]">
+        <LinkButton to="/" variant="primary" className="w-full">
+          เสร็จสิ้น
+        </LinkButton>
+        <LinkButton to={`/a/${activityId}/roster`} variant="ghost" className="w-full">
           ดูรายชื่อทั้งหมด
         </LinkButton>
-        <LinkButton to="/">ไปหน้าแรก</LinkButton>
       </motion.div>
     </div>
   )

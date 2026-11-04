@@ -2,11 +2,11 @@ import { useMemo, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Bell, CaretRight, ShieldCheck, SignOut } from '@phosphor-icons/react'
 import { useMine } from '../../data/mine'
-import { CATEGORIES, CATEGORY_KEYS } from '../../data/categories'
+import { CATEGORIES } from '../../data/categories'
 import { STRIKE_LIMIT } from '../../config'
 import { fmtHours, thDate } from '../../lib/format'
 import { useNow } from '../../lib/hooks'
-import { creditsLeft, semesterEnd, semesterNumber, strikesOf } from '../../lib/student'
+import { creditsLeft, hoursByCategory, semesterEnd, semesterNumber, strikesOf } from '../../lib/student'
 import { useDevice } from '../../store'
 import { Button } from '../../ui/Button'
 import { CountUp } from '../../ui/CountUp'
@@ -44,7 +44,7 @@ export default function Me() {
 
   const history = useMemo(() => [...credits].sort((a, b) => b.at - a.at), [credits])
   const total = credits.reduce((s, c) => s + c.hours, 0)
-  const perCategory = CATEGORY_KEYS.map((k) => ({ k, hours: credits.filter((c) => byId.get(c.activityId)?.categoryKey === k).reduce((s, c) => s + c.hours, 0) })).filter((x) => x.hours > 0)
+  const perCategory = hoursByCategory(credits, activities)
   const strikes = useMemo(() => strikesOf(activities, regs, credits, t), [activities, regs, credits, t])
   const left = creditsLeft(strikes)
 

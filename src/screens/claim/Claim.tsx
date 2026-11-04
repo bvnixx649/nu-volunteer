@@ -105,7 +105,6 @@ export default function Claim() {
         if (!res.ok && res.reason === 'offline') return keep(ready, activityTitle)
         if (res.ok) {
           forgetPending(activity.id, s.id)
-          haptic.success()
           // The inbox note is a convenience; it must never hold up or break the success screen.
           api.addNotice({ studentId: s.id, kind: 'credit', title: `ได้รับ ${res.credit.hours} ชั่วโมง`, body: activity.title, activityId: activity.id }).catch(() => {})
           setView({ kind: 'success', credit: res.credit })
@@ -152,7 +151,6 @@ export default function Claim() {
     return onPendingOutcome((o) => {
       if (view.kind !== 'pending' || keyOf(o.entry) !== keyOf(view.entry)) return
       if (o.kind === 'sent') {
-        haptic.success()
         setView({ kind: 'success', credit: o.credit })
       } else fail({ reason: o.reason === 'notRegistered' ? 'notRegistered' : o.reason === 'invalid' ? 'invalid' : 'offline' })
     })
@@ -192,7 +190,7 @@ export default function Claim() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col px-5 pt-[calc(1.25rem+env(safe-area-inset-top,0px))] pb-[calc(2rem+env(safe-area-inset-bottom,0px))]">
+    <main className="mx-auto flex min-h-dvh max-w-md flex-col overflow-x-clip px-5 pt-[calc(1.25rem+env(safe-area-inset-top,0px))] pb-[calc(2rem+env(safe-area-inset-bottom,0px))]">
       {payload && view.kind !== 'success' && view.kind !== 'pending' && (
         <header className="mb-8 flex items-center gap-4 rounded-[var(--radius-card)] bg-surface p-4 shadow-soft">
           <div className="min-w-0 flex-1">

@@ -86,7 +86,16 @@ export default async function ({ browser, base, load, shot: rawShot }) {
   await page.getByText('พบ 1 กิจกรรม').waitFor()
   await page.getByRole('button', { name: 'แลกขวด', exact: true }).click()
   await page.getByText('ไม่พบกิจกรรมตามตัวกรอง').waitFor()
-  await page.getByRole('button', { name: 'ทั้งหมด', exact: true }).click()
+  await page.getByRole('button', { name: 'ทุกหมวด', exact: true }).click()
+  // Day filter: nothing starts tomorrow, the activity five days out is inside 7 days.
+  await page.getByRole('radio', { name: 'พรุ่งนี้' }).click()
+  await page.getByText('ไม่พบกิจกรรมตามตัวกรอง').waitFor()
+  await page.getByRole('radio', { name: '7 วัน' }).click()
+  await page.getByRole('link', { name: /จัดสถานที่ต้อนรับนิสิตใหม่/ }).waitFor()
+  await page.getByRole('radio', { name: 'ทุกวัน' }).click()
+  await page.getByRole('heading', { name: /^เปิดรับสมัคร/ }).waitFor()
+  await page.waitForTimeout(800)
+  await shot(page, 'student-1b-home-list')
   const text = await page.locator('main').innerText()
   expect(!/[·—]/.test(text), 'no middle dot or em-dash on screen')
 
@@ -120,8 +129,11 @@ export default async function ({ browser, base, load, shot: rawShot }) {
   await page.waitForFunction(() => document.querySelectorAll('li[class*="grid-cols"]').length >= 3)
   const rows = await page.locator('ul li[class*="grid-cols"]').allInnerTexts()
   expect(rows.length === 3 && rows[2].includes('65010077') && rows[1].includes('65020003'), `roster rows: ${JSON.stringify(rows)}`)
-  await page.waitForTimeout(900)
+  await page.waitForTimeout(2200)
   await noOverflow('success with long name')
+  await page.getByRole('link', { name: 'เสร็จสิ้น' }).waitFor()
+  // The cumulative total: this credit is counted once (the claim wrote 6 hours and nothing else exists yet).
+  await page.waitForFunction(() => [...document.querySelectorAll('[data-value]')].some((e) => e.getAttribute('data-value') === '6' && e.textContent === '6' && e.closest('p')))
   await shot(page, 'student-6-success')
 
   // The roster page lists all four, own row highlighted and in view.
@@ -141,6 +153,13 @@ export default async function ({ browser, base, load, shot: rawShot }) {
   await page.waitForTimeout(900)
   await noOverflow('profile')
   await shot(page, 'student-7-profile')
+
+  // Home again with hours: the total, per-category bar and legend show, and the scan card is gone.
+  await page.goto(`${base}#/`)
+  await page.getByText('จาก 1 กิจกรรม').waitFor()
+  expect((await page.getByRole('link', { name: 'สแกนรับชั่วโมง' }).count()) === 0, 'no scan card after the hours are in')
+  await noOverflow('home with hours')
+  await shot(page, 'student-6b-home-hours')
 
   // Chat rooms open only for activities with chat; the private thread always works for a registered student.
   await page.goto(`${base}#/a/test-later/dm`)

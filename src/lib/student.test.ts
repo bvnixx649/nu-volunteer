@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { Activity, MyCredit, MyRegistration } from '../data/types'
-import { buildFeed, creditsLeft, freeCancelUntil, isVisible, matchWhen, phase, semesterStart, strikesOf } from './student'
+import { buildFeed, creditsLeft, freeCancelUntil, hoursByCategory, isVisible, matchWhen, phase, semesterStart, strikesOf } from './student'
 import { fmtHours, relDay, timeAgo } from './format'
 
 const H = 3600_000
@@ -128,5 +128,17 @@ describe('student formatting', () => {
   it('says how long ago', () => {
     expect(timeAgo(NOW - 5 * 60_000, NOW)).toBe('5 นาทีที่แล้ว')
     expect(timeAgo(NOW - 3 * H, NOW)).toBe('3 ชม.ที่แล้ว')
+  })
+})
+
+describe('hoursByCategory', () => {
+  it('sums hours per category in category order and skips empty ones', () => {
+    const list = [act('b1', { categoryKey: 'blood' }), act('s1', { categoryKey: 'setup' }), act('b2', { categoryKey: 'blood' }), act('k1', { categoryKey: 'bottle' })]
+    const credits = [credit('s1'), credit('b1'), { ...credit('b2'), hours: 1.5 }, credit('gone')]
+    expect(hoursByCategory(credits, list)).toEqual([
+      { k: 'blood', hours: 7.5 },
+      { k: 'setup', hours: 6 },
+    ])
+    expect(hoursByCategory([], list)).toEqual([])
   })
 })

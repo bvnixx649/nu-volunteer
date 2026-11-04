@@ -1,4 +1,5 @@
 import type { Activity, CategoryKey, MyCredit, MyRegistration } from '../data/types'
+import { CATEGORY_KEYS } from '../data/categories'
 import { CANCEL_DAYS, SOON_DAYS, STRIKE_LIMIT } from '../config'
 import { closedAt } from './stage'
 
@@ -107,6 +108,12 @@ export function liveForScan(activities: Activity[], regs: MyRegistration[], cred
   const mine = new Set(regs.filter((r) => !r.cancelledAt).map((r) => r.activityId))
   const credited = new Set(credits.map((c) => c.activityId))
   return activities.filter((a) => phase(a, now) === 'live' && !credited.has(a.id) && (mine.has(a.id) || (a.walkIn && isVisible(a, now))))
+}
+
+/** Hours earned per category, in CATEGORY_KEYS order, skipping categories with none. Credits of unknown activities are not counted. */
+export function hoursByCategory(credits: MyCredit[], activities: Activity[]): { k: CategoryKey; hours: number }[] {
+  const byId = new Map(activities.map((a) => [a.id, a]))
+  return CATEGORY_KEYS.map((k) => ({ k, hours: credits.filter((c) => byId.get(c.activityId)?.categoryKey === k).reduce((t, c) => t + c.hours, 0) })).filter((x) => x.hours > 0)
 }
 
 // Credits ---------------------------------------------------------------------------------------
