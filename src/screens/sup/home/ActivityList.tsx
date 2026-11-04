@@ -2,8 +2,8 @@ import { useState, type CSSProperties, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { CaretDown, CaretRight } from '@phosphor-icons/react'
 import type { Activity } from '../../../data/types'
-import { thTime } from '../../../lib/format'
-import { regInfo, rowSub, TH_MONTHS_SHORT, type Groups, type UpcomingSplit } from '../../../lib/home'
+import { fmtHours, thDayMonth, thTime } from '../../../lib/format'
+import { deadlineSub, regInfo, rowSub, TH_MONTHS_SHORT, type Groups, type UpcomingSplit } from '../../../lib/home'
 import { stage } from '../../../lib/stage'
 import { StatusTag } from '../../../ui/StatusTag'
 import { DateTile, PhotoChip, PosterImg, SeatLine } from './parts'
@@ -20,7 +20,7 @@ function Heading({ title, count }: { title: string; count: number }) {
 }
 
 /** One row of a list card: poster thumbnail, title, status tag with one short line, chevron. */
-function Row({ a, now, showOrg, first, thumb }: { a: Activity; now: number; showOrg: boolean; first: boolean; thumb?: ReactNode }) {
+function Row({ a, now, showOrg, first, thumb, meta }: { a: Activity; now: number; showOrg: boolean; first: boolean; thumb?: ReactNode; meta?: ReactNode }) {
   const s = stage(a, now)
   return (
     <li className={first ? '' : 'border-t border-white/5'}>
@@ -33,14 +33,57 @@ function Row({ a, now, showOrg, first, thumb }: { a: Activity; now: number; show
         <span className="min-w-0 flex-1">
           <span className="line-clamp-2 block text-base leading-[1.35] font-semibold">{a.title}</span>
           <span className="mt-1.5 flex min-w-0 items-center gap-2">
-            <StatusTag stage={s} size="sm" />
-            <span className="num min-w-0 truncate text-[13px] text-muted">{rowSub(a, s, now)}</span>
+            {meta ?? (
+              <>
+                <StatusTag stage={s} size="sm" />
+                <span className="num min-w-0 truncate text-[13px] text-muted">{rowSub(a, s, now)}</span>
+              </>
+            )}
           </span>
           {showOrg && <span className="mt-0.5 block truncate text-[13px] text-muted">{a.org}</span>}
         </span>
         <CaretRight size={18} className="shrink-0 text-[#6f6a63]" aria-hidden />
       </Link>
     </li>
+  )
+}
+
+/** A roster an organisation sent: the date it arrived, how many people and the hours each gets. The centre has to record it. */
+function WaitingRow({ a, now, first }: { a: Activity; now: number; first: boolean }) {
+  return (
+    <Row
+      a={a}
+      now={now}
+      showOrg
+      first={first}
+      meta={
+        <>
+          <StatusTag stage="waiting" tone="accent" size="sm" label={`ส่งแล้ว ${thDayMonth(a.submittedAt ?? a.end)}`} />
+          <span className="num min-w-0 truncate text-[13px] text-muted">
+            {a.creditCount.toLocaleString('th-TH')} คน {fmtHours(a.hours)} ชั่วโมงต่อคน
+          </span>
+        </>
+      }
+    />
+  )
+}
+
+/** An activity of another organisation that has ended without a sent roster: its stage and what is left of the 30 days. */
+function UnsentRow({ a, now, first }: { a: Activity; now: number; first: boolean }) {
+  const left = deadlineSub(a, now)
+  return (
+    <Row
+      a={a}
+      now={now}
+      showOrg
+      first={first}
+      meta={
+        <>
+          <StatusTag stage={stage(a, now)} size="sm" />
+          <span className={`num min-w-0 truncate text-[13px] ${left.late ? 'text-bad' : 'text-muted'}`}>{left.text}</span>
+        </>
+      }
+    />
   )
 }
 
@@ -112,18 +155,46 @@ function SentRow({ a, now, showOrg, first }: { a: Activity; now: number; showOrg
   )
 }
 
+/** What only the centre admin sees on top of the supervisor lists. */
+export interface AdminLists {
+  waiting: Activity[]
+  unsent: Activity[]
+}
+
 /** Activities that are not running: what needs the supervisor, what is coming, and (folded away) what is already sent. */
-export function ActivityList({ groups, split, showOrg, now }: { groups: Groups; split: UpcomingSplit; showOrg: boolean; now: number }) {
+export function ActivityList({ groups, split, showOrg, now, admin }: { groups: Groups; split: UpcomingSplit; showOrg: boolean; now: number; admin?: AdminLists }) {
   const [showSent, setShowSent] = useState(false)
   const upcomingCount = split.big.length + split.small.length
   return (
     <>
+      {admin && admin.waiting.length > 0 && (
+        <section className="rise" style={delayOf(100)}>
+          <Heading title="รอบันทึกลงระบบ" count={admin.waiting.length} />
+          <ul className={CARD}>
+            {admin.waiting.map((a, i) => (
+              <WaitingRow key={a.id} a={a} now={now} first={i === 0} />
+            ))}
+          </ul>
+        </section>
+      )}
+
       {groups.todo.length > 0 && (
         <section className="rise" style={delayOf(120)}>
           <Heading title="รอดำเนินการ" count={groups.todo.length} />
           <ul className={CARD}>
             {groups.todo.map((a, i) => (
               <Row key={a.id} a={a} now={now} showOrg={showOrg} first={i === 0} />
+            ))}
+          </ul>
+        </section>
+      )}
+
+      {admin && admin.unsent.length > 0 && (
+        <section className="rise" style={delayOf(150)}>
+          <Heading title="หน่วยงานที่ยังไม่ส่งรายชื่อ" count={admin.unsent.length} />
+          <ul className={CARD}>
+            {admin.unsent.map((a, i) => (
+              <UnsentRow key={a.id} a={a} now={now} first={i === 0} />
             ))}
           </ul>
         </section>
@@ -152,7 +223,7 @@ export function ActivityList({ groups, split, showOrg, now }: { groups: Groups; 
           <h2 className="text-[19px] font-semibold">
             <button type="button" aria-expanded={showSent} onClick={() => setShowSent((v) => !v)} className="pressable flex min-h-14 w-full items-center gap-2 px-1 text-left">
               <span>
-                ส่งรายชื่อแล้ว <span className="num font-medium text-muted">{groups.sent.length}</span>
+                {admin ? 'บันทึกแล้ว' : 'ส่งรายชื่อแล้ว'} <span className="num font-medium text-muted">{groups.sent.length}</span>
               </span>
               <CaretDown size={18} className={`text-muted transition-transform duration-300 ${showSent ? 'rotate-180' : ''}`} />
             </button>

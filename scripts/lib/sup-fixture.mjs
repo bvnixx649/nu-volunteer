@@ -46,9 +46,10 @@ export async function seedSupHome(page, base) {
   await page.reload()
 }
 
-export async function loginAsSup(page) {
-  await page.getByLabel('ชื่อผู้ดูแล').fill('พี่เต้')
-  await page.getByLabel('รหัส', { exact: true }).fill('NUVOL69')
+/** Fills the login form. Defaults to the plain supervisor code; pass 'NUADMIN' for the centre admin. */
+export async function loginAsSup(page, code = 'NUVOL69', name = 'พี่เต้') {
+  await page.getByLabel('ชื่อผู้ดูแล').fill(name)
+  await page.getByLabel('รหัส', { exact: true }).fill(code)
   await page.getByRole('button', { name: 'เข้าใช้งาน' }).click()
-  await page.getByText('ผู้ดูแล พี่เต้').waitFor()
+  await page.getByText(`ผู้ดูแล ${name}`).waitFor()
 }

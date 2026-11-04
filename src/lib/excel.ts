@@ -60,3 +60,38 @@ export async function downloadSupXlsx(activity: Activity, regs: Registration[], 
   }).toFile(xlsxName(activity.title))
   return rows
 }
+
+/** Centre admin file columns, in order. SPEC section 12. */
+export const ADMIN_COLUMNS = ['รหัสนิสิต', 'ชื่อ', 'กิจกรรม', 'หน่วยงาน', 'หมวด', 'วันที่', 'ชั่วโมง'] as const
+
+export type AdminRow = Record<(typeof ADMIN_COLUMNS)[number], string | number>
+
+/** One row per person who earned hours, by student id, with the hours after edits. No-shows and people left at 0 hours are not listed. */
+export function adminRows(activity: Activity, credits: Credit[]): AdminRow[] {
+  return credits
+    .filter((c) => c.hours > 0)
+    .sort((a, b) => a.studentId.localeCompare(b.studentId))
+    .map((c) => ({
+      รหัสนิสิต: c.studentId,
+      ชื่อ: c.name,
+      กิจกรรม: activity.title,
+      หน่วยงาน: activity.org,
+      หมวด: categoryOf(activity.categoryKey).label,
+      วันที่: thDate(activity.start),
+      ชั่วโมง: c.hours,
+    }))
+}
+
+export const adminXlsxName = (title: string) => `${title.slice(0, 40)} บันทึกชั่วโมง.xlsx`
+
+const ADMIN_WIDTHS: Record<(typeof ADMIN_COLUMNS)[number], number> = { รหัสนิสิต: 12, ชื่อ: 28, กิจกรรม: 40, หน่วยงาน: 30, หมวด: 16, วันที่: 14, ชั่วโมง: 9 }
+
+/** Builds and downloads the centre admin file. The library is loaded on demand. */
+export async function downloadAdminXlsx(activity: Activity, credits: Credit[]) {
+  const { default: writeXlsxFile } = await import('write-excel-file/browser')
+  const rows = adminRows(activity, credits)
+  await writeXlsxFile<AdminRow>(rows, {
+    columns: ADMIN_COLUMNS.map((h) => ({ header: h, cell: (r: AdminRow) => r[h], width: ADMIN_WIDTHS[h] })),
+  }).toFile(adminXlsxName(activity.title))
+  return rows
+}

@@ -1,4 +1,4 @@
-import type { CSSProperties } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { TH_MONTHS_SHORT, YEAR_START_MONTH, type YearOverview } from '../../../lib/home'
 import { Counter } from '../../../ui/Counter'
 import { ProgressRing } from '../../../ui/ProgressRing'
@@ -57,8 +57,8 @@ function MonthlyBars({ o }: { o: YearOverview }) {
 
 const row = 'flex items-center justify-between gap-3 px-4 py-3.5 text-[15px] [&:not(:first-child)]:border-t [&:not(:first-child)]:border-white/5'
 
-/** The statistics tab: turn-up ring, three counts, the monthly bars and this month in four rows. */
-export function OverviewStats({ o }: { o: YearOverview }) {
+/** The statistics tab: turn-up ring, three counts, the monthly bars and this month in four rows. `lead` goes above the ring card and `children` after the last rows (the admin's extras). */
+export function OverviewStats({ o, lead, children }: { o: YearOverview; lead?: ReactNode; children?: ReactNode }) {
   return (
     <>
       <div className="rise flex flex-wrap items-baseline justify-between gap-x-3 px-1 pt-5 pb-2.5">
@@ -67,6 +67,7 @@ export function OverviewStats({ o }: { o: YearOverview }) {
           1 พ.ค. {o.label} ถึง 30 เม.ย. {o.label + 1}
         </p>
       </div>
+      {lead && <div className="mb-3">{lead}</div>}
       <section className="rise rounded-[30px] border border-white/[0.06] bg-white/[0.03] p-1.5" style={delay(40)}>
         <div
           className="rounded-3xl p-[18px] shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]"
@@ -118,6 +119,7 @@ export function OverviewStats({ o }: { o: YearOverview }) {
           <b className={`num shrink-0 font-semibold ${o.month.unsent > 0 ? 'text-[#f7a57a]' : ''}`}>{n(o.month.unsent)} กิจกรรม</b>
         </div>
       </section>
+      {children}
     </>
   )
 }

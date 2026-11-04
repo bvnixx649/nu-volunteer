@@ -5,11 +5,11 @@ import { toast } from 'sonner'
 import { api, now } from '../../data/api'
 import type { Activity, Credit, Registration } from '../../data/types'
 import { thDate, thTime } from '../../lib/format'
-import { downloadSupXlsx } from '../../lib/excel'
+import { downloadAdminXlsx, downloadSupXlsx } from '../../lib/excel'
 import { isBottle } from '../../lib/bottle'
 import { rosterRows, type RosterFilter, type RosterRow } from '../../lib/roster'
 import { checkinSummary } from '../../lib/checkin'
-import { canEdit, closedAt, stage } from '../../lib/stage'
+import { canEdit, canEditRoster, closedAt, stage } from '../../lib/stage'
 import { useDevice } from '../../store'
 import { Button } from '../../ui/Button'
 import { Roster, Flags } from './Roster'
@@ -111,7 +111,9 @@ export default function Manage() {
   if (!activity) return <p className="p-6 text-muted">ไม่พบกิจกรรมนี้</p>
 
   const selected = find(selectedId)
+  /** Details and check-in settings lock once the roster is sent; the roster itself stays open to the centre admin until it records it (SPEC 14.1). */
   const editable = canEdit(activity)
+  const rosterOpen = canEditRoster(activity, sup.admin)
   const closed = !!closedAt(activity, now())
   const bottle = isBottle(activity)
   const st = stage(activity)
@@ -125,7 +127,7 @@ export default function Manage() {
   const showQr = () => (qrUsable ? setQrOpen(true) : openFullScreenQr())
   const pick = (r: RosterRow) => {
     setSelectedId(r.studentId)
-    if (!wide && editable) setEditing(r.studentId)
+    if (!wide && rosterOpen) setEditing(r.studentId)
   }
   const toRoster = (f: RosterFilter) => {
     setQrOpen(false)
@@ -134,6 +136,11 @@ export default function Manage() {
   }
   const exportXlsx = async () => {
     try {
+      if (sup.admin) {
+        const out = await downloadAdminXlsx(activity, credits)
+        toast.success('ดาวน์โหลดไฟล์ Excel แล้ว', { description: `${out.length} คนได้รับชั่วโมง` })
+        return
+      }
       const out = await downloadSupXlsx(activity, regs, credits)
       toast.success('ดาวน์โหลดไฟล์ Excel แล้ว', { description: `${out.length} รายชื่อ ได้รับชั่วโมง ${out.filter((r) => r['สถานะ'] !== 'ไม่มา').length} คน` })
     } catch {
@@ -168,7 +175,7 @@ export default function Manage() {
 
             {bottle ? (
               <div className="mt-3.5">
-                <Button size="lg" variant={ended ? 'secondary' : 'primary'} className="w-full" disabled={!editable} onClick={() => setBottles(true)}>
+                <Button size="lg" variant={ended ? 'secondary' : 'primary'} className="w-full" disabled={!rosterOpen} onClick={() => setBottles(true)}>
                   <Recycle size={22} weight="bold" /> บันทึกขวด
                 </Button>
               </div>
@@ -183,15 +190,15 @@ export default function Manage() {
                 >
                   <QrCode size={22} weight="bold" /> แสดง QR
                 </button>
-                <Button size="lg" variant="secondary" className="px-5" disabled={!editable} onClick={() => setAdding(true)}>
+                <Button size="lg" variant="secondary" className="px-5" disabled={!rosterOpen} onClick={() => setAdding(true)}>
                   <UserPlus size={22} /> เพิ่มรายชื่อ
                 </Button>
               </div>
             )}
-            {!editable && <p className="mt-3 text-sm text-muted">ส่งรายชื่อแล้ว แก้ไม่ได้</p>}
+            {!rosterOpen && <p className="mt-3 text-sm text-muted">{sup.admin ? 'บันทึกลงระบบแล้ว แก้ไม่ได้' : 'ส่งรายชื่อแล้ว แก้ไม่ได้'}</p>}
 
             <div className="mt-4 flex flex-col gap-4 empty:hidden">
-              <StageActions activity={activity} regs={regs} credits={credits} />
+              <StageActions activity={activity} regs={regs} credits={credits} admin={sup.admin} />
             </div>
           </div>
 
@@ -202,8 +209,8 @@ export default function Manage() {
             <section className="divide-y divide-white/5 overflow-hidden rounded-[22px] border border-white/[0.06] bg-surface">
               {!bottle && <Row icon={<GearSix size={22} />} disabled={!editable} onClick={() => setSettings(true)} title="การเช็คชื่อ" detail={checkinSummary(activity)} />}
               {editable && <Row icon={<PencilSimple size={22} />} onClick={() => nav(`/sup/edit/${id}`)} title="แก้ไขรายละเอียดกิจกรรม" detail="ชื่อ รูปปก วันเวลา และสถานที่" />}
-              <Row icon={<ListChecks size={22} />} onClick={() => nav(`/sup/a/${id}/roster`)} title="ตรวจสอบรายชื่อ" detail="ตารางเดียวกับไฟล์ Excel" />
-              {started && <Row icon={<FileXls size={22} />} onClick={exportXlsx} title="ดาวน์โหลดไฟล์ Excel" detail="รายชื่อพร้อมชั่วโมงของแต่ละคน" />}
+              <Row icon={<ListChecks size={22} />} onClick={() => nav(`/sup/a/${id}/roster`)} title="ตรวจสอบรายชื่อ" detail={sup.admin ? 'ตารางรายชื่อพร้อมเวลายืนยัน' : 'ตารางเดียวกับไฟล์ Excel'} />
+              {started && <Row icon={<FileXls size={22} />} onClick={exportXlsx} title="ดาวน์โหลดไฟล์ Excel" detail={sup.admin ? 'ผู้ได้รับชั่วโมงพร้อมหน่วยงานและหมวด' : 'รายชื่อพร้อมชั่วโมงของแต่ละคน'} />}
             </section>
           </div>
         </div>
@@ -226,12 +233,12 @@ export default function Manage() {
                   <div className="flex flex-wrap gap-1.5 empty:hidden">
                     <Flags row={selected} closed={closed} />
                   </div>
-                  {editable ? (
+                  {rosterOpen ? (
                     <Button className="mt-2" onClick={() => setEditing(selected.studentId)}>
                       {selected.credit ? 'แก้ชั่วโมง' : 'ให้ชั่วโมง'}
                     </Button>
                   ) : (
-                    <p className="text-sm text-muted">ส่งรายชื่อแล้ว แก้ไม่ได้</p>
+                    <p className="text-sm text-muted">{sup.admin ? 'บันทึกลงระบบแล้ว แก้ไม่ได้' : 'ส่งรายชื่อแล้ว แก้ไม่ได้'}</p>
                   )}
                 </div>
               ) : (

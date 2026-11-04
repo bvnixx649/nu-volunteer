@@ -9,7 +9,7 @@ import { daysToSubmit, stage, submitDeadline } from '../../lib/stage'
 import { Button } from '../../ui/Button'
 import { Sheet } from '../../ui/Sheet'
 
-type Props = { activity: Activity; regs: Registration[]; credits: Credit[] }
+type Props = { activity: Activity; regs: Registration[]; credits: Credit[]; admin?: boolean }
 
 const stamp = (ms: number) => `${thDate(ms)} ${thTime(ms)} น.`
 const card = 'rounded-[var(--radius-card)] bg-surface p-5 shadow-soft'
@@ -24,12 +24,14 @@ function Stat({ value, label }: { value: number; label: string }) {
 }
 
 /** The step after the activity ends: close the roster, send it to the centre, or a note that it is sent. */
-export function StageActions({ activity, regs, credits }: Props) {
+export function StageActions({ activity, regs, credits, admin = false }: Props) {
   const s = stage(activity)
-  const [asking, setAsking] = useState<'close' | 'submit'>()
+  const [asking, setAsking] = useState<'close' | 'submit' | 'record'>()
   const [busy, setBusy] = useState(false)
 
   const got = credits.length
+  /** People the centre will key in and tell: those left with more than 0 hours. */
+  const earned = credits.filter((c) => c.hours > 0).length
   const missed = regs.filter((r) => !r.cancelledAt && !credits.some((c) => c.studentId === r.studentId)).length
   const days = daysToSubmit(activity)
 
@@ -39,6 +41,8 @@ export function StageActions({ activity, regs, credits }: Props) {
       await fn(activity.id)
       setAsking(undefined)
       toast.success(ok)
+    } catch {
+      toast.error('ทำรายการไม่ได้ ลองอีกครั้ง')
     } finally {
       setBusy(false)
     }
@@ -66,7 +70,17 @@ export function StageActions({ activity, regs, credits }: Props) {
         </section>
       )}
 
-      {s === 'waiting' && activity.submittedAt && (
+      {s === 'waiting' && activity.submittedAt && admin && (
+        <section className={card}>
+          <p className="num font-semibold">ส่งรายชื่อมาเมื่อ {stamp(activity.submittedAt)}</p>
+          <p className="num mt-1 text-muted">{earned.toLocaleString('th-TH')} คนได้รับชั่วโมง</p>
+          <Button size="lg" className="mt-4 w-full" onClick={() => setAsking('record')}>
+            บันทึกลงระบบแล้ว
+          </Button>
+        </section>
+      )}
+
+      {s === 'waiting' && activity.submittedAt && !admin && (
         <section className={`${card} flex gap-3`}>
           <CheckCircle size={26} weight="fill" className="shrink-0 text-ok" />
           <div>
@@ -85,6 +99,20 @@ export function StageActions({ activity, regs, credits }: Props) {
           </div>
         </section>
       )}
+
+      <Sheet open={asking === 'record'} onClose={() => setAsking(undefined)} title="บันทึกลงระบบแล้ว">
+        <div className="grid grid-cols-2 gap-3">
+          <Stat value={earned} label="ได้รับชั่วโมง (คน)" />
+          <Stat value={missed} label="ไม่เข้าร่วม (คน)" />
+        </div>
+        <p className="num mt-4 text-muted">นิสิต {earned.toLocaleString('th-TH')} คนจะได้รับแจ้งว่าบันทึกชั่วโมงแล้ว</p>
+        <Button size="lg" className="mt-6 w-full" loading={busy} onClick={() => run((id) => api.markRecorded(id), 'บันทึกลงระบบแล้ว')}>
+          ยืนยัน
+        </Button>
+        <Button variant="ghost" className="mt-2 w-full" onClick={() => setAsking(undefined)}>
+          ยังไม่บันทึก
+        </Button>
+      </Sheet>
 
       <Sheet open={asking === 'close'} onClose={() => setAsking(undefined)} title="ปิดรายชื่อ">
         <div className="grid grid-cols-2 gap-3">

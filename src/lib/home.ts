@@ -1,6 +1,7 @@
+import { categoryOf } from '../data/categories'
 import type { Activity } from '../data/types'
 import { fmtHours, thDate, thDayMonth, thTime } from './format'
-import { daysToSubmit, stage, type Stage } from './stage'
+import { daysToSubmit, stage, submitDeadline, type Stage } from './stage'
 
 /** The supervisor home's pure logic: one ordered activity list, calendar grid, activity year, KPI. */
 
@@ -264,4 +265,93 @@ export function yearOverview(list: Activity[], now: number): YearOverview {
       unsent: list.filter((a) => ['closing', 'submit'].includes(stage(a, now))).length,
     },
   }
+}
+
+export interface AdminGroups {
+  /** Roster sent by an organisation, any org, waiting for the centre to record it. Oldest sent first. */
+  waiting: Activity[]
+  /** The centre's own activities that still need its supervisor: closing or sending. Oldest first. */
+  todo: Activity[]
+  /** Other organisations' activities that ended and are not sent yet, the nearest send deadline first. */
+  unsent: Activity[]
+  /** Not started yet, any org, in start order. */
+  upcoming: Activity[]
+  /** Recorded by the centre, newest recorded first. */
+  done: Activity[]
+}
+
+/**
+ * The centre admin's home: the supervisor groups plus the work the centre does for every organisation. `list` is every
+ * org's activities. The centre signs in with more than one code (NUVOL69 and NUADMIN share its name), so "own" is the
+ * admin's code or any code with the same organisation name.
+ */
+export function adminGroups(list: Activity[], own: { orgCode: string; orgName: string }, now: number): AdminGroups {
+  const by = (...s: Stage[]) => list.filter((a) => s.includes(stage(a, now)))
+  const isOwn = (a: Activity) => a.orgCode === own.orgCode || a.org === own.orgName
+  const ended = by('closing', 'submit')
+  return {
+    waiting: by('waiting').sort((a, b) => a.submittedAt! - b.submittedAt!),
+    todo: ended.filter(isOwn).sort((a, b) => a.start - b.start),
+    unsent: ended.filter((a) => !isOwn(a)).sort((a, b) => submitDeadline(a) - submitDeadline(b)),
+    upcoming: by('scheduled', 'open').sort((a, b) => a.start - b.start),
+    done: by('done').sort((a, b) => b.recordedAt! - a.recordedAt!),
+  }
+}
+
+/** The line beside the stage tag of an activity whose roster is overdue or due: days left, or that the deadline has passed. */
+export function deadlineSub(a: Activity, now: number): { text: string; late: boolean } {
+  const days = daysToSubmit(a, now)
+  return days > 0 ? { text: `อีก ${n(days)} วัน`, late: false } : { text: 'เลยกำหนดส่งแล้ว', late: true }
+}
+
+/** Activities that started in the activity year containing `now`, which is what the target and the breakdowns count. */
+export function startedThisYear(list: Activity[], now: number) {
+  return inActivityYear(list, now).inYear.filter((a) => a.start <= now)
+}
+
+export interface OrgRow {
+  orgCode: string
+  name: string
+  activities: number
+  /** People credited, summed over the org's activities. */
+  people: number
+  /** Activities waiting for the centre to record. */
+  waiting: number
+}
+
+/** One row per organisation with an activity started this year, the busiest first. */
+export function orgBreakdown(list: Activity[], now: number): OrgRow[] {
+  const rows = new Map<string, OrgRow>()
+  for (const a of startedThisYear(list, now)) {
+    // One row per organisation name: the centre's two codes (supervisor and admin) are one organisation.
+    const r = rows.get(a.org) ?? { orgCode: a.orgCode, name: a.org, activities: 0, people: 0, waiting: 0 }
+    r.activities += 1
+    r.people += a.creditCount
+    if (stage(a, now) === 'waiting') r.waiting += 1
+    rows.set(a.org, r)
+  }
+  return [...rows.values()].sort((a, b) => b.activities - a.activities || a.name.localeCompare(b.name, 'th'))
+}
+
+export interface CategoryRow {
+  key: string
+  label: string
+  activities: number
+  /** Hours issued; undefined until the credits have been read. */
+  hours?: number
+}
+
+/** The activities that count in the breakdowns, so the screen can ask for their hours. */
+export const breakdownIds = (list: Activity[], now: number) => startedThisYear(list, now).map((a) => a.id)
+
+/** One row per category used this year, the busiest first. `hoursById` is the sum of credited hours per activity, once loaded. */
+export function categoryBreakdown(list: Activity[], now: number, hoursById?: Record<string, number>): CategoryRow[] {
+  const rows = new Map<string, CategoryRow>()
+  for (const a of startedThisYear(list, now)) {
+    const r = rows.get(a.categoryKey) ?? { key: a.categoryKey, label: categoryOf(a.categoryKey).label, activities: 0, ...(hoursById && { hours: 0 }) }
+    r.activities += 1
+    if (hoursById && r.hours !== undefined) r.hours += hoursById[a.id] ?? 0
+    rows.set(a.categoryKey, r)
+  }
+  return [...rows.values()].sort((a, b) => b.activities - a.activities || a.label.localeCompare(b.label, 'th'))
 }

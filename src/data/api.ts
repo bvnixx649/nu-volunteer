@@ -111,6 +111,13 @@ export interface Api {
   deleteTemplate(id: string): Promise<void>
   /** Sets submittedAt unless already set, and closedAt too if the roster was still open. */
   submitRoster(activityId: string): Promise<void>
+  /**
+   * Centre admin: sets recordedAt to server time, only if the roster was sent and not yet recorded, then adds one
+   * 'recorded' notice for each student who earned hours ("{title} {hours} ชั่วโมง"). Does nothing a second time.
+   */
+  markRecorded(activityId: string): Promise<void>
+  /** Sum of the hours credited in each activity. Activities with no credits are 0. */
+  creditHours(activityIds: string[]): Promise<Record<string, number>>
 }
 
 /**
@@ -154,6 +161,8 @@ function lazyRemote(): Api {
     createActivity: call('createActivity'),
     updateActivity: call('updateActivity'),
     submitRoster: call('submitRoster'),
+    markRecorded: call('markRecorded'),
+    creditHours: call('creditHours'),
     listTemplates: call('listTemplates'),
     createTemplate: call('createTemplate'),
     updateTemplate: call('updateTemplate'),

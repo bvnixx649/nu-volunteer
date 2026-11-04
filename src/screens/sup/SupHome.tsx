@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { Plus } from '@phosphor-icons/react'
-import { groupActivities, liveNow, orderedActivities, splitUpcoming } from '../../lib/home'
+import { adminGroups, groupActivities, liveNow, orderedActivities, splitUpcoming } from '../../lib/home'
 import { ActivityList } from './home/ActivityList'
 import { HeroCard } from './home/HeroCard'
 import { LiveCards } from './home/LiveCards'
@@ -15,13 +15,15 @@ export default function SupHome() {
   const { sup, list, mine, now } = useSupActivities()
   const view = useMemo(() => {
     const live = liveNow(mine, now)
-    const groups = groupActivities(orderedActivities(mine, now), now)
-    return { live, groups, split: splitUpcoming(groups.upcoming, live.length > 0) }
-  }, [mine, now])
+    // The admin sees every org's activities (`mine` is already that), split by who has to act next.
+    const a = sup?.admin ? adminGroups(mine, sup, now) : undefined
+    const groups = a ? { todo: a.todo, upcoming: a.upcoming, sent: a.done } : groupActivities(orderedActivities(mine, now), now)
+    return { live, groups, split: splitUpcoming(groups.upcoming, live.length > 0), admin: a && { waiting: a.waiting, unsent: a.unsent } }
+  }, [mine, now, sup])
 
   if (!sup) return null
   const base = import.meta.env.BASE_URL
-  const empty = !!list && !view.live.length && !view.groups.todo.length && !view.groups.upcoming.length && !view.groups.sent.length
+  const empty = !!list && !view.live.length && !view.admin?.waiting.length && !view.admin?.unsent.length && !view.groups.todo.length && !view.groups.upcoming.length && !view.groups.sent.length
 
   return (
     <div className="relative">
@@ -47,7 +49,7 @@ export default function SupHome() {
         <div className="mt-5 flex flex-col gap-7">
           <LiveCards list={view.live} showOrg={sup.admin} />
           {view.split.hero && <HeroCard a={view.split.hero} now={now} showOrg={sup.admin} />}
-          <ActivityList groups={view.groups} split={view.split} showOrg={sup.admin} now={now} />
+          <ActivityList groups={view.groups} split={view.split} showOrg={sup.admin} now={now} admin={view.admin} />
           {empty && <p className="rounded-[22px] border border-white/[0.06] bg-surface px-5 py-8 text-center text-muted">ยังไม่มีกิจกรรม กดสร้างกิจกรรมเพื่อเริ่ม</p>}
         </div>
       </main>

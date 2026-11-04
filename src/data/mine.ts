@@ -43,7 +43,7 @@ export const useMine = create<Mine>((set, get) => ({
         api.studentRegistrations(id),
         api.studentCredits(id),
       ])
-      await produceNotices(id, student, activities, credits)
+      await produceNotices(id, student, activities)
       const notices = await api.listNotices(id)
       set({ student, activities, regs, credits, notices, loaded: true, failed: false })
       announceNew(notices, student)
@@ -65,12 +65,10 @@ function announceNew(notices: Notice[], student: Student | null) {
 }
 
 /**
- * Notices with no server-side producer yet. Both are idempotent: a reminder is removed once it fires,
- * and "recorded" is written once per activity.
- *  - open: a registration the student asked to be reminded about has opened
- *  - recorded: the centre recorded the hours the student earned
+ * Notices with no server-side producer yet: a registration the student asked to be reminded about has opened.
+ * Idempotent, since a reminder is removed once it fires. ("recorded" is written by the admin's markRecorded.)
  */
-async function produceNotices(id: string, student: Student | null, activities: Activity[], credits: MyCredit[]) {
+async function produceNotices(id: string, student: Student | null, activities: Activity[]) {
   if (!student) return
   const t = now()
   const byId = new Map(activities.map((a) => [a.id, a]))
@@ -89,13 +87,6 @@ async function produceNotices(id: string, student: Student | null, activities: A
     student.reminders = next
   }
 
-  const have = await api.listNotices(id)
-  for (const c of credits) {
-    const a = byId.get(c.activityId)
-    if (a?.recordedAt && !have.some((n) => n.kind === 'recorded' && n.activityId === a.id)) {
-      await api.addNotice({ studentId: id, kind: 'recorded', title: 'บันทึกชั่วโมงลงระบบแล้ว', body: a.title, activityId: a.id })
-    }
-  }
 }
 
 /** Loads the student's data on mount, and again when the tab comes back to the front. */

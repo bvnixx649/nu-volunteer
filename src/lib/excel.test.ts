@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { SUP_COLUMNS, supRows, xlsxName } from './excel'
+import { ADMIN_COLUMNS, adminRows, adminXlsxName, SUP_COLUMNS, supRows, xlsxName } from './excel'
 import { thDate, thTime } from './format'
 import type { Activity, Credit, Registration } from '../data/types'
 
@@ -77,5 +77,30 @@ describe('xlsxName', () => {
   it('cuts the title to 40 characters', () => {
     expect(xlsxName('สั้น')).toBe('สั้น รายชื่อ.xlsx')
     expect(xlsxName('ก'.repeat(50))).toBe(`${'ก'.repeat(40)} รายชื่อ.xlsx`)
+  })
+})
+
+describe('adminRows', () => {
+  const act = { ...activity, org: 'คณะวิทยาศาสตร์' } as Activity
+  const credits = [cred('66002', 'ข', t2, { hours: 3, reason: 'มาสาย' }), cred('66001', 'ก', t1), cred('66003', 'ค', t1, { hours: 0 })]
+  const rows = adminRows(act, credits)
+
+  it('uses the exact column names', () => {
+    expect(ADMIN_COLUMNS).toEqual(['รหัสนิสิต', 'ชื่อ', 'กิจกรรม', 'หน่วยงาน', 'หมวด', 'วันที่', 'ชั่วโมง'])
+    expect(Object.keys(rows[0])).toEqual([...ADMIN_COLUMNS])
+  })
+
+  it('lists only people who earned hours, by student id, with hours after edits', () => {
+    expect(rows.map((r) => r['รหัสนิสิต'])).toEqual(['66001', '66002'])
+    expect(rows.map((r) => r['ชั่วโมง'])).toEqual([6, 3])
+  })
+
+  it('fills the activity columns', () => {
+    expect(rows[0]).toMatchObject({ ชื่อ: 'ก', กิจกรรม: act.title, หน่วยงาน: 'คณะวิทยาศาสตร์', หมวด: 'บริจาคโลหิต', วันที่: thDate(act.start) })
+  })
+
+  it('names the file after the title', () => {
+    expect(adminXlsxName('สั้น')).toBe('สั้น บันทึกชั่วโมง.xlsx')
+    expect(adminXlsxName('ก'.repeat(50))).toBe(`${'ก'.repeat(40)} บันทึกชั่วโมง.xlsx`)
   })
 })

@@ -4,7 +4,7 @@ import { FileXls } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { api } from '../../data/api'
 import type { Activity, Credit, Registration } from '../../data/types'
-import { downloadSupXlsx, SUP_COLUMNS, supRows } from '../../lib/excel'
+import { downloadAdminXlsx, downloadSupXlsx, SUP_COLUMNS, supRows } from '../../lib/excel'
 import { useDevice } from '../../store'
 import { BackBar } from '../../ui/BackBar'
 import { Button } from '../../ui/Button'
@@ -30,7 +30,8 @@ export default function SupRoster() {
 
   const download = async () => {
     try {
-      await downloadSupXlsx(activity, regs, credits)
+      if (sup.admin) await downloadAdminXlsx(activity, credits)
+      else await downloadSupXlsx(activity, regs, credits)
       toast.success('ดาวน์โหลดไฟล์ Excel แล้ว')
     } catch {
       toast.error('สร้างไฟล์ Excel ไม่ได้')

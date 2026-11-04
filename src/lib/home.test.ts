@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { activityYear, busyDays, countInMonth, dayKey, fillBasis, fillPercent, groupActivities, liveNow, monthGrid, onDay, orderedActivities, regInfo, rowSub, splitUpcoming, stagesByDay, visibleTo, yearOverview, yearStats } from './home'
+import { activityYear, adminGroups, breakdownIds, categoryBreakdown, deadlineSub, orgBreakdown, busyDays, countInMonth, dayKey, fillBasis, fillPercent, groupActivities, liveNow, monthGrid, onDay, orderedActivities, regInfo, rowSub, splitUpcoming, stagesByDay, visibleTo, yearOverview, yearStats } from './home'
 import type { Activity } from '../data/types'
 
 const H = 3600_000
@@ -190,5 +190,99 @@ describe('poster card texts', () => {
     expect(rowSub(open, 'open', t0)).toBe('ลงทะเบียน 12 จาก 30 คน')
     const sent = act({ submittedAt: new Date(2026, 9, 26, 9).getTime() })
     expect(rowSub(sent, 'waiting', t0)).toBe('ส่งแล้ว 26 ต.ค. 2569')
+  })
+})
+
+describe('admin home', () => {
+  const ended = (extra: Partial<Activity>) => act({ start: t0 - 5 * H, end: t0 - H, ...extra })
+  const sent = (orgCode: string, submittedAt: number) => ended({ orgCode, closedAt: 1, submittedAt })
+  const waitA = sent('A', 300)
+  const waitB = sent('B', 100)
+  const ownClosing = ended({ orgCode: 'ME' })
+  const ownLate = ended({ orgCode: 'ME', start: t0 - 40 * DAY, end: t0 - 40 * DAY + H, closedAt: 1 })
+  const otherNear = ended({ orgCode: 'A', start: t0 - 10 * DAY, end: t0 - 10 * DAY + H, closedAt: 1 })
+  const otherFar = ended({ orgCode: 'B', start: t0 - 2 * DAY, end: t0 - 2 * DAY + H })
+  const soon = act({ orgCode: 'A', start: t0 + DAY, end: t0 + DAY + H })
+  const later = act({ orgCode: 'B', start: t0 + 2 * DAY, end: t0 + 2 * DAY + H })
+  const live = act({ orgCode: 'A', start: t0 - H, end: t0 + H })
+  const recOld = ended({ orgCode: 'A', submittedAt: 1, recordedAt: 10 })
+  const recNew = ended({ orgCode: 'B', submittedAt: 1, recordedAt: 20 })
+  const all = [recOld, later, waitA, otherFar, live, ownClosing, soon, waitB, otherNear, recNew, ownLate]
+  const g = adminGroups(all, { orgCode: 'ME', orgName: 'ศูนย์' }, t0)
+
+  it('puts the oldest sent roster first, from every org', () => {
+    expect(g.waiting).toEqual([waitB, waitA])
+  })
+
+  it('keeps only the own org activities in the to-do list, oldest first', () => {
+    expect(g.todo).toEqual([ownLate, ownClosing])
+  })
+
+  it('lists other orgs that have not sent by nearest deadline, own org excluded', () => {
+    expect(g.unsent).toEqual([otherNear, otherFar])
+  })
+
+  it('lists upcoming in start order, leaves live out and puts the newest recorded first', () => {
+    expect(g.upcoming).toEqual([soon, later])
+    expect(g.done).toEqual([recNew, recOld])
+    const every = Object.values(g).flat()
+    expect(every).not.toContain(live)
+    expect(new Set(every).size).toBe(every.length)
+  })
+
+  it('counts another code with the centre name as its own', () => {
+    const twin = ended({ orgCode: 'ME2', org: 'ศูนย์' })
+    const g2 = adminGroups([twin], { orgCode: 'ME', orgName: 'ศูนย์' }, t0)
+    expect(g2.todo).toEqual([twin])
+    expect(g2.unsent).toEqual([])
+  })
+
+  it('has empty groups for an empty list', () => {
+    expect(adminGroups([], { orgCode: 'ME', orgName: 'ศูนย์' }, t0)).toEqual({ waiting: [], todo: [], unsent: [], upcoming: [], done: [] })
+  })
+
+  it('says how long is left to send, or that it is late', () => {
+    expect(deadlineSub(otherFar, t0)).toEqual({ text: 'อีก 29 วัน', late: false })
+    expect(deadlineSub(otherNear, t0)).toEqual({ text: 'อีก 21 วัน', late: false })
+    expect(deadlineSub(ownLate, t0)).toEqual({ text: 'เลยกำหนดส่งแล้ว', late: true })
+  })
+})
+
+describe('admin stats breakdowns', () => {
+  const inYear = (extra: Partial<Activity>) => act({ start: new Date(2026, 5, 10, 9).getTime(), end: new Date(2026, 5, 10, 15).getTime(), ...extra })
+  const a1 = inYear({ orgCode: 'A', org: 'คณะ ก', categoryKey: 'blood', creditCount: 10, submittedAt: 1 })
+  const a2 = inYear({ orgCode: 'A', org: 'คณะ ก', categoryKey: 'setup', creditCount: 4, submittedAt: 1, recordedAt: 2 })
+  const a3 = inYear({ orgCode: 'A', org: 'คณะ ก', categoryKey: 'blood', creditCount: 5 })
+  const b1 = inYear({ orgCode: 'B', org: 'คณะ ข', categoryKey: 'blood', creditCount: 7 })
+  const lastYear = inYear({ orgCode: 'C', org: 'คณะ ค', start: new Date(2026, 2, 10).getTime(), end: new Date(2026, 2, 10, 5).getTime() })
+  const notStarted = inYear({ orgCode: 'D', org: 'คณะ ง', start: t0 + DAY, end: t0 + DAY + H })
+  const list = [b1, a1, a2, a3, lastYear, notStarted]
+
+  it('counts started activities, credited people and waiting rosters per org, busiest first', () => {
+    expect(orgBreakdown(list, t0)).toEqual([
+      { orgCode: 'A', name: 'คณะ ก', activities: 3, people: 19, waiting: 1 },
+      { orgCode: 'B', name: 'คณะ ข', activities: 1, people: 7, waiting: 0 },
+    ])
+  })
+
+  it('merges codes that share an organisation name', () => {
+    const twin = inYear({ orgCode: 'A2', org: 'คณะ ก', categoryKey: 'blood', creditCount: 1 })
+    expect(orgBreakdown([...list, twin], t0)[0]).toMatchObject({ name: 'คณะ ก', activities: 4, people: 20 })
+  })
+
+  it('counts the same activities as the target card', () => {
+    expect(orgBreakdown(list, t0).reduce((s, r) => s + r.activities, 0)).toBe(yearStats(list, t0).activities)
+    expect(breakdownIds(list, t0).sort()).toEqual([a1.id, a2.id, a3.id, b1.id].sort())
+  })
+
+  it('groups by category, with hours only once they are known', () => {
+    expect(categoryBreakdown(list, t0)).toEqual([
+      { key: 'blood', label: 'บริจาคโลหิต', activities: 3 },
+      { key: 'setup', label: 'จัดสถานที่', activities: 1 },
+    ])
+    expect(categoryBreakdown(list, t0, { [a1.id]: 60, [a2.id]: 20, [a3.id]: 30, [b1.id]: 42 })).toEqual([
+      { key: 'blood', label: 'บริจาคโลหิต', activities: 3, hours: 132 },
+      { key: 'setup', label: 'จัดสถานที่', activities: 1, hours: 20 },
+    ])
   })
 })

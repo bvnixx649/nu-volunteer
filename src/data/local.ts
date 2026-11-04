@@ -1,4 +1,5 @@
 import type { Api, ClaimInput, ClaimResult, RegisterResult } from './api'
+import { fmtHours } from '../lib/format'
 import { newId } from '../lib/id'
 import type { Activity, Announcement, ChatMsg, Credit, DirectMsg, NewActivity, NewTemplate, Notice, Org, Registration, Student, Template } from './types'
 
@@ -289,5 +290,22 @@ export function createLocalApi(): Api {
         act.submittedAt = t
         act.closedAt ??= t
       }),
+
+    markRecorded: (a) =>
+      tx((db) => {
+        const act = db.activities[a]
+        if (!act || !act.submittedAt || act.recordedAt) return
+        const t = Date.now()
+        act.recordedAt = t
+        for (const c of Object.values(db.credits[a] ?? {})) {
+          if (c.hours <= 0) continue
+          db.notices.push({ id: newId(), studentId: c.studentId, kind: 'recorded', title: 'บันทึกชั่วโมงลงระบบแล้ว', body: `${act.title} ${fmtHours(c.hours)} ชั่วโมง`, activityId: a, at: t, read: false })
+        }
+      }),
+
+    creditHours: async (ids) => {
+      const db = load()
+      return Object.fromEntries(ids.map((id) => [id, Object.values(db.credits[id] ?? {}).reduce((s, c) => s + c.hours, 0)]))
+    },
   }
 }

@@ -50,3 +50,8 @@ export function daysToSubmit(a: Activity, now = serverNow()) {
 export function canEdit(a: Activity) {
   return !a.submittedAt && !a.recordedAt
 }
+
+/** SPEC 14.1: the roster and hours also stay open to the centre admin after the supervisor sent them, until recorded. */
+export function canEditRoster(a: Activity, admin = false) {
+  return admin ? !a.recordedAt : canEdit(a)
+}

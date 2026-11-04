@@ -1,4 +1,5 @@
 import type { Api, ClaimInput, ClaimResult, Unsub } from './api'
+import { fmtHours } from '../lib/format'
 import { newId } from '../lib/id'
 import {
   fromActivityPatch,
@@ -254,6 +255,40 @@ export function createRemoteApi(): Api {
     },
     async submitRoster(a) {
       await rpc('submit_roster', { p_activity: a })
+    },
+    async markRecorded(a) {
+      // The guards in the update make a second tap a no-op, so students are told once.
+      const changed = await must(
+        supabase
+          .from('activities')
+          .update({ recorded_at: new Date(Date.now() + serverOffset).toISOString() })
+          .eq('id', a)
+          .is('recorded_at', null)
+          .not('submitted_at', 'is', null)
+          .select('id, title'),
+      )
+      const act = changed?.[0]
+      if (!act) return
+      const credits = (await must(supabase.from('credits').select('student_id, hours').eq('activity_id', a))) ?? []
+      const rows = credits
+        .filter((c) => c.hours > 0)
+        .map((c) => ({ student_id: c.student_id, kind: 'recorded', title: 'บันทึกชั่วโมงลงระบบแล้ว', body: `${act.title} ${fmtHours(c.hours)} ชั่วโมง`, activity_id: a }))
+      if (rows.length) await must(supabase.from('notices').insert(rows))
+    },
+    async creditHours(ids) {
+      const out: Record<string, number> = Object.fromEntries(ids.map((id) => [id, 0]))
+      // A select returns at most 1000 rows, and one drive can have more credits than that, so read page by page.
+      const PAGE = 1000
+      for (let i = 0; i < ids.length; i += 100) {
+        const chunk = ids.slice(i, i + 100)
+        for (let from = 0; ; from += PAGE) {
+          const rows =
+            (await must(supabase.from('credits').select('activity_id, hours').in('activity_id', chunk).order('activity_id').order('student_id').range(from, from + PAGE - 1))) ?? []
+          for (const r of rows) out[r.activity_id] += Number(r.hours)
+          if (rows.length < PAGE) break
+        }
+      }
+      return out
     },
   }
 }
