@@ -8,10 +8,10 @@ import { Flag } from '../../ui/Flag'
 
 const FILTERS: { key: RosterFilter; label: string }[] = [
   { key: 'all', label: 'ทั้งหมด' },
-  { key: 'credited', label: 'ได้ชั่วโมงแล้ว' },
-  { key: 'notScanned', label: 'ยังไม่ได้ชั่วโมง' },
+  { key: 'credited', label: 'ได้รับชั่วโมงแล้ว' },
+  { key: 'notScanned', label: 'ยังไม่ได้รับชั่วโมง' },
   { key: 'walkIn', label: 'ไม่ได้ลงทะเบียน' },
-  { key: 'flagged', label: 'ทำเครื่องหมาย' },
+  { key: 'flagged', label: 'ควรตรวจสอบ' },
 ]
 
 type Props = {
@@ -21,18 +21,21 @@ type Props = {
   /** Roster is closed: registered people without a credit are shown as not coming. */
   closed?: boolean
   onSelect: (row: RosterRow) => void
+  /** Lets the page choose the filter, e.g. from the summary tiles. Without these the roster keeps its own. */
+  filter?: RosterFilter
+  onFilter?: (f: RosterFilter) => void
 }
 
 export function Flags({ row, closed }: { row: RosterRow; closed?: boolean }) {
   const c = row.credit
   return (
     <>
-      {closed && row.reg && !c && <Flag kind="noShow">ไม่มา</Flag>}
+      {closed && row.reg && !c && <Flag kind="noShow">ไม่เข้าร่วม</Flag>}
       {row.reg?.walkIn && c?.items === undefined && <Flag kind="walkIn">ไม่ได้ลงทะเบียน</Flag>}
       {c?.flags.includes('location') && (
         <Flag kind="location">{c.distance !== undefined ? `อยู่นอกพื้นที่ ${Math.round(c.distance)} ม.` : 'อยู่นอกพื้นที่'}</Flag>
       )}
-      {c?.flags.includes('device') && <Flag kind="device">เครื่องซ้ำ</Flag>}
+      {c?.flags.includes('device') && <Flag kind="device">ใช้เครื่องซ้ำ</Flag>}
       {c?.flags.includes('offline') && <Flag kind="offline">ส่งภายหลัง</Flag>}
       {c?.reason && <Flag kind="edited">{c.reason}</Flag>}
     </>
@@ -40,8 +43,10 @@ export function Flags({ row, closed }: { row: RosterRow; closed?: boolean }) {
 }
 
 /** Live roster: search, five filters, one row per person. Updates as scans arrive from any device. */
-export function Roster({ regs, credits, selected, closed, onSelect }: Props) {
-  const [filter, setFilter] = useState<RosterFilter>('all')
+export function Roster({ regs, credits, selected, closed, onSelect, filter: given, onFilter }: Props) {
+  const [own, setOwn] = useState<RosterFilter>('all')
+  const filter = given ?? own
+  const setFilter = onFilter ?? setOwn
   const [q, setQ] = useState('')
   const all = useMemo(() => rosterRows(regs, credits, 'all', ''), [regs, credits])
   const rows = useMemo(() => rosterRows(regs, credits, filter, q), [regs, credits, filter, q])
@@ -56,7 +61,7 @@ export function Roster({ regs, credits, selected, closed, onSelect }: Props) {
   }, [q, filter])
 
   return (
-    <section className="flex min-w-0 flex-col gap-3" aria-label="รายชื่อ">
+    <section id="roster" className="flex min-w-0 scroll-mt-0 flex-col gap-3" aria-label="รายชื่อ">
       <h2 className="text-lg font-semibold">รายชื่อ</h2>
       {/* Stays on screen while scrolling a long roster, so a name can be looked up from anywhere in the list. */}
       <div ref={bar} className="sticky top-0 z-10 -mx-5 flex flex-col gap-3 bg-bg/95 px-5 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] pb-3 backdrop-blur-xl min-[900px]:mx-0 min-[900px]:px-0">
@@ -104,7 +109,7 @@ export function Roster({ regs, credits, selected, closed, onSelect }: Props) {
                   </div>
                 </div>
                 <p className={`num shrink-0 pt-0.5 font-semibold ${r.credit ? '' : 'text-muted'}`}>
-                  {r.credit ? `${r.credit.hours} ชม.` : closed && r.reg ? '0 ชม.' : 'ยังไม่ได้ชั่วโมง'}
+                  {r.credit ? `${r.credit.hours} ชม.` : closed && r.reg ? '0 ชม.' : 'ยังไม่ได้รับชั่วโมง'}
                 </p>
               </button>
             </li>

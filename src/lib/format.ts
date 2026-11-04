@@ -10,6 +10,12 @@ export function thDate(ms: number) {
   return `${d.getDate()} ${MONTHS[d.getMonth()]} ${d.getFullYear() + 543}`
 }
 
+/** Day and short month without the year, e.g. "18 พ.ย.". */
+export function thDayMonth(ms: number) {
+  const d = new Date(ms)
+  return `${d.getDate()} ${MONTHS[d.getMonth()]}`
+}
+
 export function thTime(ms: number) {
   const d = new Date(ms)
   return `${pad(d.getHours())}:${pad(d.getMinutes())}`

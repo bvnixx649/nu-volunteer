@@ -48,9 +48,9 @@ export default async function ({ browser, base, shot }) {
   await page.getByRole('button', { name: /บริจาคโลหิต/ }).click()
   await h1('รายละเอียด')
   await page.getByRole('button', { name: 'ปิด' }).click()
-  const discard = page.getByRole('dialog', { name: 'ทิ้งที่กรอกไว้ไหม' })
+  const discard = page.getByRole('dialog', { name: 'ออกโดยไม่บันทึกไหม' })
   await discard.waitFor()
-  await discard.getByRole('button', { name: 'กรอกต่อ' }).click()
+  await discard.getByRole('button', { name: 'แก้ไขต่อ' }).click()
   await discard.waitFor({ state: 'detached' })
 
   // Details: the page is one screen. Defaults come from the template, empty required fields explain themselves.
@@ -167,12 +167,12 @@ export default async function ({ browser, base, shot }) {
   expect((await page.getByLabel('เบอร์ติดต่อ').inputValue()) === '055961234', 'phone prefilled from the last activity')
   expect((await page.getByLabel('ชื่อกิจกรรม').inputValue()) === '', 'new activity starts without a title')
   await page.getByRole('button', { name: 'ปิด' }).click()
-  await page.getByRole('dialog', { name: 'ทิ้งที่กรอกไว้ไหม' }).getByRole('button', { name: 'ทิ้งและออก' }).click()
+  await page.getByRole('dialog', { name: 'ออกโดยไม่บันทึกไหม' }).getByRole('button', { name: 'ออกโดยไม่บันทึก' }).click()
   await page.waitForURL(/#\/sup$/)
   await page.goto(`${base}#/sup/a/${id}`)
 
   // Edit: starts on the details, change the title, save.
-  await page.getByRole('button', { name: /แก้ไขกิจกรรม/ }).click()
+  await page.getByRole('button', { name: /แก้ไขรายละเอียดกิจกรรม/ }).click()
   await h1('รายละเอียด')
   expect((await page.getByRole('button', { name: 'ย้อนกลับ' }).count()) === 0, 'no way back to the template when editing')
   await page.getByLabel('ชื่อกิจกรรม').fill('บริจาคโลหิต ครั้งที่ 3/2569 (แก้แล้ว)')
@@ -184,7 +184,7 @@ export default async function ({ browser, base, shot }) {
   await page.getByRole('heading', { name: 'บริจาคโลหิต ครั้งที่ 3/2569 (แก้แล้ว)' }).waitFor()
 
   // Check-in settings: walk-in off, saved, still off when reopened.
-  await page.getByRole('button', { name: 'ตั้งค่าการเช็คชื่อ' }).click()
+  await page.getByRole('button', { name: /^การเช็คชื่อ/ }).click()
   const sheet = page.getByRole('dialog', { name: 'ตั้งค่าการเช็คชื่อ' })
   const walk = sheet.getByRole('switch', { name: 'รับผู้ไม่ได้ลงทะเบียน' })
   await sheet.getByText('ผู้ไม่ได้ลงทะเบียน', { exact: true }).waitFor()
@@ -195,7 +195,7 @@ export default async function ({ browser, base, shot }) {
   await shot(page, 'create-10-walkin-sheet')
   await sheet.getByRole('button', { name: 'บันทึก', exact: true }).click()
   await sheet.waitFor({ state: 'detached' })
-  await page.getByRole('button', { name: 'ตั้งค่าการเช็คชื่อ' }).click()
+  await page.getByRole('button', { name: /^การเช็คชื่อ/ }).click()
   const again = page.getByRole('dialog', { name: 'ตั้งค่าการเช็คชื่อ' })
   await again.getByRole('switch', { name: 'รับผู้ไม่ได้ลงทะเบียน' }).waitFor()
   expect((await again.getByRole('switch', { name: 'รับผู้ไม่ได้ลงทะเบียน' }).getAttribute('aria-checked')) === 'false', 'walk-in stays off after saving')
@@ -212,7 +212,7 @@ export default async function ({ browser, base, shot }) {
   }, id)
   await page.reload()
   await page.getByRole('heading', { name: 'บริจาคโลหิต ครั้งที่ 3/2569 (แก้แล้ว)' }).waitFor()
-  expect((await page.getByRole('button', { name: /แก้ไขกิจกรรม/ }).count()) === 0, 'no edit row after the roster is sent')
+  expect((await page.getByRole('button', { name: /แก้ไขรายละเอียดกิจกรรม/ }).count()) === 0, 'no edit row after the roster is sent')
   await page.goto(`${base}#/sup/edit/${id}`)
   await page.getByText('ส่งรายชื่อแล้ว แก้ไขกิจกรรมไม่ได้').waitFor()
   await snap('11-blocked')

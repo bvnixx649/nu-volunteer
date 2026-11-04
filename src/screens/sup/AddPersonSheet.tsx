@@ -40,7 +40,7 @@ export function AddPersonSheet({ open, activity, by, onClose }: { open: boolean;
       if (r.ok) {
         toast.success(`เพิ่ม ${student.name} แล้ว`)
         onClose()
-      } else toast.error(r.reason === 'already' ? `${student.name} ได้ชั่วโมงแล้ว` : 'บันทึกไม่ได้เพราะไม่มีอินเทอร์เน็ต')
+      } else toast.error(r.reason === 'already' ? `${student.name} ได้รับชั่วโมงแล้ว` : 'บันทึกไม่ได้เพราะไม่มีอินเทอร์เน็ต')
     } finally {
       setBusy(false)
     }

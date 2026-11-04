@@ -21,7 +21,7 @@ export default function Login() {
     setBusy(true)
     const org = await api.getOrg(code.trim().toUpperCase()).catch(() => null)
     setBusy(false)
-    if (!org) return setError('รหัสไม่ถูกต้อง')
+    if (!org) return setError('รหัสหน่วยงานไม่ถูกต้อง')
     setSup({ name: name.trim(), orgCode: org.code, orgName: org.name, admin: org.admin })
     nav('/sup', { replace: true })
   }

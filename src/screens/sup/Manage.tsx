@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { CaretLeft, CaretRight, FileXls, GearSix, ListChecks, PencilSimple, QrCode, Recycle, UserPlus } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { api, now } from '../../data/api'
@@ -7,29 +7,31 @@ import type { Activity, Credit, Registration } from '../../data/types'
 import { thDate, thTime } from '../../lib/format'
 import { downloadSupXlsx } from '../../lib/excel'
 import { isBottle } from '../../lib/bottle'
-import { rosterRows, type RosterRow } from '../../lib/roster'
+import { rosterRows, type RosterFilter, type RosterRow } from '../../lib/roster'
 import { checkinSummary } from '../../lib/checkin'
 import { canEdit, closedAt, stage } from '../../lib/stage'
 import { useDevice } from '../../store'
 import { Button } from '../../ui/Button'
-import { Counter } from '../../ui/Counter'
 import { Roster, Flags } from './Roster'
 import { EditHoursSheet } from './EditHoursSheet'
 import { AddPersonSheet } from './AddPersonSheet'
 import { BottleSheet } from './BottleSheet'
 import { CheckinSettingsSheet } from './CheckinSettingsSheet'
+import { ManageSummary } from './ManageSummary'
 import { PullToQr } from './PullToQr'
+import { QrPanel } from './QrPanel'
+import { ScanFeed } from './ScanFeed'
 import { StageActions } from './StageActions'
 import { StatusTag } from '../../ui/StatusTag'
 
-/** A tappable row inside the inset grouped list: icon, title with a detail line, chevron. */
+/** A tappable row inside the settings group: icon, title with a detail line, chevron. */
 function Row({ icon, title, detail, onClick, disabled }: { icon: ReactNode; title: string; detail: string; onClick: () => void; disabled?: boolean }) {
   return (
     <button type="button" onClick={onClick} disabled={disabled} className="pressable flex min-h-16 w-full items-center gap-3.5 px-4 py-3 text-left disabled:opacity-45">
-      <span className="text-muted">{icon}</span>
+      <span className="text-[#c9c4bc]">{icon}</span>
       <span className="min-w-0 flex-1">
-        <span className="block font-semibold">{title}</span>
-        <span className="num block truncate text-sm text-muted">{detail}</span>
+        <span className="block text-[15.5px] font-semibold">{title}</span>
+        <span className="num block truncate text-[13px] text-muted">{detail}</span>
       </span>
       <CaretRight size={18} className="shrink-0 text-muted" />
     </button>
@@ -48,7 +50,7 @@ const useWide = () => {
   return wide
 }
 
-/** Pull-to-QR works while the activity runs, or any time on its day. */
+/** The QR works while the activity runs, or any time on its day. */
 const isLive = (a: Activity) => {
   const t = now()
   return (t >= a.start && t <= a.end) || new Date(t).toDateString() === new Date(a.start).toDateString()
@@ -62,19 +64,47 @@ export default function Manage() {
   const [activity, setActivity] = useState<Activity | null | undefined>(undefined)
   const [regs, setRegs] = useState<Registration[]>([])
   const [credits, setCredits] = useState<Credit[]>([])
+  const [creditsReady, setCreditsReady] = useState(false)
   const [selectedId, setSelectedId] = useState<string>()
   const [editing, setEditing] = useState<string>()
   const [adding, setAdding] = useState(false)
   const [bottles, setBottles] = useState(false)
   const [settings, setSettings] = useState(false)
+  const [qrOpen, setQrOpen] = useState(false)
+  const [filter, setFilter] = useState<RosterFilter>('all')
+  const [params, setParams] = useSearchParams()
 
   useEffect(() => api.watchActivity(id, setActivity), [id])
   useEffect(() => api.watchRegistrations(id, setRegs), [id])
-  useEffect(() => api.watchCredits(id, setCredits), [id])
+  useEffect(
+    () =>
+      api.watchCredits(id, (c) => {
+        setCredits(c)
+        setCreditsReady(true)
+      }),
+    [id],
+  )
 
   const rows = useMemo(() => rosterRows(regs, credits, 'all', ''), [regs, credits])
   const find = (sid?: string): RosterRow | null => (sid ? (rows.find((r) => r.studentId === sid) ?? null) : null)
-  const openQr = useCallback(() => nav(`/sup/a/${id}/qr`), [nav, id])
+  const openFullScreenQr = useCallback(() => nav(`/sup/a/${id}/qr`), [nav, id])
+  const counts = useMemo(
+    () => ({
+      notYet: rosterRows(regs, credits, 'notScanned', '').length,
+      walkIn: rosterRows(regs, credits, 'walkIn', '').length,
+      flagged: rosterRows(regs, credits, 'flagged', '').length,
+    }),
+    [regs, credits],
+  )
+
+  // `?qr=1` (from the live card on the home page) opens the QR as soon as the page has loaded.
+  const wantsQr = params.get('qr') === '1'
+  const canQr = !!activity && isLive(activity) && !isBottle(activity)
+  useEffect(() => {
+    if (!wantsQr || !activity) return
+    if (canQr) setQrOpen(true)
+    setParams({}, { replace: true })
+  }, [wantsQr, activity, canQr, setParams])
 
   if (!sup) return <Navigate to="/sup/login" replace />
   if (activity === undefined) return null
@@ -90,90 +120,103 @@ export default function Manage() {
   const ended = started && st !== 'live'
   /** The QR button is the one orange button only while the activity runs (or on its day). */
   const running = !ended && isLive(activity)
+  /** The pull-down reveal, and the button that does the same, work while the activity runs or on its day. */
+  const qrUsable = isLive(activity) && !bottle
+  const showQr = () => (qrUsable ? setQrOpen(true) : openFullScreenQr())
   const pick = (r: RosterRow) => {
     setSelectedId(r.studentId)
     if (!wide && editable) setEditing(r.studentId)
   }
+  const toRoster = (f: RosterFilter) => {
+    setQrOpen(false)
+    setFilter(f)
+    requestAnimationFrame(() => document.getElementById('roster')?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }
   const exportXlsx = async () => {
     try {
       const out = await downloadSupXlsx(activity, regs, credits)
-      toast.success('ดาวน์โหลดไฟล์ Excel แล้ว', { description: `${out.length} รายชื่อ ได้ชั่วโมง ${out.filter((r) => r['สถานะ'] !== 'ไม่มา').length} คน` })
+      toast.success('ดาวน์โหลดไฟล์ Excel แล้ว', { description: `${out.length} รายชื่อ ได้รับชั่วโมง ${out.filter((r) => r['สถานะ'] !== 'ไม่มา').length} คน` })
     } catch {
       toast.error('สร้างไฟล์ Excel ไม่ได้')
     }
   }
 
   return (
-    <PullToQr enabled={isLive(activity) && !bottle} onOpen={openQr}>
-      <main className="mx-auto max-w-6xl px-5 pt-4 pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))]">
-        <Link to="/sup" className="pressable -ml-2 inline-flex items-center gap-1 rounded-full px-2 py-2 text-muted">
+    <PullToQr enabled={qrUsable} open={qrOpen} onOpenChange={setQrOpen} layer={<QrPanel activity={activity} />}>
+      <main className="mx-auto max-w-6xl px-5 pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))]">
+        <Link to="/sup" className="pressable -ml-2 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[15px] text-ink/80">
           <CaretLeft size={18} /> กิจกรรมทั้งหมด
         </Link>
-        <div className="mt-3"><StatusTag stage={st} /></div>
-        <h1 className="mt-2 text-2xl leading-snug font-bold tracking-tight">{activity.title}</h1>
-        <p className="num mt-1 text-sm text-muted">
+        <div className="mt-1.5">
+          {st === 'live' ? (
+            <p className="num flex items-center gap-2 text-[13px] text-ok">
+              <span className="live-dot-ok size-2 shrink-0" aria-hidden />
+              กำลังดำเนินการ ถึง {thTime(activity.end)} น.
+            </p>
+          ) : (
+            <StatusTag stage={st} />
+          )}
+        </div>
+        <h1 className="mt-1.5 text-2xl leading-snug font-semibold">{activity.title}</h1>
+        <p className="num mt-0.5 text-sm text-muted">
           {thDate(activity.start)} {thTime(activity.start)} ถึง {thTime(activity.end)} น. {activity.place}
         </p>
 
-        <section className="mt-6 rounded-[var(--radius-card)] bg-surface p-5 shadow-soft">
-          <div className="flex items-end justify-between gap-4">
-            <div>
-              <Counter value={activity.creditCount} className="block text-6xl leading-none font-bold tracking-tight" />
-              <p className="mt-2 text-muted">คนได้ชั่วโมงแล้ว</p>
+        <div className="mt-[18px] min-[900px]:grid min-[900px]:grid-cols-2 min-[900px]:items-start min-[900px]:gap-x-6">
+          <div>
+            <ManageSummary activity={activity} counts={counts} bottle={bottle} onFilter={toRoster} />
+
+            {bottle ? (
+              <div className="mt-3.5">
+                <Button size="lg" variant={ended ? 'secondary' : 'primary'} className="w-full" disabled={!editable} onClick={() => setBottles(true)}>
+                  <Recycle size={22} weight="bold" /> บันทึกขวด
+                </Button>
+              </div>
+            ) : (
+              <div className="mt-3.5 grid grid-cols-[1fr_auto] gap-2">
+                <button
+                  type="button"
+                  onClick={showQr}
+                  className={`pressable inline-flex min-h-14 items-center justify-center gap-2 rounded-full px-7 text-[17px] font-semibold ${
+                    running ? 'bg-accent-strong text-on-accent shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_10px_24px_-10px_rgba(232,89,12,0.8)]' : 'bg-surface text-ink ring-1 ring-line'
+                  }`}
+                >
+                  <QrCode size={22} weight="bold" /> แสดง QR
+                </button>
+                <Button size="lg" variant="secondary" className="px-5" disabled={!editable} onClick={() => setAdding(true)}>
+                  <UserPlus size={22} /> เพิ่มรายชื่อ
+                </Button>
+              </div>
+            )}
+            {!editable && <p className="mt-3 text-sm text-muted">ส่งรายชื่อแล้ว แก้ไม่ได้</p>}
+
+            <div className="mt-4 flex flex-col gap-4 empty:hidden">
+              <StageActions activity={activity} regs={regs} credits={credits} />
             </div>
-            <p className="num pb-1 text-right text-sm text-muted">
-              {bottle ? (
-                <>
-                  {activity.itemsPerHour} ขวด ได้ 1 ชั่วโมง
-                  <br />
-                  สูงสุด {activity.hours} ชั่วโมงต่อคน
-                </>
-              ) : (
-                <>
-                  {activity.capLimit ? `ลงทะเบียน ${activity.regCount} จาก ${activity.capacity} คน` : `ลงทะเบียน ${activity.regCount} คน`}
-                  <br />
-                  ได้คนละ {activity.hours} ชั่วโมง
-                </>
-              )}
-            </p>
           </div>
-          {bottle ? (
-            <Button size="lg" variant={ended ? 'secondary' : 'primary'} className="mt-5 w-full" disabled={!editable} onClick={() => setBottles(true)}>
-              <Recycle size={22} weight="bold" /> บันทึกขวด
-            </Button>
-          ) : (
-            <div className="mt-5 grid grid-cols-[1fr_auto] gap-3">
-              <Button size="lg" variant={running ? 'primary' : 'secondary'} onClick={openQr}>
-                <QrCode size={22} weight="bold" /> เปิด QR
-              </Button>
-              <Button size="lg" variant="secondary" className="px-5" disabled={!editable} onClick={() => setAdding(true)}>
-                <UserPlus size={22} /> เพิ่มคน
-              </Button>
-            </div>
-          )}
-          {!editable && <p className="mt-3 text-sm text-muted">ส่งรายชื่อแล้ว แก้ไม่ได้</p>}
-        </section>
 
-        <section className="mt-4 divide-y divide-line overflow-hidden rounded-[var(--radius-card)] bg-surface shadow-soft">
-          {!bottle && <Row icon={<GearSix size={22} />} disabled={!editable} onClick={() => setSettings(true)} title="ตั้งค่าการเช็คชื่อ" detail={checkinSummary(activity)} />}
-          {editable && <Row icon={<PencilSimple size={22} />} onClick={() => nav(`/sup/edit/${id}`)} title="แก้ไขกิจกรรม" detail="ชื่อ รูป วันเวลา และสถานที่" />}
-          <Row icon={<ListChecks size={22} />} onClick={() => nav(`/sup/a/${id}/roster`)} title="ตรวจสอบรายชื่อ" detail="ตารางเดียวกับไฟล์ Excel" />
-          {started && <Row icon={<FileXls size={22} />} onClick={exportXlsx} title="โหลด Excel" detail="รายชื่อพร้อมชั่วโมงรายคน" />}
-        </section>
+          <div>
+            {st === 'live' && <ScanFeed credits={credits} ready={creditsReady} />}
 
-        <div className="mt-4 flex flex-col gap-4 empty:hidden">
-          <StageActions activity={activity} regs={regs} credits={credits} />
+            <h2 className="px-1 pt-[26px] pb-2.5 text-lg font-semibold">การตั้งค่าและเอกสาร</h2>
+            <section className="divide-y divide-white/5 overflow-hidden rounded-[22px] border border-white/[0.06] bg-surface">
+              {!bottle && <Row icon={<GearSix size={22} />} disabled={!editable} onClick={() => setSettings(true)} title="การเช็คชื่อ" detail={checkinSummary(activity)} />}
+              {editable && <Row icon={<PencilSimple size={22} />} onClick={() => nav(`/sup/edit/${id}`)} title="แก้ไขรายละเอียดกิจกรรม" detail="ชื่อ รูปปก วันเวลา และสถานที่" />}
+              <Row icon={<ListChecks size={22} />} onClick={() => nav(`/sup/a/${id}/roster`)} title="ตรวจสอบรายชื่อ" detail="ตารางเดียวกับไฟล์ Excel" />
+              {started && <Row icon={<FileXls size={22} />} onClick={exportXlsx} title="ดาวน์โหลดไฟล์ Excel" detail="รายชื่อพร้อมชั่วโมงของแต่ละคน" />}
+            </section>
+          </div>
         </div>
 
         <div className="mt-8 grid gap-6 min-[900px]:grid-cols-[1fr_360px]">
-          <Roster regs={regs} credits={credits} selected={wide ? selectedId : undefined} closed={closed} onSelect={pick} />
+          <Roster regs={regs} credits={credits} selected={wide ? selectedId : undefined} closed={closed} onSelect={pick} filter={filter} onFilter={setFilter} />
           {wide && (
             <aside className="sticky top-4 self-start rounded-[var(--radius-card)] bg-surface p-5 shadow-soft">
               {selected ? (
                 <div className="flex flex-col gap-3">
                   <p className="text-xl font-semibold">{selected.name}</p>
                   <p className="num text-muted">{selected.studentId}</p>
-                  <p className="num text-4xl font-bold">{selected.credit ? `${selected.credit.hours} ชม.` : 'ยังไม่ได้ชั่วโมง'}</p>
+                  <p className="num text-4xl font-bold">{selected.credit ? `${selected.credit.hours} ชม.` : 'ยังไม่ได้รับชั่วโมง'}</p>
                   {selected.credit && (
                     <p className="num text-sm text-muted">
                       สแกน {thTime(selected.credit.at)} น.

@@ -47,7 +47,7 @@ export default function SupRoster() {
           <p className="num mt-1 text-muted">{rows.length} รายชื่อ</p>
         </div>
         <Button onClick={download} disabled={!rows.length}>
-          <FileXls size={20} /> โหลด Excel
+          <FileXls size={20} /> ดาวน์โหลดไฟล์ Excel
         </Button>
       </div>
 

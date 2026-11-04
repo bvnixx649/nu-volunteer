@@ -67,8 +67,8 @@ export default async function ({ browser, base, shot }) {
 
   // Manage: the desk button replaces the QR button.
   await page.getByRole('heading', { name: 'แลกขวดพลาสติกเป็นชั่วโมงจิตอาสา' }).waitFor()
-  expect((await page.getByRole('button', { name: 'เปิด QR' }).count()) === 0, 'no QR button')
-  expect((await page.getByText('ตั้งค่าการเช็คชื่อ').count()) === 0, 'no check-in settings')
+  expect((await page.getByRole('button', { name: 'แสดง QR' }).count()) === 0, 'no QR button')
+  expect((await page.getByRole('button', { name: /^การเช็คชื่อ/ }).count()) === 0, 'no check-in settings')
   await snap('3-manage')
 
   // First visit: a new student with 45 bottles.

@@ -13,11 +13,11 @@ export default async function ({ browser, base, load, shot }) {
   await sup.getByLabel('ชื่อผู้ดูแล').fill('พี่เต้')
   await sup.getByLabel('รหัส', { exact: true }).fill('nope')
   await sup.getByRole('button', { name: 'เข้าใช้งาน' }).click()
-  await sup.getByText('รหัสไม่ถูกต้อง').waitFor()
+  await sup.getByText('รหัสหน่วยงานไม่ถูกต้อง').waitFor()
   await sup.getByLabel('รหัส', { exact: true }).fill('NUVOL69')
   await sup.getByRole('button', { name: 'เข้าใช้งาน' }).click()
   await sup.getByRole('link', { name: /บริจาคโลหิต ครั้งที่ 2\/2569/ }).first().click()
-  await sup.getByRole('button', { name: 'เปิด QR' }).waitFor()
+  await sup.getByRole('button', { name: 'แสดง QR' }).waitFor()
 
   const student = await ctx.newPage()
   const token = makeToken({ a: 'test-blood', h: 6, la: site.latitude, lo: site.longitude, ac: 15 }, 'dynamic', Date.now())
@@ -27,6 +27,9 @@ export default async function ({ browser, base, load, shot }) {
   await student.getByRole('button', { name: 'รับชั่วโมง' }).click()
   await student.getByRole('heading', { name: 'ทดสอบ รายชื่อสด' }).waitFor({ timeout: 8000 })
 
+  // The latest-scans list on top of the page also shows the new person, slid in from the top.
+  await sup.locator('[data-feed]').getByText('ทดสอบ รายชื่อสด').waitFor({ timeout: 5000 })
+  await sup.locator('[data-feed] .feed-new').first().waitFor()
   const row = sup.getByRole('button', { name: /ทดสอบ รายชื่อสด/ })
   await row.waitFor({ timeout: 5000 })
   await row.click()

@@ -33,7 +33,7 @@ describe('STAGE_LABEL', () => {
   it('has a plain label for every stage', () => {
     expect(STAGE_LABEL.scheduled).toBe('ยังไม่เปิดรับ')
     expect(STAGE_LABEL.live).toBe('กำลังดำเนินการ')
-    expect(STAGE_LABEL.closing).toBe('รอตรวจรายชื่อ')
+    expect(STAGE_LABEL.closing).toBe('รอตรวจสอบ')
     expect(STAGE_LABEL.submit).toBe('รอส่งรายชื่อ')
     expect(STAGE_LABEL.waiting).toBe('ส่งรายชื่อแล้ว')
     expect(STAGE_LABEL.done).toBe('บันทึกแล้ว')

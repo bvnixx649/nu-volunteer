@@ -31,7 +31,7 @@ export default async function ({ browser, base, shot }) {
   await page.getByRole('heading', { name: 'เก็บขยะริมแม่น้ำน่าน' }).waitFor()
 
   // Status tag above the title; no progress bar.
-  await page.getByText('รอตรวจรายชื่อ', { exact: true }).waitFor()
+  await page.getByText('รอตรวจสอบ', { exact: true }).waitFor()
   expect((await page.locator('ol > li').count()) === 0, 'no stage bar')
   await page.getByText(/ระบบปิดให้อัตโนมัติ/).waitFor()
   await noOverflow('closing')
@@ -47,13 +47,13 @@ export default async function ({ browser, base, shot }) {
   await page.getByRole('dialog').waitFor({ state: 'detached' })
   await page.getByText('รอส่งรายชื่อ', { exact: true }).waitFor()
   await page.getByText(/ส่งรายชื่อให้ศูนย์จิตอาสาภายใน/).waitFor()
-  await page.getByText('ไม่มา', { exact: true }).waitFor()
-  expect((await page.getByText('ไม่มา', { exact: true }).count()) === 1, 'exactly one no-show flag')
+  await page.getByText('ไม่เข้าร่วม', { exact: true }).waitFor()
+  expect((await page.getByText('ไม่เข้าร่วม', { exact: true }).count()) === 1, 'exactly one no-show flag')
   await noOverflow('closed')
   await both('close-3-closed')
 
   // Excel download.
-  const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'โหลด Excel' }).click()])
+  const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'ดาวน์โหลดไฟล์ Excel' }).click()])
   expect(download.suggestedFilename() === 'เก็บขยะริมแม่น้ำน่าน รายชื่อ.xlsx', `file name is ${download.suggestedFilename()}`)
   await page.getByText('ดาวน์โหลดไฟล์ Excel แล้ว').waitFor()
 
@@ -65,7 +65,7 @@ export default async function ({ browser, base, shot }) {
   await page.getByRole('dialog').waitFor({ state: 'detached' })
   // With a remote database the list refreshes a moment after the dialog closes, so wait for it instead of counting at once.
   await page.getByRole('button', { name: /ปวีณา มาสาย/ }).waitFor({ state: 'detached', timeout: 8000 })
-  await page.getByText('ไม่มา', { exact: true }).waitFor({ state: 'detached', timeout: 8000 })
+  await page.getByText('ไม่เข้าร่วม', { exact: true }).waitFor({ state: 'detached', timeout: 8000 })
 
   // Submit: confirm sheet shows people and total hours (5+3+5 = 13) and the warning.
   await page.getByRole('button', { name: 'ส่งรายชื่อให้ศูนย์' }).click()
@@ -81,7 +81,7 @@ export default async function ({ browser, base, shot }) {
 
   // Locked: reason shown, add disabled, rows no longer open the edit sheet.
   await page.getByText('ส่งรายชื่อแล้ว แก้ไม่ได้').waitFor()
-  expect(await page.getByRole('button', { name: 'เพิ่มคน' }).isDisabled(), 'add person is disabled after submit')
+  expect(await page.getByRole('button', { name: 'เพิ่มรายชื่อ' }).isDisabled(), 'add person is disabled after submit')
   await page.getByRole('button', { name: /สมชาย ใจดี/ }).click()
   await page.waitForTimeout(500)
   expect((await page.getByRole('dialog').count()) === 0, 'edit sheet stays closed after submit')

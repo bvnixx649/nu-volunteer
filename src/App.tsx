@@ -17,6 +17,7 @@ startPendingSync()
 // Students arrive on /claim over mobile data, so supervisor screens load only when someone opens them.
 const Login = lazy(() => import('./screens/sup/Login'))
 const SupHome = lazy(() => import('./screens/sup/SupHome'))
+const Overview = lazy(() => import('./screens/sup/Overview'))
 const Manage = lazy(() => import('./screens/sup/Manage'))
 const QrScreen = lazy(() => import('./screens/sup/QrScreen'))
 const SupRoster = lazy(() => import('./screens/sup/SupRoster'))
@@ -53,6 +54,7 @@ export default function App() {
           </Route>
           <Route path="/sup/login" element={<Login />} />
           <Route path="/sup" element={<SupHome />} />
+          <Route path="/sup/overview" element={<Overview />} />
           <Route path="/sup/new" element={<Editor />} />
           <Route path="/sup/edit/:id" element={<Editor />} />
           <Route path="/sup/a/:id" element={<Manage />} />

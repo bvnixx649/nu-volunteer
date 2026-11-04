@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { activityYear, busyDays, dayKey, liveNow, monthGrid, onDay, orderedActivities, visibleTo, yearStats } from './home'
+import { activityYear, busyDays, countInMonth, dayKey, fillBasis, fillPercent, groupActivities, liveNow, monthGrid, onDay, orderedActivities, stagesByDay, visibleTo, yearOverview, yearStats } from './home'
 import type { Activity } from '../data/types'
 
 const H = 3600_000
@@ -69,7 +69,76 @@ describe('home helpers', () => {
     const old = act({ start: new Date(2026, 1, 1).getTime(), end: new Date(2026, 1, 1, 3).getTime(), creditCount: 10 })
     const future = act({ start: new Date(2026, 11, 1).getTime(), end: new Date(2026, 11, 1, 3).getTime() })
     const s = yearStats([a, b, old, future], new Date(2026, 10, 3).getTime())
-    expect(s).toEqual({ label: 2569, activities: 2, people: 120 })
-    expect(yearStats([], t0)).toEqual({ label: 2569, activities: 0, people: 0 })
+    expect(s).toEqual({ label: 2569, activities: 2, people: 120, kpi: null, kpiActivities: 0 })
+    expect(yearStats([], t0)).toEqual({ label: 2569, activities: 0, people: 0, kpi: null, kpiActivities: 0 })
+  })
+
+  it('splits the ordered list into to-do, upcoming and sent groups', () => {
+    const closing = act({ start: t0 - 5 * H, end: t0 - H })
+    const soon = act({ start: t0 + DAY, end: t0 + DAY + H })
+    const sent = act({ end: t0 - 3 * DAY, start: t0 - 3 * DAY - H, submittedAt: 1 })
+    const live = act({ start: t0 - H, end: t0 + H })
+    expect(groupActivities([sent, soon, live, closing], t0)).toEqual({ todo: [closing], upcoming: [soon], sent: [sent] })
+  })
+
+  it('measures credits against registrations, falling back to the limit when nobody registered', () => {
+    const limited = act({ capLimit: true, capacity: 300, regCount: 182, creditCount: 150 })
+    expect(fillBasis(limited)).toEqual({ of: 182, byLimit: false })
+    expect(fillPercent(limited)).toBe(82)
+    const walkInOnly = act({ capLimit: true, capacity: 300, regCount: 0, creditCount: 150 })
+    expect(fillBasis(walkInOnly)).toEqual({ of: 300, byLimit: true })
+    expect(fillPercent(walkInOnly)).toBe(50)
+    const open = act({ capLimit: false, regCount: 40, creditCount: 50 })
+    expect(fillBasis(open)).toEqual({ of: 40, byLimit: false })
+    expect(fillPercent(open)).toBe(100)
+    expect(fillPercent(act())).toBe(0)
+  })
+
+  it('counts activities per month and lists stages per day', () => {
+    const a = act({ start: new Date(2026, 10, 3, 9).getTime(), end: new Date(2026, 10, 3, 12).getTime() })
+    const b = act({ start: new Date(2026, 10, 3, 14).getTime(), end: new Date(2026, 10, 3, 16).getTime() })
+    const c = act({ start: new Date(2026, 11, 3, 9).getTime(), end: new Date(2026, 11, 3, 12).getTime() })
+    expect(countInMonth([a, b, c], 2026, 10)).toBe(2)
+    expect(countInMonth([a, b, c], 2026, 9)).toBe(0)
+    const now = new Date(2026, 10, 3, 15).getTime()
+    expect(stagesByDay([b, a, c], now).get('2026-11-03')).toEqual(['closing', 'live'])
+    expect(stagesByDay([b, a, c], now).get('2026-12-03')).toEqual(['open'])
+  })
+
+  describe('turn-up percentage and overview', () => {
+    const now = new Date(2026, 10, 4, 12).getTime() // 4 Nov 2026, in the 2569 year
+    const at = (m: number, d: number, extra: Partial<Activity> = {}) =>
+      act({ start: new Date(2026, m, d, 9).getTime(), end: new Date(2026, m, d, 15).getTime(), ...extra })
+
+    it('uses only ended activities that limit their numbers', () => {
+      const full = at(8, 1, { capLimit: true, capacity: 100, creditCount: 80, regCount: 90 })
+      const half = at(9, 1, { capLimit: true, capacity: 100, creditCount: 40, regCount: 60 })
+      const open = at(7, 1, { capLimit: false, creditCount: 500, regCount: 500 })
+      const notEnded = at(10, 4, { capLimit: true, capacity: 100, creditCount: 10, start: now - H, end: now + H })
+      const old = at(1, 1, { capLimit: true, capacity: 100, creditCount: 1 }) // previous activity year
+      const s = yearStats([full, half, open, notEnded, old], now)
+      expect(s.kpi).toBe(60)
+      expect(s.kpiActivities).toBe(2)
+      expect(s.activities).toBe(4)
+      expect(s.people).toBe(80 + 40 + 500 + 10)
+      expect(yearStats([open], now).kpi).toBeNull()
+    })
+
+    it('sums people per month from May and finds this month', () => {
+      const may = at(4, 10, { creditCount: 30, regCount: 40 })
+      const nov = at(10, 2, { creditCount: 20, regCount: 25 })
+      const novLater = at(10, 20, { creditCount: 0, regCount: 12 })
+      const closing = at(9, 30, { creditCount: 5, regCount: 5 }) // ended, roster still open
+      const o = yearOverview([may, nov, novLater, closing], now)
+      expect(o.monthly).toEqual([30, 0, 0, 0, 0, 5, 20, 0, 0, 0, 0, 0])
+      expect(o.currentMonth).toBe(6)
+      expect(o.registered).toBe(40 + 25 + 5)
+      expect(o.month).toEqual({ held: 1, upcoming: 1, people: 20, unsent: 3 })
+    })
+
+    it('leaves out other activity years from the bars', () => {
+      const prev = at(2, 1, { creditCount: 99 })
+      expect(yearOverview([prev], now).monthly.every((n) => n === 0)).toBe(true)
+    })
   })
 })

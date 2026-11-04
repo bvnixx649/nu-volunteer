@@ -15,7 +15,7 @@ export default async function ({ browser, base, shot }) {
   await page.getByLabel('ชื่อผู้ดูแล').fill('พี่เต้')
   await page.getByLabel('รหัส', { exact: true }).fill('NUVOL69')
   await page.getByRole('button', { name: 'เข้าใช้งาน' }).click()
-  await page.getByText('กองกิจการนิสิต มหาวิทยาลัยนเรศวร').waitFor()
+  await page.getByText('ผู้ดูแล พี่เต้').waitFor()
 
   await page.goto(`${base}#/sup/a/test-ended`)
   await page.getByRole('button', { name: /ตรวจสอบรายชื่อ/ }).click()
@@ -30,7 +30,7 @@ export default async function ({ browser, base, shot }) {
   await page.waitForTimeout(300)
   await shot(page, 'sup-roster-dark')
 
-  const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'โหลด Excel' }).click()])
+  const [download] = await Promise.all([page.waitForEvent('download'), page.getByRole('button', { name: 'ดาวน์โหลดไฟล์ Excel' }).click()])
   expect(download.suggestedFilename().endsWith('รายชื่อ.xlsx'), `file name ${download.suggestedFilename()}`)
   expect(!problems.length, `console problems: ${problems.join(' | ')}`)
   await ctx.close()

@@ -49,7 +49,7 @@ export function StageActions({ activity, regs, credits }: Props) {
     <>
       {s === 'closing' && (
         <section className={card}>
-          <p className="text-muted">เพิ่มชั่วโมงผู้ที่มาแต่สแกนไม่ได้ก่อน ผู้ลงทะเบียนที่ไม่ได้ชั่วโมงจะนับว่าไม่มา</p>
+          <p className="text-muted">เพิ่มชั่วโมงผู้ที่มาแต่สแกนไม่ได้ก่อน ผู้ลงทะเบียนที่ไม่ได้รับชั่วโมงจะนับว่าไม่เข้าร่วม</p>
           <p className="num mt-2 text-sm text-muted">ระบบปิดให้อัตโนมัติ {stamp(activity.end + AUTO_CLOSE_H * 3600_000)}</p>
           <Button size="lg" className="mt-4 w-full" onClick={() => setAsking('close')}>
             ปิดรายชื่อ
@@ -89,8 +89,8 @@ export function StageActions({ activity, regs, credits }: Props) {
 
       <Sheet open={asking === 'close'} onClose={() => setAsking(undefined)} title="ปิดรายชื่อ">
         <div className="grid grid-cols-2 gap-3">
-          <Stat value={got} label="ได้ชั่วโมง (คน)" />
-          <Stat value={missed} label="ไม่มา (คน)" />
+          <Stat value={got} label="ได้รับชั่วโมง (คน)" />
+          <Stat value={missed} label="ไม่เข้าร่วม (คน)" />
         </div>
         <p className="mt-4 text-muted">ปิดแล้วยังแก้ไขได้จนกว่าจะส่งรายชื่อ</p>
         <Button size="lg" className="mt-6 w-full" loading={busy} onClick={() => run((id) => api.closeRoster(id), 'ปิดรายชื่อแล้ว')}>
@@ -103,7 +103,7 @@ export function StageActions({ activity, regs, credits }: Props) {
 
       <Sheet open={asking === 'submit'} onClose={() => setAsking(undefined)} title="ส่งรายชื่อให้ศูนย์">
         <div className="grid grid-cols-2 gap-3">
-          <Stat value={got} label="ได้ชั่วโมง (คน)" />
+          <Stat value={got} label="ได้รับชั่วโมง (คน)" />
           <Stat value={total} label="ชั่วโมงรวม" />
         </div>
         <p className="mt-4 font-medium text-bad">ส่งแล้วแก้รายชื่อและชั่วโมงไม่ได้อีก</p>

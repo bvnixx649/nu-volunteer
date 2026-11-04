@@ -41,11 +41,12 @@ if (remote) {
 const load = (path) => server.ssrLoadModule(path)
 // Every screenshot is also a copy check: words the app no longer uses must not show on any screen a spec visits.
 const BANNED = ['ผู้คุม', 'แอพ', 'walk-in', 'Walk-in', 'ลงชื่อ', '·', '—']
-const shot = async (page, name) => {
+// Pass { viewport: true } for a shot of just what is on screen (fixed buttons and sheets stay where they are).
+const shot = async (page, name, opts = {}) => {
   const text = await page.evaluate(() => document.body.innerText).catch(() => '')
   const hit = BANNED.find((w) => text.includes(w))
   if (hit) throw new Error(`screen "${name}" shows "${hit}"`)
-  return page.screenshot({ path: join(out, `${name}.png`), fullPage: !name.startsWith('stress-roster') })
+  return page.screenshot({ path: join(out, `${name}.png`), fullPage: !opts.viewport && !name.startsWith('stress-roster') })
 }
 
 let failed = 0

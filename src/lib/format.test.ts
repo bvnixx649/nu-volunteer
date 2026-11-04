@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cleanName, dateTile, isStudentId, thDate, thTime } from './format'
+import { cleanName, dateTile, isStudentId, thDate, thDayMonth, thTime } from './format'
 
 describe('format', () => {
   it('accepts only 8-digit student ids', () => {
@@ -13,6 +13,9 @@ describe('format', () => {
   })
   it('formats dates in the Buddhist era', () => {
     expect(thDate(new Date(2026, 10, 20, 9, 41).getTime())).toBe('20 พ.ย. 2569')
+  })
+  it('formats a day and short month without the year', () => {
+    expect(thDayMonth(new Date(2026, 10, 18, 9).getTime())).toBe('18 พ.ย.')
   })
   it('formats 24-hour time', () => {
     expect(thTime(new Date(2026, 10, 20, 9, 5).getTime())).toBe('09:05')

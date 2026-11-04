@@ -38,7 +38,7 @@ export default async function ({ browser, base, shot, mode }) {
   await both('settings-1-manage')
 
   // Sheet: change to 15 s and 200 m.
-  await page.getByRole('button', { name: 'ตั้งค่าการเช็คชื่อ' }).click()
+  await page.getByRole('button', { name: /^การเช็คชื่อ/ }).click()
   const sheet = page.getByRole('dialog', { name: 'ตั้งค่าการเช็คชื่อ' })
   await sheet.getByRole('radio', { name: 'ทุก 15 วิ', exact: true }).click()
   await sheet.getByRole('radio', { name: '200 ม.', exact: true }).click()
@@ -62,7 +62,8 @@ export default async function ({ browser, base, shot, mode }) {
   await both('settings-4-saved')
 
   // QR screen runs on 15 s.
-  await page.getByRole('button', { name: 'เปิด QR' }).click()
+  await page.getByRole('button', { name: 'แสดง QR', exact: true }).click()
+  await page.getByRole('link', { name: 'เปิดเต็มจอสำหรับหน้างาน' }).click()
   await page.getByText('QR เปลี่ยนทุก 15 วินาที').waitFor()
   const bar = page.locator('[data-interval]')
   expect((await bar.getAttribute('data-interval')) === '15', 'countdown bar uses 15 s')
@@ -85,7 +86,7 @@ export default async function ({ browser, base, shot, mode }) {
   // Settings changed while the QR is open: the screen follows (other tab of the same browser).
   const other = await ctx.newPage()
   await other.goto(`${base}#/sup/a/test-blood`)
-  await other.getByRole('button', { name: 'ตั้งค่าการเช็คชื่อ' }).click()
+  await other.getByRole('button', { name: /^การเช็คชื่อ/ }).click()
   await other.getByRole('dialog').getByRole('radio', { name: 'ทุก 10 วิ', exact: true }).click()
   await other.getByRole('dialog').getByRole('button', { name: 'บันทึก', exact: true }).click()
   await other.getByRole('dialog').waitFor({ state: 'detached' })
@@ -94,7 +95,7 @@ export default async function ({ browser, base, shot, mode }) {
   expect((await bar.getAttribute('data-interval')) === '10', 'countdown follows the new interval')
   const other2 = await ctx.newPage()
   await other2.goto(`${base}#/sup/a/test-blood`)
-  await other2.getByRole('button', { name: 'ตั้งค่าการเช็คชื่อ' }).click()
+  await other2.getByRole('button', { name: /^การเช็คชื่อ/ }).click()
   await other2.getByRole('dialog').getByRole('radio', { name: 'ทุก 15 วิ', exact: true }).click()
   await other2.getByRole('dialog').getByRole('button', { name: 'บันทึก', exact: true }).click()
   await other2.getByRole('dialog').waitFor({ state: 'detached' })

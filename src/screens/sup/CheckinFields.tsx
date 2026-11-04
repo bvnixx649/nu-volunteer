@@ -67,7 +67,7 @@ export function CheckinFields({ value, onChange, hideWalkIn }: Props) {
             checked={locOn}
             onChange={(v) => set({ locMode: v ? 'on' : 'off' })}
             label="ตรวจสอบตำแหน่ง"
-            hint={locOn ? 'นอกระยะยังได้ชั่วโมง แต่ทำเครื่องหมายไว้' : 'สแกนได้จากทุกที่'}
+            hint={locOn ? 'นอกระยะยังได้รับชั่วโมง แต่จะขึ้นเป็นควรตรวจสอบ' : 'สแกนได้จากทุกที่'}
           />
           {locOn && (
             <div className="pb-4">

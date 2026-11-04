@@ -31,7 +31,7 @@ export const STAGE_LABEL: Record<Stage, string> = {
   scheduled: 'ยังไม่เปิดรับ',
   open: 'เปิดรับสมัคร',
   live: 'กำลังดำเนินการ',
-  closing: 'รอตรวจรายชื่อ',
+  closing: 'รอตรวจสอบ',
   submit: 'รอส่งรายชื่อ',
   waiting: 'ส่งรายชื่อแล้ว',
   done: 'บันทึกแล้ว',

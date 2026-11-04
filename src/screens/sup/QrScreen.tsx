@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import QRCode from 'qrcode'
 import { DownloadSimple, Printer, X } from '@phosphor-icons/react'
@@ -6,26 +6,12 @@ import { api, now } from '../../data/api'
 import type { Activity, Credit } from '../../data/types'
 import { qrWindowMs } from '../../config'
 import { isBottle } from '../../lib/bottle'
-import { checkinOf } from '../../lib/checkin'
-import { claimUrl, makeToken, windowOf } from '../../lib/qr'
-import { watchFix, type Fix, type GeoError } from '../../lib/geo'
 import { keepAwake } from '../../lib/wake'
 import { useDevice } from '../../store'
 import { Counter } from '../../ui/Counter'
 import { QrCode } from './QrCode'
+import { useQrFeed } from './useQrFeed'
 import { LiveFeed } from './LiveFeed'
-
-/** The current QR window in server time. Re-renders once per window, and at once when the interval changes. */
-function useWindow(enabled: boolean, interval: number) {
-  const [, setTick] = useState(0)
-  const w = windowOf(now(), interval)
-  useEffect(() => {
-    if (!enabled) return
-    const t = setInterval(() => windowOf(now(), interval) !== w && setTick((n) => n + 1), 250)
-    return () => clearInterval(t)
-  }, [enabled, interval, w])
-  return w
-}
 
 const sameDay = (a: number, b: number) => new Date(a).toDateString() === new Date(b).toDateString()
 
@@ -39,43 +25,18 @@ export default function QrScreen() {
   const sup = useDevice((s) => s.sup)
   const [activity, setActivity] = useState<Activity | null | undefined>(undefined)
   const [credits, setCredits] = useState<Credit[]>([])
-  const [fix, setFix] = useState<Fix | null>(null)
-  const [geoErr, setGeoErr] = useState<GeoError | null>(null)
 
   useEffect(() => api.watchActivity(id, setActivity), [id])
   useEffect(() => api.watchCredits(id, setCredits), [id])
   useEffect(() => keepAwake(), [])
 
-  const { locMode, qrInterval: interval } = checkinOf(activity ?? {})
-  const checksLocation = !!activity && locMode === 'on'
-  useEffect(() => {
-    if (!checksLocation) return
-    return watchFix(
-      (f) => {
-        setFix(f)
-        setGeoErr(null)
-      },
-      setGeoErr,
-    )
-  }, [checksLocation])
-
-  const dynamic = activity?.qrMode !== 'static'
-  const w = useWindow(dynamic, interval)
-  // A static QR only changes once, when the first GPS fix arrives.
-  const coords = fix && checksLocation ? { la: +fix.lat.toFixed(6), lo: +fix.lng.toFixed(6), ac: Math.round(fix.acc) } : null
-  const coordKey = dynamic ? JSON.stringify(coords) : coords ? 'fixed' : 'none'
-  const token = useMemo(
-    () => (activity ? makeToken({ a: activity.id, h: activity.hours, ...coords }, activity.qrMode, w * qrWindowMs(interval), interval) : ''),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [activity?.id, activity?.hours, activity?.qrMode, w, interval, coordKey],
-  )
+  const { token, url, interval, dynamic, window: w, checksLocation, fix, geoErr } = useQrFeed(activity)
 
   if (!sup) return <Navigate to="/sup/login" replace />
   if (activity === undefined) return null
   if (!activity) return <p className="p-6">ไม่พบกิจกรรมนี้</p>
   if (isBottle(activity)) return <Navigate to={`/sup/a/${activity.id}`} replace />
 
-  const url = claimUrl(token)
   const today = credits.filter((c) => sameDay(c.at, now())).length
   const remaining = qrWindowMs(interval) - (now() % qrWindowMs(interval))
 
@@ -135,13 +96,13 @@ export default function QrScreen() {
               </>
             )}
           </p>
-          <p className="num text-lg font-semibold md:hidden">ได้ชั่วโมงวันนี้ {today} คน</p>
+          <p className="num text-lg font-semibold md:hidden">ได้รับชั่วโมงวันนี้ {today} คน</p>
         </section>
 
         <section className="hidden flex-col gap-8 md:flex print:hidden">
           <div>
             <Counter value={today} className="block text-[8rem] leading-none font-bold tracking-tight" />
-            <p className="mt-3 text-xl text-[#6b6862]">คนได้ชั่วโมงวันนี้</p>
+            <p className="mt-3 text-xl text-[#6b6862]">ผู้ได้รับชั่วโมงวันนี้</p>
           </div>
           <LiveFeed credits={credits} />
         </section>

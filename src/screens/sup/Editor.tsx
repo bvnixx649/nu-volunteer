@@ -302,14 +302,14 @@ function Flow({ sup, saved }: { sup: SupSession; saved: Activity | null }) {
         </div>
       </Sheet>
 
-      <Sheet open={leaving} onClose={() => setLeaving(false)} title="ทิ้งที่กรอกไว้ไหม">
+      <Sheet open={leaving} onClose={() => setLeaving(false)} title="ออกโดยไม่บันทึกไหม">
         <p className="mb-6 text-muted">{edit ? 'การแก้ไขที่ยังไม่บันทึกจะหายไป' : 'กิจกรรมนี้ยังไม่ได้เผยแพร่ ที่กรอกไว้จะหายไป'}</p>
         <div className="flex flex-col gap-3">
           <Button size="lg" variant="danger" onClick={exit}>
-            ทิ้งและออก
+            ออกโดยไม่บันทึก
           </Button>
           <Button size="lg" variant="secondary" onClick={() => setLeaving(false)}>
-            กรอกต่อ
+            แก้ไขต่อ
           </Button>
         </div>
       </Sheet>

@@ -1,11 +1,14 @@
-// Supervisor home: create button, live card for the blood activity, to-do rows for the ended activity,
-// calendar day filter, activity-year stats. Light and dark screenshots at 390x844 in scripts/e2e/out/home-*.png.
+// Supervisor home (dark, 390x844): header with the calendar link and menu, the green live card with the latest scan and
+// the QR button, the groups "รอดำเนินการ" and "กิจกรรมที่จะจัดขึ้น", the folded "ส่งรายชื่อแล้ว", the academic-year tiles and
+// the light "สร้างกิจกรรม" button. Also checks two columns from 900px. Screenshots: scripts/e2e/out/sup-home-*.png.
+import { loginAsSup, seedSupHome } from '../lib/sup-fixture.mjs'
+
 const expect = (cond, msg) => {
   if (!cond) throw new Error(msg)
 }
 
 export default async function ({ browser, base, shot }) {
-  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } })
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, colorScheme: 'dark' })
   const page = await ctx.newPage()
   const problems = []
   page.on('pageerror', (e) => problems.push(e.message))
@@ -14,99 +17,112 @@ export default async function ({ browser, base, shot }) {
     const w = await page.evaluate(() => document.documentElement.scrollWidth)
     expect(w <= 390, `${label} is ${w}px wide`)
   }
-  const both = async (name) => {
-    await page.emulateMedia({ colorScheme: 'light' })
-    await shot(page, `${name}-light`)
-    await page.emulateMedia({ colorScheme: 'dark' })
-    await page.waitForTimeout(250) // let the 160 ms colour transitions finish
-    await shot(page, `${name}-dark`)
-    await page.emulateMedia({ colorScheme: 'light' })
-  }
 
-  // The fixture's blood activity is 08:00 to 16:00 today. Move it around now so it is live whatever time this runs,
-  // and add one activity two days away so the day filter has something to hide.
-  await page.goto(`${base}#/sup/login`)
-  await page.waitForFunction(() => localStorage.getItem('nuv:db'))
-  await page.evaluate(() => {
-    const db = JSON.parse(localStorage.getItem('nuv:db'))
-    const h = 3600_000
-    const blood = db.activities['test-blood']
-    blood.start = Date.now() - h
-    blood.end = Date.now() + 3 * h
-    blood.creditCount = 7
-    db.activities['test-later'] = {
-      ...blood,
-      id: 'test-later',
-      title: 'ปลูกป่าชายเลน',
-      start: Date.now() + 48 * h,
-      end: Date.now() + 52 * h,
-      creditCount: 0,
-      regCount: 12,
-    }
-    localStorage.setItem('nuv:db', JSON.stringify(db))
-  })
-  await page.reload()
+  await seedSupHome(page, base)
+  await loginAsSup(page)
 
-  await page.getByLabel('ชื่อผู้ดูแล').fill('พี่เต้')
-  await page.getByLabel('รหัส', { exact: true }).fill('NUVOL69')
-  await page.getByRole('button', { name: 'เข้าใช้งาน' }).click()
-  await page.getByText('กองกิจการนิสิต มหาวิทยาลัยนเรศวร').waitFor()
+  // Header: emblem, org line, supervisor name, calendar link and menu button, all 44px targets.
+  await page.getByRole('heading', { name: 'ศูนย์จิตอาสา กองกิจการนิสิต' }).waitFor()
+  const cal = page.getByRole('link', { name: 'ปฏิทินและสถิติ' })
+  expect((await cal.getAttribute('href')).endsWith('#/sup/overview'), 'calendar button links to /sup/overview')
+  const calBox = await cal.boundingBox()
+  expect(Math.round(calBox.width) === 44 && Math.round(calBox.height) === 44, `calendar button is ${calBox.width}x${calBox.height}`)
+  const emblem = await page.getByAltText('ตรามหาวิทยาลัยนเรศวร').boundingBox()
+  expect(Math.round(emblem.width) === 40, `emblem is ${emblem.width}px`)
+  expect((await page.getByRole('button', { name: 'ปฏิทิน' }).count()) === 0, 'no calendar sheet button on home')
 
-  // Round floating create button, bottom right, clear of the home list.
-  const create = page.getByRole('link', { name: 'สร้างกิจกรรม' })
-  await create.waitFor()
-  expect((await create.getAttribute('href')).endsWith('#/sup/new'), 'create button links to /sup/new')
-  const box = await create.boundingBox()
-  expect(Math.round(box.width) === 56 && Math.round(box.height) === 56, `create button is ${box.width}x${box.height}`)
-  expect(box.x + box.width <= 390 && box.y + box.height <= 844, 'create button is inside the screen')
-
-  // Live card for the blood activity.
-  await page.getByRole('heading', { name: 'กำลังดำเนินการ' }).waitFor()
-  const qr = page.getByRole('link', { name: 'เปิด QR' })
-  expect((await qr.count()) === 1, 'one live card')
-  expect((await qr.getAttribute('href')).endsWith('/sup/a/test-blood/qr'), 'QR button links to the QR screen')
-  await page.getByRole('link', { name: /บริจาคโลหิต ครั้งที่ 2\/2569/ }).waitFor()
+  // Live card.
+  await page.getByText(/^กำลังดำเนินการ ถึง \d\d:\d\d น\.$/).waitFor()
+  await page.getByText(/ชั่วโมงต่อคน/).first().waitFor()
+  await page.getByText('ได้รับชั่วโมงแล้ว', { exact: true }).waitFor()
   await page.waitForFunction(() => [...document.querySelectorAll('[data-value]')].some((e) => e.textContent === '7'))
+  await page.getByText('ผู้ลงทะเบียน', { exact: false }).first().waitFor()
+  const bar = page.getByRole('progressbar')
+  expect((await bar.getAttribute('aria-valuenow')) === '35', 'progress is 7 of 20 registrants, 35 percent')
+  const last = page.locator('.bump')
+  await last.waitFor()
+  expect(/ณัฐวุฒิ/.test(await last.innerText()), 'latest scan is the newest credit')
+  const qr = page.getByRole('link', { name: 'แสดง QR รับชั่วโมง' })
+  expect((await qr.count()) === 1, 'one live card with one QR button')
+  expect((await qr.getAttribute('href')).endsWith('/sup/a/test-blood?qr=1'), 'QR button opens Manage with the QR revealed')
+  const qrBox = await qr.boundingBox()
+  expect(qrBox.height >= 56, `QR button is ${qrBox.height}px tall`)
 
-  // One list of every other activity, each with a status tag. No separate to-do section.
-  await page.getByRole('heading', { name: 'กิจกรรมทั้งหมด' }).waitFor()
-  expect((await page.getByRole('heading', { name: 'ต้องทำต่อ' }).count()) === 0, 'no separate to-do section')
-  const todo = page.getByRole('link', { name: /เก็บขยะริมแม่น้ำน่าน/ })
-  expect((await todo.count()) === 1, 'the ended activity appears once')
-  await todo.getByText('รอตรวจรายชื่อ', { exact: true }).waitFor()
-  await page.getByRole('link', { name: /ปลูกป่าชายเลน/ }).getByText('เปิดรับสมัคร', { exact: true }).waitFor()
-  await page.getByText('ลงทะเบียน 12 คน').waitFor()
-  await page.getByRole('heading', { name: /^ปีกิจกรรม \d{4}$/ }).waitFor()
+  // Groups, in order, with counts.
+  const headings = await page.getByRole('heading', { level: 2 }).allInnerTexts()
+  const text = headings.map((h) => h.replace(/\s+/g, ' ').trim())
+  expect(text.includes('รอดำเนินการ 2'), `to-do group is "รอดำเนินการ 2", got ${text.join(' | ')}`)
+  expect(text.includes('กิจกรรมที่จะจัดขึ้น 2'), 'upcoming group has 2')
+  expect(text.includes('ส่งรายชื่อแล้ว 1'), 'sent group has 1')
+  expect(text.some((t) => /^ปีการศึกษา \d{4}$/.test(t)), 'academic-year block')
+  expect(text.indexOf('รอดำเนินการ 2') < text.indexOf('กิจกรรมที่จะจัดขึ้น 2'), 'to-do comes before upcoming')
+
+  const ended = page.getByRole('link', { name: /เก็บขยะริมแม่น้ำน่าน/ })
+  expect((await ended.count()) === 1, 'the ended activity appears once')
+  await ended.getByText('รอตรวจสอบ', { exact: true }).waitFor()
+  await ended.getByText('3 คนได้รับชั่วโมงแล้ว').waitFor()
+  const submit = page.getByRole('link', { name: /ปลูกป่าชายเลน/ })
+  await submit.getByText('รอส่งรายชื่อ', { exact: true }).waitFor()
+  await submit.getByText(/^ส่งภายใน \d+ [^ ]+ อีก \d+ วัน$/).waitFor()
+  const later = page.getByRole('link', { name: /ครั้งที่ 3\/2569/ })
+  await later.getByText('เปิดรับสมัคร', { exact: true }).waitFor()
+  await later.getByText('ลงทะเบียน 182 จาก 300 คน').waitFor()
+  const soon = page.getByRole('link', { name: /ทาสีรั้วโรงเรียนบ้านท่าโพธิ์/ })
+  await soon.getByText('ยังไม่เปิดรับ', { exact: true }).waitFor()
+  await soon.getByText(/^เปิดรับ \d+ [^ ]+ \d\d:\d\d น\.$/).waitFor()
+
+  // The sent group is folded until opened.
+  const sentToggle = page.getByRole('button', { name: /^ส่งรายชื่อแล้ว 1/ })
+  expect((await sentToggle.getAttribute('aria-expanded')) === 'false', 'sent group starts folded')
+  expect((await page.getByRole('link', { name: /ทาสีอาคารเรียนโรงเรียนวัดจันทร์/ }).count()) === 0, 'sent rows are hidden while folded')
+
+  // Year tiles: no total hours anywhere, KPI is a percent.
+  await page.getByText('เข้าร่วมจริง', { exact: true }).waitFor()
+  await page.getByText(/^\d+%$/).waitFor()
+  expect((await page.getByRole('link', { name: /^ดูสถิติทั้งหมด/ }).getAttribute('href')).endsWith('#/sup/overview'), 'see-all link goes to /sup/overview')
   const body = await page.locator('main').innerText()
   expect(!/[·—]/.test(body), 'no middle dot or em-dash on screen')
-  expect(!body.includes('มาจริงเทียบ'), 'no turn-up percentage')
+  expect(!/ชั่วโมงรวม/.test(body), 'no total hours figure')
+  expect(!body.includes('ต้องทำต่อ') && !body.includes('คนได้ชั่วโมง'), 'old wording is gone')
+
+  // Light "สร้างกิจกรรม" pill, bottom right, with the safe-area gap.
+  const create = page.getByRole('link', { name: 'สร้างกิจกรรม' })
+  expect((await create.getAttribute('href')).endsWith('#/sup/new'), 'create button links to /sup/new')
+  const box = await create.boundingBox()
+  expect(Math.round(box.height) === 56 && box.width > 56, `create pill is ${box.width}x${box.height}`)
+  expect(box.x + box.width <= 390 && box.y + box.height <= 844 && box.x + box.width >= 370, 'create pill sits in the bottom-right corner')
+  const bg = await create.evaluate((e) => getComputedStyle(e).backgroundColor)
+  expect(bg !== 'rgb(232, 89, 12)' && bg !== 'rgb(204, 72, 14)', `create pill is not orange (${bg})`)
 
   await noOverflow('home')
-  await both('home-1-top')
-  await page.getByRole('heading', { name: /^ปีกิจกรรม/ }).scrollIntoViewIfNeeded()
-  await both('home-2-lower')
+  await page.waitForTimeout(1300) // rise, count-up and ring finish
+  await shot(page, 'sup-home-top', { viewport: true })
+  await page.evaluate(() => scrollTo(0, document.body.scrollHeight))
+  await page.waitForTimeout(300)
+  await shot(page, 'sup-home-lower', { viewport: true })
   await page.evaluate(() => scrollTo(0, 0))
 
-  // Calendar sheet: today has a dot, picking a day closes the sheet and filters the list, the chip clears it.
-  const today = new Date().getDate()
-  await page.getByRole('button', { name: 'ปฏิทิน' }).click()
-  const cell = page.getByRole('button', { name: `วันที่ ${today} มีกิจกรรม` })
-  await page.getByRole('heading', { name: /^(มกราคม|กุมภาพันธ์|มีนาคม|เมษายน|พฤษภาคม|มิถุนายน|กรกฎาคม|สิงหาคม|กันยายน|ตุลาคม|พฤศจิกายน|ธันวาคม) \d{4}$/ }).waitFor()
-  await both('home-3-calendar')
-  await cell.click()
+  await sentToggle.click()
+  await page.getByRole('link', { name: /ทาสีอาคารเรียนโรงเรียนวัดจันทร์/ }).getByText('ส่งรายชื่อแล้ว', { exact: true }).waitFor()
+  await noOverflow('home with the sent group open')
+
+  // Menu: logout is still reachable.
+  await page.getByRole('button', { name: 'เมนู' }).click()
+  const menu = page.getByRole('dialog', { name: 'เมนู' })
+  await menu.getByRole('button', { name: 'ออกจากระบบ' }).waitFor()
+  await page.keyboard.press('Escape')
   await page.getByRole('dialog').waitFor({ state: 'detached' })
-  const chip = page.getByRole('button', { name: /^ล้างตัวกรองวันที่/ })
-  await chip.waitFor()
-  expect((await page.getByRole('link', { name: /ปลูกป่าชายเลน/ }).count()) === 0, 'other day is hidden while filtered')
-  expect((await page.getByRole('link', { name: /เก็บขยะริมแม่น้ำน่าน/ }).count()) >= 1, 'ended activity is on today')
-  await noOverflow('filtered')
-  await both('home-4-filtered')
-  await chip.click()
-  await chip.waitFor({ state: 'detached' })
-  await page.getByRole('link', { name: /ปลูกป่าชายเลน/ }).waitFor()
+
+  // Two columns from 900px: live card and year block on the left, the lists on the right.
+  await page.setViewportSize({ width: 1100, height: 800 })
+  await page.waitForTimeout(300)
+  const left = await qr.boundingBox()
+  const right = await ended.boundingBox()
+  expect(right.x > left.x + left.width - 1, `lists sit right of the live card (${left.x}..${left.x + left.width} vs ${right.x})`)
+  await page.setViewportSize({ width: 390, height: 844 })
 
   // A list row opens the manage page.
-  await todo.click()
+  await ended.click()
   await page.getByRole('heading', { name: 'เก็บขยะริมแม่น้ำน่าน' }).waitFor()
 
   expect(!problems.length, `console problems: ${problems.join(' | ')}`)
