@@ -1,3 +1,11 @@
+-- 12 พ.ย. 2569 (applied to schema.sql, NOT proposed): reg_count counts sign-ups only. A walk-in (someone who gets hours without registering)
+-- no longer raises it in `claim`, and `cancel_registration` / `remove_registration` no longer lower it for a walk-in row. Before this the
+-- supervisor's ring switched to "จากผู้ลงทะเบียน 1 คน" and read 100% after the first walk-in. It is already in schema.sql and MUST be run on an
+-- existing database: run the whole schema.sql (safe to repeat) or the three `create or replace function` blocks (claim, cancel_registration,
+-- remove_registration), then the grant lines from the first note below, then this backfill once:
+--   update activities a set reg_count = (select count(*) from registrations r
+--     where r.activity_id = a.id and r.cancelled_at is null and not r.walk_in);
+
 -- 4 พ.ย. 2569 (applied to schema.sql, NOT proposed): claim takes p_scanned_at, so a scan the phone kept while offline is stored with its
 -- real time and the flag 'offline'. It is already in schema.sql and MUST be run on an existing database before the app can send kept scans
 -- (normal claims keep working without it). Run the whole schema.sql (safe to repeat), or exactly these statements, in this order:

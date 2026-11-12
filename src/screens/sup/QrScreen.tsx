@@ -6,12 +6,15 @@ import { api, now } from '../../data/api'
 import type { Activity, Credit } from '../../data/types'
 import { qrWindowMs } from '../../config'
 import { isBottle } from '../../lib/bottle'
+import { ownsActivity, qrClosed } from '../../lib/stage'
 import { keepAwake } from '../../lib/wake'
 import { useDevice } from '../../store'
+import { Button } from '../../ui/Button'
 import { Counter } from '../../ui/Counter'
 import { QrCode } from './QrCode'
 import { useQrFeed } from './useQrFeed'
 import { LiveFeed } from './LiveFeed'
+import { NotYours } from './NotYours'
 
 const sameDay = (a: number, b: number) => new Date(a).toDateString() === new Date(b).toDateString()
 
@@ -35,7 +38,17 @@ export default function QrScreen() {
   if (!sup) return <Navigate to="/sup/login" replace />
   if (activity === undefined) return null
   if (!activity) return <p className="p-6">ไม่พบกิจกรรมนี้</p>
+  if (!ownsActivity(activity, sup)) return <NotYours />
   if (isBottle(activity)) return <Navigate to={`/sup/a/${activity.id}`} replace />
+  if (qrClosed(activity))
+    return (
+      <main className="mx-auto flex min-h-dvh max-w-lg flex-col justify-center gap-6 px-5 py-10">
+        <h1 className="text-[26px] leading-snug font-bold tracking-tight text-balance">ส่งรายชื่อแล้ว ปิดรับชั่วโมง</h1>
+        <Button size="lg" className="w-full" onClick={() => nav(`/sup/a/${activity.id}`, { replace: true })}>
+          กลับไปหน้ากิจกรรม
+        </Button>
+      </main>
+    )
 
   const today = credits.filter((c) => sameDay(c.at, now())).length
   const remaining = qrWindowMs(interval) - (now() % qrWindowMs(interval))

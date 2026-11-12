@@ -102,9 +102,9 @@ export function BottleSheet({ open, activity, by, onClose }: { open: boolean; ac
           </div>
         </div>
 
-        <div className="rounded-[var(--radius-card)] bg-surface-2 px-5 py-5 text-center" aria-live="polite" data-testid="bottle-preview">
+        <div className="rounded-[var(--radius-field)] bg-surface-2 px-5 py-5 text-center" aria-live="polite" data-testid="bottle-preview">
           <p className="flex items-baseline justify-center gap-2">
-            <span className="num text-6xl leading-none font-bold tracking-tight" data-testid="bottle-hours">
+            <span className="num text-6xl leading-none font-semibold tracking-tight" data-testid="bottle-hours">
               {hours}
             </span>
             <span className="text-lg font-semibold">ชั่วโมง</span>

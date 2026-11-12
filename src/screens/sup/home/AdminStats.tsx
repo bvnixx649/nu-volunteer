@@ -3,12 +3,14 @@ import { KPI_ACTIVITIES } from '../../../config'
 import type { CategoryRow, OrgRow } from '../../../lib/home'
 import { Counter } from '../../../ui/Counter'
 import { StatusTag } from '../../../ui/StatusTag'
+import { STAT_HEADING } from './OverviewStats'
+import { CARD } from './parts'
 
 const n = (v: number) => v.toLocaleString('th-TH')
 const hoursText = (v: number) => v.toLocaleString('th-TH', { maximumFractionDigits: 1 })
 const delay = (ms: number): CSSProperties => ({ '--d': `${ms}ms` }) as CSSProperties
 
-/** The centre's yearly target: activities started this activity year against KPI_ACTIVITIES, as a big number and an orange bar. */
+/** The centre's yearly target: activities started this activity year against KPI_ACTIVITIES, as a big number and a plain bar. */
 export function TargetCard({ label, count }: { label: number; count: number }) {
   const left = KPI_ACTIVITIES - count
   const pct = Math.min(100, Math.max(0, (count / KPI_ACTIVITIES) * 100))
@@ -19,48 +21,43 @@ export function TargetCard({ label, count }: { label: number; count: number }) {
     return () => clearTimeout(t)
   }, [pct])
   return (
-    <section className="rise rounded-[30px] border border-white/[0.06] bg-white/[0.03] p-1.5" style={delay(20)} aria-label="เป้าหมายปีการศึกษา">
+    <section className={`rise ${CARD} p-5`} style={delay(20)} aria-label="เป้าหมายปีการศึกษา">
+      <p className="text-sm text-muted">เป้าหมายปีการศึกษา {label}</p>
+      <p className="mt-2 flex flex-wrap items-baseline gap-x-2.5">
+        <Counter value={count} className="text-[52px] leading-none font-semibold tracking-tight" />
+        <span className="num text-base text-ink/80">จาก {n(KPI_ACTIVITIES)} กิจกรรม</span>
+      </p>
       <div
-        className="rounded-3xl p-[18px] shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]"
-        style={{ backgroundImage: 'radial-gradient(120% 80% at 100% 0%, rgba(242,112,42,0.16), rgba(242,112,42,0) 55%), linear-gradient(180deg, #25231f, #1c1a18)' }}
+        role="progressbar"
+        aria-label="กิจกรรมที่จัดแล้วเทียบเป้าหมาย"
+        aria-valuemin={0}
+        aria-valuemax={KPI_ACTIVITIES}
+        aria-valuenow={Math.min(count, KPI_ACTIVITIES)}
+        className="mt-4 h-2 overflow-hidden rounded-full bg-surface-2"
       >
-        <p className="text-sm text-ink/80">เป้าหมายปีการศึกษา {label}</p>
-        <p className="mt-2 flex flex-wrap items-baseline gap-x-2.5">
-          <Counter value={count} className="text-[52px] leading-none font-semibold tracking-[-0.045em]" />
-          <span className="num text-base text-ink/80">จาก {n(KPI_ACTIVITIES)} กิจกรรม</span>
-        </p>
-        <div
-          role="progressbar"
-          aria-label="กิจกรรมที่จัดแล้วเทียบเป้าหมาย"
-          aria-valuemin={0}
-          aria-valuemax={KPI_ACTIVITIES}
-          aria-valuenow={Math.min(count, KPI_ACTIVITIES)}
-          className="mt-4 h-2 overflow-hidden rounded-full bg-white/[0.08]"
-        >
-          <div className="h-full w-full origin-left rounded-full bg-accent" style={{ transform: `scaleX(${shown / 100})`, transition: 'transform 900ms cubic-bezier(0.23,1,0.32,1)' }} />
-        </div>
-        <p className={`num mt-2 text-right text-[13px] ${left > 0 ? 'text-muted' : 'font-semibold text-ok'}`}>{left > 0 ? `อีก ${n(left)} กิจกรรม` : 'ถึงเป้าแล้ว'}</p>
+        <div className="h-full w-full origin-left rounded-full bg-ink" style={{ transform: `scaleX(${shown / 100})`, transition: 'transform 900ms var(--ease-out)' }} />
       </div>
+      <p className={`num mt-2.5 text-right text-[13.5px] ${left > 0 ? 'text-muted' : 'font-semibold text-ok'}`}>{left > 0 ? `อีก ${n(left)} กิจกรรม` : 'ถึงเป้าแล้ว'}</p>
     </section>
   )
 }
 
-const ROW = 'flex min-h-16 items-center justify-between gap-3 px-4 py-3.5 [&:not(:first-child)]:border-t [&:not(:first-child)]:border-white/5'
+const ROW = 'flex min-h-16 items-center justify-between gap-3 px-5 py-3.5 [&:not(:first-child)]:border-t [&:not(:first-child)]:border-line'
 
 /** Per organisation: its activities this year, the people who got hours, and how many rosters wait for the centre. */
 export function OrgSection({ rows }: { rows: OrgRow[] }) {
   if (!rows.length) return null
   return (
     <>
-      <h2 className="rise px-1 pt-6 pb-2.5 text-[17px] font-semibold" style={delay(180)}>
-        แยกตามหน่วยงาน
-      </h2>
-      <ul className="rise overflow-hidden rounded-[22px] border border-white/[0.06] bg-surface" style={delay(200)}>
+      <div className={STAT_HEADING} style={delay(180)}>
+        <h2 className="text-xl font-semibold">แยกตามหน่วยงาน</h2>
+      </div>
+      <ul className={`rise ${CARD}`} style={delay(200)}>
         {rows.map((r) => (
           <li key={r.orgCode} className={ROW}>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-[15.5px] font-semibold">{r.name}</span>
-              <span className="num mt-0.5 flex flex-wrap gap-x-3 text-[13px] text-muted">
+              <span className="block text-base leading-snug font-semibold">{r.name}</span>
+              <span className="num mt-0.5 flex flex-wrap gap-x-3 text-[13.5px] text-muted">
                 <span>{n(r.activities)} กิจกรรม</span>
                 <span>ผู้ได้รับชั่วโมง {n(r.people)} คน</span>
               </span>
@@ -78,15 +75,15 @@ export function CategorySection({ rows }: { rows: CategoryRow[] }) {
   if (!rows.length) return null
   return (
     <>
-      <h2 className="rise px-1 pt-6 pb-2.5 text-[17px] font-semibold" style={delay(220)}>
-        แยกตามหมวด
-      </h2>
-      <ul className="rise overflow-hidden rounded-[22px] border border-white/[0.06] bg-surface" style={delay(240)}>
+      <div className={STAT_HEADING} style={delay(220)}>
+        <h2 className="text-xl font-semibold">แยกตามหมวด</h2>
+      </div>
+      <ul className={`rise ${CARD}`} style={delay(240)}>
         {rows.map((r) => (
           <li key={r.key} className={ROW}>
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-[15.5px] font-semibold">{r.label}</span>
-              <span className="num mt-0.5 flex flex-wrap gap-x-3 text-[13px] text-muted">
+              <span className="block text-base leading-snug font-semibold">{r.label}</span>
+              <span className="num mt-0.5 flex flex-wrap gap-x-3 text-[13.5px] text-muted">
                 <span>{n(r.activities)} กิจกรรม</span>
                 {r.hours !== undefined && <span>ชั่วโมงที่ออกให้ {hoursText(r.hours)}</span>}
               </span>

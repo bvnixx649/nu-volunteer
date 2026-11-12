@@ -42,7 +42,7 @@ export default function DirectMessage() {
     return (
       <main className="mx-auto max-w-lg px-5 pt-[calc(0.5rem+env(safe-area-inset-top,0px))]">
         <BackBar fallback={`/a/${id}`} />
-        <h1 className="mt-6 text-2xl font-bold">ข้อความส่วนตัวหมดอายุแล้ว</h1>
+        <h1 className="mt-6 text-[28px] leading-tight font-bold tracking-tight text-balance">ข้อความส่วนตัวหมดอายุแล้ว</h1>
         <p className="mt-2 text-muted">ข้อความถูกซ่อนหลังกิจกรรมจบ {DM_HIDE_DAYS} วัน ติดต่อผู้ดูแลตามเบอร์โทรในหน้ากิจกรรม</p>
       </main>
     )

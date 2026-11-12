@@ -52,11 +52,11 @@ export default function StudentRoster() {
   return (
     <main className="mx-auto max-w-lg px-5 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] pb-[calc(2rem+env(safe-area-inset-bottom,0px))]">
       <BackBar fallback={`/a/${id}`} />
-      <h1 className="mt-2 text-2xl font-bold tracking-tight">ตรวจสอบรายชื่อ</h1>
+      <h1 className="mt-2 text-[28px] leading-tight font-bold tracking-tight">ตรวจสอบรายชื่อ</h1>
       {activity && <p className="mt-1 line-clamp-2 text-muted">{activity.title}</p>}
 
       <div className="sticky top-0 z-10 -mx-5 mt-4 flex gap-2 bg-bg px-5 py-2">
-        <label className="flex h-12 min-w-0 flex-1 items-center gap-3 rounded-full bg-surface px-4 ring-1 ring-line focus-within:ring-2 focus-within:ring-accent">
+        <label className="flex h-12 min-w-0 flex-1 items-center gap-3 rounded-[var(--radius-field)] bg-surface-2 px-4 ring-1 ring-transparent transition-shadow duration-150 focus-within:ring-2 focus-within:ring-ink">
           <MagnifyingGlass size={20} className="shrink-0 text-muted" />
           <input
             value={q}
@@ -70,7 +70,7 @@ export default function StudentRoster() {
           onClick={load}
           disabled={busy}
           aria-label="โหลดรายชื่อใหม่"
-          className="pressable grid size-12 shrink-0 place-items-center rounded-full bg-surface ring-1 ring-line"
+          className="pressable grid size-12 shrink-0 place-items-center rounded-full bg-surface-2"
         >
           <ArrowsClockwise size={22} className={busy ? 'animate-spin' : ''} />
         </button>
@@ -80,12 +80,12 @@ export default function StudentRoster() {
 
       {credits && (
         <>
-          <p className="num mt-2 mb-3 text-muted">{q ? `พบ ${rows.length} จาก ${credits.length} คน` : `${credits.length} คน`}</p>
+          <p className="num mt-2 mb-3 text-[15px] text-muted">{q ? `พบ ${rows.length} จาก ${credits.length} คน` : `${credits.length} คน`}</p>
           {rows.length === 0 ? (
             <p className="rounded-[var(--radius-card)] bg-surface px-5 py-8 text-center text-muted">{credits.length ? 'ไม่พบรายชื่อที่ตรงกัน' : 'ยังไม่มีใครได้รับชั่วโมง'}</p>
           ) : (
-            <div className="overflow-hidden rounded-[var(--radius-card)] bg-surface shadow-soft">
-              <div className={`grid ${COLS} gap-x-2 border-b border-line px-4 py-2.5 text-sm text-muted`}>
+            <div className="overflow-hidden rounded-[var(--radius-card)] bg-surface">
+              <div className={`grid ${COLS} gap-x-2 border-b border-line px-4 py-3 text-[13.5px] text-muted`}>
                 <span>ที่</span>
                 <span>รหัส</span>
                 <span>ชื่อ</span>
@@ -100,13 +100,13 @@ export default function StudentRoster() {
                       key={c.studentId}
                       ref={mine ? own : undefined}
                       data-own={mine || undefined}
-                      className={`grid ${COLS} items-start gap-x-2 px-4 py-3 text-[15px] ${mine ? 'bg-accent-soft font-bold shadow-[inset_3px_0_0_var(--color-accent)]' : ''}`}
+                      className={`grid ${COLS} items-start gap-x-2 px-4 py-3 text-[15px] ${mine ? 'bg-accent-soft font-semibold' : ''}`}
                     >
                       <span className="num text-muted">{n}</span>
                       <span className="num">{c.studentId}</span>
                       <span className="line-clamp-2 break-words">{c.name}</span>
                       <span className="num text-right">{fmtHours(c.hours)}</span>
-                      <span className={`num text-right ${mine ? 'text-accent' : 'text-muted'}`}>{thTime(c.at)}</span>
+                      <span className={`num text-right ${mine ? 'text-accent-ink' : 'text-muted'}`}>{thTime(c.at)}</span>
                     </li>
                   )
                 })}

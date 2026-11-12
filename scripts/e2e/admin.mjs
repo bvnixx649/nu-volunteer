@@ -109,7 +109,7 @@ export default async function ({ browser, base, shot }) {
   expect(unsent.length === 1 && unsent[0].includes('ค่ายอาสาพัฒนาชุมชน'), `unsent: ${JSON.stringify(unsent)}`)
   expect(unsent[0].includes('คณะวิศวกรรมศาสตร์') && unsent[0].includes('เลยกำหนดส่งแล้ว') && unsent[0].includes('รอส่งรายชื่อ'), `unsent row 1: ${unsent[0]}`)
   const late = await section('หน่วยงานที่ยังไม่ส่งรายชื่อ').getByText('เลยกำหนดส่งแล้ว').evaluate((e) => getComputedStyle(e).color)
-  expect(late === 'rgb(242, 122, 110)', `late text colour ${late}`)
+  expect(late === 'rgb(255, 106, 92)', `late text colour ${late}`)
 
   // The folded group holds only recorded ones.
   const fold = page.getByRole('button', { name: /^บันทึกแล้ว/ })
@@ -163,7 +163,7 @@ export default async function ({ browser, base, shot }) {
   expect(centre.includes('รอบันทึก 1'), `the centre's own row counts the sent roster: ${centre}`)
   expect(!/[·—]/.test(orgRows.join('')), 'no middle dot in org rows')
   const tag = page.getByText('รอบันทึก 1', { exact: true }).first()
-  expect((await tag.evaluate((e) => getComputedStyle(e).color)) === 'rgb(232, 176, 74)', 'waiting tag is amber')
+  expect((await tag.evaluate((e) => getComputedStyle(e).color)) === 'rgb(242, 189, 75)', 'waiting tag is amber')
 
   // Per category, with hours from the credits (read once).
   await page.getByRole('heading', { level: 2, name: 'แยกตามหมวด' }).waitFor()

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { creditList, rosterRows, validHours } from './roster'
+import { creditList, creditWhen, rosterRows, validHours } from './roster'
 import type { Credit, Registration } from '../data/types'
 
 describe('validHours', () => {
@@ -65,5 +65,17 @@ describe('creditList', () => {
     expect(creditList(list, '').map((r) => [r.n, r.credit.studentId])).toEqual([[1, '65010001'], [2, '65020002'], [3, '65010003']])
     expect(creditList(list, '650100').map((r) => r.n)).toEqual([1, 3])
     expect(creditList(list, 'ธนากร').map((r) => r.n)).toEqual([2])
+  })
+})
+
+describe('creditWhen', () => {
+  const at = new Date(2026, 10, 20, 0, 9).getTime()
+  it('says scan for a scan and added-by for a hand entry', () => {
+    expect(creditWhen({ method: 'qr', at })).toBe('สแกน 00:09 น.')
+    expect(creditWhen({ method: 'manual', at, editedBy: 'พี่เต้' })).toBe('เพิ่มโดย พี่เต้ 00:09 น.')
+  })
+  it('adds the editor only after a real edit', () => {
+    expect(creditWhen({ method: 'manual', at, editedBy: 'พี่เต้', editedAt: at + 1 })).toBe('เพิ่มโดย พี่เต้ 00:09 น. แก้โดย พี่เต้')
+    expect(creditWhen({ method: 'qr', at, editedBy: 'ศูนย์', editedAt: at + 1 })).toBe('สแกน 00:09 น. แก้โดย ศูนย์')
   })
 })

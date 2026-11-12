@@ -14,7 +14,7 @@ export function Field({ label, error, hint, className = '', ...rest }: Props) {
         id={id}
         aria-invalid={!!error || undefined}
         aria-describedby={note ? `${id}-note` : undefined}
-        className="h-13 rounded-[var(--radius-field)] bg-surface px-4 text-[17px] ring-1 ring-line transition-shadow duration-150 outline-none placeholder:text-muted focus:ring-2 focus:ring-accent aria-invalid:ring-2 aria-invalid:ring-bad"
+        className="h-13 rounded-[var(--radius-field)] bg-surface-2 px-4 text-[17px] ring-1 ring-transparent transition-shadow duration-150 outline-none placeholder:text-faint focus:ring-2 focus:ring-ink aria-invalid:ring-2 aria-invalid:ring-bad"
         {...rest}
       />
       {note && (

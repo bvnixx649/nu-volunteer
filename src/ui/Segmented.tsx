@@ -27,7 +27,7 @@ export function Segmented<T extends string | number>({ options, value, onChange,
             {on && (
               <motion.span
                 layoutId={id}
-                className="absolute inset-0 rounded-full bg-surface shadow-soft"
+                className="absolute inset-0 rounded-full bg-surface-3"
                 transition={{ type: 'spring', duration: 0.35, bounce: 0.12 }}
               />
             )}

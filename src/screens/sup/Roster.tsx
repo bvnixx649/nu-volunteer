@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { MagnifyingGlass } from '@phosphor-icons/react'
 import type { Credit, Registration } from '../../data/types'
-import { rosterRows, type RosterFilter, type RosterRow } from '../../lib/roster'
-import { thTime } from '../../lib/format'
+import { creditWhen, rosterRows, type RosterFilter, type RosterRow } from '../../lib/roster'
 import { Chip } from '../../ui/Chip'
 import { Flag } from '../../ui/Flag'
 
@@ -62,11 +61,11 @@ export function Roster({ regs, credits, selected, closed, onSelect, filter: give
 
   return (
     <section id="roster" className="flex min-w-0 scroll-mt-0 flex-col gap-3" aria-label="รายชื่อ">
-      <h2 className="text-lg font-semibold">รายชื่อ</h2>
+      <h2 className="px-1 text-xl font-semibold">รายชื่อ</h2>
       {/* Stays on screen while scrolling a long roster, so a name can be looked up from anywhere in the list. */}
-      <div ref={bar} className="sticky top-0 z-10 -mx-5 flex flex-col gap-3 bg-bg/95 px-5 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] pb-3 backdrop-blur-xl min-[900px]:mx-0 min-[900px]:px-0">
-      <label className="flex h-12 items-center gap-3 rounded-full bg-surface px-4 ring-1 ring-line focus-within:ring-2 focus-within:ring-accent">
-        <MagnifyingGlass size={20} className="text-muted" />
+      <div ref={bar} className="sticky top-0 z-10 -mx-5 flex flex-col gap-3 bg-bg px-5 pt-[calc(0.5rem+env(safe-area-inset-top,0px))] pb-3 min-[900px]:mx-0 min-[900px]:px-0">
+      <label className="flex h-13 items-center gap-3 rounded-[var(--radius-field)] bg-surface-2 px-4 transition-shadow duration-150 focus-within:ring-2 focus-within:ring-ink">
+        <MagnifyingGlass size={20} className="shrink-0 text-muted" aria-hidden />
         <input
           value={q}
           onChange={(e) => setQ(e.target.value)}
@@ -90,21 +89,21 @@ export function Roster({ regs, credits, selected, closed, onSelect, filter: give
           {all.length ? 'ไม่พบรายชื่อที่ตรงกัน' : 'ยังไม่มีรายชื่อ'}
         </p>
       ) : (
-        <ul className="divide-y divide-line overflow-hidden rounded-[var(--radius-card)] bg-surface shadow-soft">
+        <ul className="divide-y divide-line overflow-hidden rounded-[var(--radius-card)] bg-surface">
           {rows.map((r) => (
             <li key={r.studentId}>
               <button
                 onClick={() => onSelect(r)}
                 aria-current={selected === r.studentId || undefined}
-                className="flex w-full items-start gap-3 px-4 py-3.5 text-left transition-colors active:bg-surface-2 aria-[current]:bg-accent-soft/60"
+                className="flex w-full items-start gap-3 px-5 py-4 text-left transition-colors active:bg-surface-2 aria-[current]:bg-surface-2"
               >
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-semibold">{r.name}</p>
-                  <p className="num text-sm text-muted">
+                  <p className="num mt-0.5 text-sm text-muted">
                     {r.studentId}
-                    {r.credit && (r.credit.items !== undefined ? <> {r.credit.items} ขวด</> : <> สแกน {thTime(r.credit.at)} น.</>)}
+                    {r.credit && (r.credit.items !== undefined ? <> {r.credit.items} ขวด</> : <> {creditWhen(r.credit)}</>)}
                   </p>
-                  <div className="mt-1.5 flex flex-wrap gap-1.5 empty:hidden">
+                  <div className="mt-2 flex flex-wrap gap-1.5 empty:hidden">
                     <Flags row={r} closed={closed} />
                   </div>
                 </div>

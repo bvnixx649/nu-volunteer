@@ -27,8 +27,8 @@ export function supRows(activity: Activity, regs: Registration[], credits: Credi
       หมวด: categoryOf(activity.categoryKey).label,
       วันที่: thDate(activity.start),
       ชั่วโมง: c ? c.hours : 0,
-      สถานะ: !c ? 'ไม่มา' : r.reg?.walkIn && c.items === undefined ? 'ไม่ได้ลงทะเบียน' : 'ได้ชั่วโมง',
-      เวลายืนยัน: c ? `${thTime(c.at)} น.` : '',
+      สถานะ: !c ? 'ไม่มา' : r.reg?.walkIn && c.items === undefined ? 'ได้ชั่วโมง (ไม่ได้ลงทะเบียน)' : 'ได้ชั่วโมง',
+      เวลายืนยัน: c ? `${thDate(c.at)} ${thTime(c.at)} น.` : '',
       ยืนยันโดย: !c ? '' : c.method === 'qr' ? 'สแกน QR' : (c.editedBy ?? 'ผู้ดูแล'),
       หมายเหตุ: notes.join(', '),
     }

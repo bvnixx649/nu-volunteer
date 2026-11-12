@@ -42,7 +42,7 @@ describe('claim', () => {
   it('creates a walk-in registration for someone who never registered', async () => {
     await api.claim(input('65000002'))
     expect(await api.getRegistration('a1', '65000002')).toMatchObject({ walkIn: true, name: 'นิสิต 65000002' })
-    expect(await api.getActivity('a1')).toMatchObject({ regCount: 1 })
+    expect(await api.getActivity('a1')).toMatchObject({ regCount: 0 })
   })
 
   it('records full hours and server-side fields on the credit', async () => {

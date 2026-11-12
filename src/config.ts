@@ -37,3 +37,8 @@ export const SEAT_YELLOW = 0.7
 export const SEAT_RED = 0.9
 /** Private messages to a supervisor disappear from the screen this many days after the activity ends. */
 export const DM_HIDE_DAYS = 5
+/**
+ * Private messages and the activity chat room on the student side. Off until supervisors have a screen to read and answer them
+ * (SPEC 6.4): a message nobody can open is worse than no button. Turn on together with the supervisor inbox.
+ */
+export const MESSAGES_ON: boolean = false

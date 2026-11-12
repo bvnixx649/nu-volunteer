@@ -1,8 +1,8 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
-import { Bell, CalendarCheck, House, UserCircle } from '@phosphor-icons/react'
+import { Bell, House, QrCode, Ticket, UserCircle } from '@phosphor-icons/react'
 import { useMine, useMineSync } from '../../data/mine'
 import { useDevice } from '../../store'
-import { TabBar, type TabItem } from '../../ui/TabBar'
+import { TabBar, type TabAction, type TabItem } from '../../ui/TabBar'
 
 /** Student pages need to know who this phone is. Anyone else is sent to /welcome and brought back after. */
 export function RequireStudent() {
@@ -18,10 +18,13 @@ export function RequireStudent() {
 
 const TABS: TabItem[] = [
   { to: '/', label: 'หน้าแรก', Icon: House, end: true },
-  { to: '/mine', label: 'กิจกรรมของฉัน', Icon: CalendarCheck },
+  { to: '/mine', label: 'ของฉัน', Icon: Ticket },
   { to: '/inbox', label: 'แจ้งเตือน', Icon: Bell },
   { to: '/me', label: 'โปรไฟล์', Icon: UserCircle },
 ]
+
+/** Scanning is why a student opens the app on the day, so it is one tap from every main page. */
+const SCAN: TabAction = { to: '/scan', label: 'สแกนรับชั่วโมง', Icon: QrCode }
 
 /** Bottom tab bar for the four main student pages. The claim page and sub-pages do not use it (SPEC 5.2). */
 export function Tabs() {
@@ -31,7 +34,7 @@ export function Tabs() {
       <div className="pb-[calc(6rem+env(safe-area-inset-bottom,0px))]">
         <Outlet />
       </div>
-      <TabBar tabs={TABS.map((t) => (t.to === '/inbox' ? { ...t, badge: unread } : t))} />
+      <TabBar tabs={TABS.map((t) => (t.to === '/inbox' ? { ...t, badge: unread } : t))} action={SCAN} />
     </>
   )
 }

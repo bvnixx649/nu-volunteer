@@ -52,7 +52,7 @@ export const CATEGORIES: Record<CategoryKey, CategoryPreset> = {
     qrInterval: 10,
     reasons: [],
     description: 'หน้าที่: จัดโต๊ะ เก้าอี้ เวที ป้าย และเก็บสถานที่หลังจบงาน\nสิ่งที่ต้องเตรียม: ชุดสุภาพที่ยกของได้ และขวดน้ำ\nมาตรงเวลาเพื่อแบ่งหน้าที่',
-    posters: p('setup', 'setup-2', 'setup-3', 'setup-4'),
+    posters: p('setup-3', 'setup-2', 'grad', 'wai'),
   },
   bottle: {
     label: 'แลกขวด',

@@ -62,17 +62,17 @@ describe('claim', () => {
     expect(results.every((r) => r.ok)).toBe(true)
     expect(await count('credits')).toBe(300)
     expect(await count('registrations')).toBe(300)
-    expect(await act()).toMatchObject({ credit_count: 300, reg_count: 300 })
+    expect(await act()).toMatchObject({ credit_count: 300, reg_count: 0 })
   }, 60_000)
 
-  it('creates a walk-in registration and keeps an existing one', async () => {
+  it('creates a walk-in registration without counting it as a sign-up, and keeps an existing one', async () => {
     await claim('65000002')
     const reg = (await db.query<{ walk_in: boolean }>(`select walk_in from registrations where student_id = '65000002'`)).rows[0]
     expect(reg.walk_in).toBe(true)
     await db.exec(`select register('a1', '65000003', 'x')`)
-    expect((await act()).reg_count).toBe(2)
+    expect((await act()).reg_count).toBe(1)
     await claim('65000003')
-    expect(await act()).toMatchObject({ reg_count: 2, credit_count: 2 })
+    expect(await act()).toMatchObject({ reg_count: 1, credit_count: 2 })
   })
 
   it('records full hours and flags every credit from a shared device', async () => {
@@ -178,7 +178,7 @@ describe('removal', () => {
   it('remove_credit leaves the registration', async () => {
     await claim('65000011')
     await db.exec(`select remove_credit('a1', '65000011')`)
-    expect(await act()).toMatchObject({ reg_count: 1, credit_count: 0 })
+    expect(await act()).toMatchObject({ reg_count: 0, credit_count: 0 })
     expect(await count('registrations')).toBe(1)
   })
 

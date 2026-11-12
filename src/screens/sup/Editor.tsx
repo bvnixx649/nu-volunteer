@@ -1,16 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'motion/react'
 import { CaretLeft, X } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { api } from '../../data/api'
 import type { Activity, CategoryKey, NewTemplate, Template } from '../../data/types'
 import { ADVANCED_FIELDS, applyCategory, applyTemplate, blankDraft, check, DEFAULT_KEYS, draftOf, isDirty, STEP_COUNT, toEdit, toNewActivity, type Draft } from '../../lib/draft'
-import { canEdit } from '../../lib/stage'
+import { canEdit, ownsActivity } from '../../lib/stage'
 import { useDevice, type SupSession } from '../../store'
 import { Button } from '../../ui/Button'
+import { LinkButton } from '../../ui/LinkButton'
 import { Sheet } from '../../ui/Sheet'
 import { StepCategory, StepDetails, StepReview, TITLES } from './EditorSteps'
+import { NotYours } from './NotYours'
 import { TemplateForm } from './TemplateForm'
 
 const slide = {
@@ -32,6 +34,7 @@ export default function Editor() {
   if (!sup) return <Navigate to="/sup/login" replace />
   if (id && saved === undefined) return null
   if (id && !saved) return <Blocked text="ไม่พบกิจกรรมนี้" to="/sup" back="กลับหน้าแรก" />
+  if (id && saved && !ownsActivity(saved, sup)) return <NotYours />
   if (id && saved && !canEdit(saved)) return <Blocked text="ส่งรายชื่อแล้ว แก้ไขกิจกรรมไม่ได้" to={`/sup/a/${id}`} back="กลับไปหน้ากิจกรรม" />
   return <Flow sup={sup} saved={saved ?? null} />
 }
@@ -57,12 +60,10 @@ const writeDraft = (d: Draft | null) => {
 function Blocked({ text, to, back }: { text: string; to: string; back: string }) {
   return (
     <main className="mx-auto flex min-h-dvh max-w-lg flex-col justify-center gap-6 px-5 py-10">
-      <h1 className="text-2xl leading-snug font-bold">{text}</h1>
-      <Link to={to} replace>
-        <Button size="lg" className="w-full">
-          {back}
-        </Button>
-      </Link>
+      <h1 className="text-[26px] leading-snug font-bold tracking-tight text-balance">{text}</h1>
+      <LinkButton to={to} replace variant="primary" className="w-full">
+        {back}
+      </LinkButton>
     </main>
   )
 }
@@ -118,6 +119,7 @@ function Flow({ sup, saved }: { sup: SupSession; saved: Activity | null }) {
   }
   const go = (n: number) => {
     setDir(n > step ? 1 : -1)
+    setAttempted(false)
     setStep(n)
   }
   const pick = (k: CategoryKey) => {
@@ -144,7 +146,7 @@ function Flow({ sup, saved }: { sup: SupSession; saved: Activity | null }) {
       saved = await api.createTemplate(input)
       setTemplates((l) => [...l, saved])
       setDraft((d) => applyTemplate(d, saved, touched.current))
-      toast.success('เพิ่มกิจกรรมแล้ว')
+      toast.success('เพิ่มเทมเพลตแล้ว')
     }
     setForm((f) => ({ ...f, open: false }))
   }
@@ -189,7 +191,11 @@ function Flow({ sup, saved }: { sup: SupSession; saved: Activity | null }) {
         const fields = Object.keys({ ...here.missing, ...here.errors })
         if (fields.some((f) => ADVANCED_FIELDS.includes(f))) setAdvancedOpen(true)
         // Wait for the section to open, then bring the first wrong field into view.
-        setTimeout(() => document.querySelector('[aria-invalid="true"]')?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 60)
+        setTimeout(() => {
+          const el = document.querySelector<HTMLElement>('[aria-invalid="true"]')
+          el?.scrollIntoView({ block: 'center', behavior: 'smooth' })
+          el?.focus({ preventScroll: true })
+        }, 60)
         return
       }
       go(3)
@@ -221,9 +227,9 @@ function Flow({ sup, saved }: { sup: SupSession; saved: Activity | null }) {
         </button>
         <div className="mt-2 flex gap-1.5" role="progressbar" aria-label="ความคืบหน้า" aria-valuemin={1} aria-valuemax={STEP_COUNT} aria-valuenow={step}>
           {TITLES.map((t, i) => (
-            <span key={t} className="h-1 flex-1 overflow-hidden rounded-full bg-line">
+            <span key={t} className="h-1 flex-1 overflow-hidden rounded-full bg-surface-2">
               <motion.span
-                className="block h-full origin-left rounded-full bg-accent-strong"
+                className="block h-full origin-left rounded-full bg-ink"
                 initial={false}
                 animate={{ scaleX: i < step ? 1 : 0 }}
                 transition={{ duration: 0.3, ease: [0.23, 1, 0.32, 1] }}
@@ -244,7 +250,7 @@ function Flow({ sup, saved }: { sup: SupSession; saved: Activity | null }) {
             exit="exit"
             transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
           >
-            <h1 className="mb-6 text-3xl leading-tight font-bold tracking-tight">{TITLES[step - 1]}</h1>
+            <h1 className="mb-6 text-[28px] leading-tight font-bold tracking-tight">{TITLES[step - 1]}</h1>
             {body}
           </motion.div>
         </AnimatePresence>

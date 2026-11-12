@@ -230,7 +230,7 @@ begin
     values (p_activity, p_student, p_name, c.at, true)
     on conflict (activity_id, student_id) do update
       set name = excluded.name, at = excluded.at, walk_in = true, cancelled_at = null, late = false, waived = false;
-    update activities set reg_count = reg_count + 1 where id = p_activity;
+    -- A walk-in is not a registration: reg_count counts sign-ups only.
   end if;
 
   return jsonb_build_object('ok', true, 'credit', to_jsonb(c));
@@ -256,29 +256,32 @@ begin
   return true;
 end $$;
 
--- Marks a registration cancelled and lowers reg_count.
+-- Marks a registration cancelled and lowers reg_count. A walk-in row was never counted.
 create or replace function cancel_registration(p_activity text, p_student text) returns void
 language plpgsql as $$
+declare
+  was_walk_in boolean;
 begin
   perform 1 from activities where id = p_activity for update;
   update registrations set cancelled_at = now()
-    where activity_id = p_activity and student_id = p_student and cancelled_at is null;
-  if found then
+    where activity_id = p_activity and student_id = p_student and cancelled_at is null
+    returning walk_in into was_walk_in;
+  if found and not was_walk_in then
     update activities set reg_count = greatest(0, reg_count - 1) where id = p_activity;
   end if;
 end $$;
 
 -- Deletes the registration and its credit, if any; counters never go below 0.
--- A cancelled registration was already taken out of reg_count.
+-- A cancelled registration was already taken out of reg_count, and a walk-in row was never in it.
 create or replace function remove_registration(p_activity text, p_student text) returns void
 language plpgsql as $$
 declare
-  was_active boolean;
+  was_counted boolean;
 begin
   perform 1 from activities where id = p_activity for update;
   delete from registrations where activity_id = p_activity and student_id = p_student
-    returning cancelled_at is null into was_active;
-  if found and was_active then
+    returning (cancelled_at is null and not walk_in) into was_counted;
+  if found and was_counted then
     update activities set reg_count = greatest(0, reg_count - 1) where id = p_activity;
   end if;
   delete from credits where activity_id = p_activity and student_id = p_student;

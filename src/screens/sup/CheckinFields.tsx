@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { ArrowsClockwise, Printer, Warning } from '@phosphor-icons/react'
+import { ArrowsClockwise, Check, Printer, Warning } from '@phosphor-icons/react'
 import { QR_INTERVALS, RADIUS_OPTIONS } from '../../config'
 import type { Activity } from '../../data/types'
 import { Segmented } from '../../ui/Segmented'
@@ -12,15 +12,21 @@ type Props = { value: CheckinDraft; onChange: (v: CheckinDraft) => void; /** The
 
 type OptionProps = { selected: boolean; icon: ReactNode; title: string; hint: string; onClick: () => void; children?: ReactNode }
 
-/** A choice card. Extra controls for the chosen card sit inside it, under the text. */
+/** A darker well for a group of controls. These settings always sit on a card or a sheet. */
+const WELL = 'rounded-[var(--radius-field)] bg-bg'
+
+/** A choice row with a radio mark on the right. Extra controls for the chosen row sit inside it, under the text. */
 function Option({ selected, icon, title, hint, onClick, children }: OptionProps) {
   return (
-    <div className={`rounded-[var(--radius-field)] ring-1 transition-colors duration-200 ${selected ? 'bg-accent-soft/50 ring-2 ring-accent' : 'bg-surface ring-line'}`}>
-      <button type="button" role="radio" aria-checked={selected} onClick={onClick} className="pressable flex w-full gap-3 px-4 py-3.5 text-left">
-        <span className={`mt-0.5 shrink-0 ${selected ? 'text-accent' : 'text-muted'}`}>{icon}</span>
-        <span>
+    <div className={WELL}>
+      <button type="button" role="radio" aria-checked={selected} onClick={onClick} className="pressable flex w-full items-center gap-3 px-4 py-3.5 text-left">
+        <span className={`shrink-0 transition-colors duration-200 ${selected ? 'text-ink' : 'text-muted'}`}>{icon}</span>
+        <span className="min-w-0 flex-1">
           <span className="block text-[16px] font-semibold">{title}</span>
           <span className="mt-0.5 block text-sm text-muted">{hint}</span>
+        </span>
+        <span aria-hidden className={`grid size-6 shrink-0 place-items-center rounded-full transition-colors duration-200 ${selected ? 'bg-ink text-bg' : 'ring-[1.5px] ring-surface-3 ring-inset'}`}>
+          {selected && <Check size={14} weight="bold" />}
         </span>
       </button>
       {selected && children && <div className="px-4 pb-4">{children}</div>}
@@ -62,7 +68,7 @@ export function CheckinFields({ value, onChange, hideWalkIn }: Props) {
 
       <section className="flex flex-col gap-3">
         <h3 className="font-semibold">ตำแหน่ง</h3>
-        <div className="rounded-[var(--radius-field)] bg-surface px-4 ring-1 ring-line">
+        <div className={`${WELL} px-4`}>
           <Switch
             checked={locOn}
             onChange={(v) => set({ locMode: v ? 'on' : 'off' })}
@@ -85,7 +91,7 @@ export function CheckinFields({ value, onChange, hideWalkIn }: Props) {
       {!hideWalkIn && (
         <section className="flex flex-col gap-3">
           <h3 className="font-semibold">ผู้ไม่ได้ลงทะเบียน</h3>
-          <div className="rounded-[var(--radius-field)] bg-surface px-4 ring-1 ring-line">
+          <div className={`${WELL} px-4`}>
             <Switch
               checked={value.walkIn}
               onChange={(v) => set({ walkIn: v })}

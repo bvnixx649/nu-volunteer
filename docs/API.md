@@ -100,7 +100,7 @@ Supabase ทำหน้าที่ 4 อย่าง คือ ฐานข้
 | --- | --- | --- | --- |
 | `server_now` | ไม่มี | ms | เวลาเซิร์ฟเวอร์ แอปคำนวณส่วนต่างนาฬิกาเครื่อง |
 | `get_org` | `p_code` | `{code, name, admin}` | ตรวจรหัสหน่วยงานตอนผู้ดูแลเข้าระบบ |
-| `claim` | ดูตัวอย่างด้านบน | `{ok, credit}` | ล็อกแถวกิจกรรม เขียนชั่วโมง บวก `credit_count` ลงทะเบียน walk-in ให้ |
+| `claim` | ดูตัวอย่างด้านบน | `{ok, credit}` | ล็อกแถวกิจกรรม เขียนชั่วโมง บวก `credit_count` ลงทะเบียน walk-in ให้ (ไม่บวก `reg_count` เพราะนับเฉพาะคนที่ลงทะเบียนเอง แก้ 12 พ.ย.) |
 | `register` | `p_activity, p_student, p_name` | true/false | ลงทะเบียน false เมื่อเต็มหรือมีอยู่แล้ว |
 | `cancel_registration` | `p_activity, p_student` | ไม่มี | ยกเลิก ลด `reg_count` |
 | `remove_registration` | `p_activity, p_student` | ไม่มี | ลบออกจากรายชื่อพร้อมชั่วโมง |

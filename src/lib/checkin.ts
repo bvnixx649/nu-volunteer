@@ -14,9 +14,14 @@ export function checkinOf(a: Partial<Pick<Activity, 'locMode' | 'radius' | 'qrIn
   return { locMode: a.locMode === 'off' ? 'off' : 'on', radius: num(a.radius, RADIUS_DEFAULT), qrInterval: num(a.qrInterval, QR_INTERVAL_DEFAULT) }
 }
 
-/** One line for the Manage page, e.g. "QR เปลี่ยนทุก 10 วิ ตรวจตำแหน่ง 150 ม.". */
-export function checkinSummary(a: Partial<Pick<Activity, 'qrMode' | 'locMode' | 'radius' | 'qrInterval'>>) {
+/** The two facts of the check-in settings, e.g. ["QR เปลี่ยนทุก 10 วิ", "ตรวจตำแหน่ง 150 ม."], for screens that lay them out separately. */
+export function checkinParts(a: Partial<Pick<Activity, 'qrMode' | 'locMode' | 'radius' | 'qrInterval'>>): [string, string] {
   const c = checkinOf(a)
   const qr = a.qrMode === 'static' ? 'QR แบบพิมพ์' : `QR เปลี่ยนทุก ${c.qrInterval} วิ`
-  return `${qr} ${c.locMode === 'on' ? `ตรวจตำแหน่ง ${c.radius} ม.` : 'ไม่ตรวจตำแหน่ง'}`
+  return [qr, c.locMode === 'on' ? `ตรวจตำแหน่ง ${c.radius} ม.` : 'ไม่ตรวจตำแหน่ง']
+}
+
+/** One line of text, e.g. "QR เปลี่ยนทุก 10 วิ ตรวจตำแหน่ง 150 ม.". */
+export function checkinSummary(a: Partial<Pick<Activity, 'qrMode' | 'locMode' | 'radius' | 'qrInterval'>>) {
+  return checkinParts(a).join(' ')
 }

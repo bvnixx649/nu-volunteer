@@ -1,7 +1,7 @@
 // Supervisor home, the first of four tabs (dark, 390x844). With an activity running: header without buttons, the poster-first live
 // card with the latest scan and the QR button, "รอดำเนินการ" rows with poster thumbnails, three big poster cards and compact rows
-// under "กิจกรรมที่จะจัดขึ้น", the folded "ส่งรายชื่อแล้ว", the floating "สร้างกิจกรรม" above the tab bar. With nothing running: the
-// nearest upcoming activity as the hero card. The tab bar shows on this page and not on sub-pages.
+// under "กิจกรรมที่จะจัดขึ้น", the folded "ส่งรายชื่อแล้ว", the white "สร้างกิจกรรม" circle raised in the middle of the tab bar. With
+// nothing running: the nearest upcoming activity as the hero card. The tab bar shows on this page and not on sub-pages.
 // Screenshots: scripts/e2e/out/sup-home-live.png, sup-home-upcoming.png, sup-home-idle.png.
 import { loginAsSup, seedSupHome } from '../lib/sup-fixture.mjs'
 
@@ -62,9 +62,10 @@ export default async function ({ browser, base, shot }) {
   expect((await page.getByRole('link', { name: 'ปฏิทินและสถิติ' }).count()) === 0, 'no calendar link in the header')
   expect((await page.getByRole('button', { name: 'เมนู' }).count()) === 0, 'no menu button in the header')
 
-  // Tab bar: four tabs, the first one current, every target at least 44px.
+  // Tab bar: four tabs around the create button, the first one current, every target at least 44px.
   const nav = page.getByRole('navigation', { name: 'เมนูหลัก' })
-  const tabs = nav.getByRole('link')
+  expect((await nav.getByRole('link').count()) === 5, 'four tabs and the create button')
+  const tabs = nav.locator('a:not([aria-label])')
   expect((await tabs.count()) === 4, 'four tabs')
   expect((await tabs.allInnerTexts()).map((t) => t.trim()).join('|') === 'กิจกรรม|ปฏิทิน|สถิติ|บัญชี', 'tab labels')
   const hrefs = await tabs.evaluateAll((els) => els.map((e) => e.getAttribute('href')))
@@ -155,15 +156,17 @@ export default async function ({ browser, base, shot }) {
   const posters = await postersLoaded('home')
   expect(posters >= 7, `${posters} poster images on home`)
 
-  // Floating "สร้างกิจกรรม": light pill, bottom right, above the tab bar.
+  // "สร้างกิจกรรม": one white circle raised in the middle of the tab bar (orange is kept for scanning). Nothing floats over the page.
   const create = page.getByRole('link', { name: 'สร้างกิจกรรม' })
+  expect((await create.count()) === 1, 'one create button on the page')
+  expect((await nav.getByRole('link', { name: 'สร้างกิจกรรม' }).count()) === 1, 'the create button is in the tab bar')
   expect((await create.getAttribute('href')).endsWith('#/sup/new'), 'create button links to /sup/new')
   const box = await create.boundingBox()
-  expect(Math.round(box.height) === 56 && box.width > 56, `create pill is ${box.width}x${box.height}`)
-  expect(box.x + box.width <= 390 && box.x + box.width >= 370, 'create pill sits at the right')
-  expect(box.y + box.height <= navBox.y, `create pill (bottom ${box.y + box.height}) sits above the tab bar (top ${navBox.y})`)
+  expect(Math.round(box.width) === 56 && Math.round(box.height) === 56, `create button is ${box.width}x${box.height}`)
+  expect(Math.abs(box.x + box.width / 2 - 195) <= 1, `create button is centred (${box.x + box.width / 2})`)
+  expect(box.y < navBox.y && box.y + box.height > navBox.y, 'create button is raised over the top edge of the tab bar')
   const bg = await create.evaluate((e) => getComputedStyle(e).backgroundColor)
-  expect(bg !== 'rgb(232, 89, 12)' && bg !== 'rgb(204, 72, 14)', `create pill is not orange (${bg})`)
+  expect(bg === 'rgb(244, 244, 245)', `create button is white (${bg})`)
 
   await noOverflow('home')
   await page.waitForTimeout(1300) // rise, count-up and seat bars finish
@@ -180,7 +183,7 @@ export default async function ({ browser, base, shot }) {
   await page.evaluate(() => scrollTo(0, document.body.scrollHeight))
   await page.waitForTimeout(300)
   const mainBottom = await page.locator('main').evaluate((e) => e.getBoundingClientRect().bottom)
-  expect(mainBottom <= navBox.y + 120, 'end of the page can scroll clear of the tab bar')
+  expect(mainBottom <= box.y, 'end of the page scrolls clear of the tab bar and the create button')
   await page.evaluate(() => scrollTo(0, 0))
 
   await sentToggle.click()

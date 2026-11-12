@@ -2,15 +2,17 @@ import type { ButtonHTMLAttributes } from 'react'
 import { CircleNotch } from '@phosphor-icons/react'
 
 type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
-  variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
+  variant?: 'primary' | 'accent' | 'secondary' | 'ghost' | 'danger'
   size?: 'lg' | 'md'
   loading?: boolean
 }
 
+/** White is the main action on a page. `accent` is only for scanning and receiving hours (colour rule in styles.css). */
 const variants = {
-  primary: 'bg-accent-strong text-on-accent shadow-soft',
-  secondary: 'bg-surface text-ink ring-1 ring-line',
-  ghost: 'text-ink hover:bg-surface-2',
+  primary: 'bg-ink text-bg',
+  accent: 'bg-accent-strong text-on-accent',
+  secondary: 'bg-surface-2 text-ink',
+  ghost: 'text-ink',
   danger: 'bg-bad-soft text-bad',
 }
 

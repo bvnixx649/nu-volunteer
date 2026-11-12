@@ -43,6 +43,13 @@ export const useDevice = create<DeviceState>()(
   ),
 )
 
+// Another tab rewrites the whole persisted state on any change. Pull it in so a sign-in there does not wipe this tab's session when it next saves.
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (e.key === 'nuv:device') void useDevice.persist.rehydrate()
+  })
+}
+
 /** Looks up a student id. A known id keeps its stored name; a new one is created with the typed name. */
 export async function identify(id: string, name: string): Promise<{ kind: 'existing' | 'new'; student: Student }> {
   const found = await api.getStudent(id)

@@ -35,9 +35,9 @@ export function Waiting({ entry }: { entry: Pending }) {
       <span className="grid size-14 place-items-center rounded-full bg-warn-soft text-warn">
         <CloudSlash size={30} weight="fill" />
       </span>
-      <h2 className="text-2xl leading-snug font-bold">บันทึกการสแกนไว้ในเครื่องแล้ว</h2>
-      {entry.title && <p className="line-clamp-2 font-semibold">{entry.title}</p>}
-      <p className="text-lg text-muted">ระบบจะส่งให้อัตโนมัติเมื่อมีอินเทอร์เน็ต ชั่วโมงยังไม่ถูกบันทึก</p>
+      <h2 className="text-[26px] leading-snug font-bold tracking-tight text-balance">บันทึกการสแกนไว้ในเครื่องแล้ว</h2>
+      {entry.title && <p className="line-clamp-2 leading-snug font-semibold">{entry.title}</p>}
+      <p className="text-[17px] text-muted">ระบบจะส่งให้อัตโนมัติเมื่อมีอินเทอร์เน็ต ชั่วโมงยังไม่ถูกบันทึก</p>
       <p className="num rounded-full bg-warn-soft px-3.5 py-1.5 text-[15px] font-semibold text-warn">สแกนเมื่อ {thTime(entry.scannedAt)} น.</p>
       {failedOnce && stillWaiting && !busy && <p className="text-warn">ยังส่งไม่ได้ ตรวจอินเทอร์เน็ตแล้วลองใหม่</p>}
       <div className="mt-4 flex w-full flex-col gap-3">

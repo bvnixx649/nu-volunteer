@@ -5,6 +5,7 @@ import { now } from '../../data/api'
 import type { Activity } from '../../data/types'
 import { qrWindowMs } from '../../config'
 import { fmtHours } from '../../lib/format'
+import { qrClosed } from '../../lib/stage'
 import { keepAwake } from '../../lib/wake'
 import { QrCode } from './QrCode'
 import { useQrFeed } from './useQrFeed'
@@ -26,17 +27,19 @@ export function QrPanel({ activity }: { activity: Activity }) {
     return () => clearInterval(t)
   }, [dynamic, win, w])
 
+  if (qrClosed(activity)) return <p className="px-5 pt-[calc(1.25rem+env(safe-area-inset-top,0px))] text-center text-xl font-semibold text-ink">ส่งรายชื่อแล้ว ปิดรับชั่วโมง</p>
+
   return (
     <div className="flex w-full flex-col items-center px-5 pt-[calc(1.25rem+env(safe-area-inset-top,0px))]">
-      <p className="line-clamp-1 max-w-full text-[15px] text-[#c9c4bc]">{activity.title}</p>
+      <p className="line-clamp-1 max-w-full text-[15px] text-muted">{activity.title}</p>
       <p className="mt-0.5 text-xl font-semibold text-ink">สแกนเพื่อรับ {fmtHours(activity.hours)} ชั่วโมง</p>
-      <div className="mt-3 rounded-[26px] bg-white p-3.5 shadow-[0_20px_50px_-20px_rgba(0,0,0,0.9)]">
+      <div className="mt-3 rounded-[26px] bg-white p-3.5">
         <QrCode value={url} token={token} className="size-[236px]" />
       </div>
       {dynamic ? (
-        <p className="mt-3 flex items-center gap-2.5 text-sm text-[#c9c4bc]">
+        <p className="mt-3 flex items-center gap-2.5 text-sm text-muted">
           <svg width="22" height="22" viewBox="0 0 22 22" aria-hidden>
-            <circle cx="11" cy="11" r="9" fill="none" stroke="rgba(255,255,255,0.12)" strokeWidth="3" />
+            <circle cx="11" cy="11" r="9" fill="none" stroke="var(--color-surface-3)" strokeWidth="3" />
             <circle
               cx="11"
               cy="11"
@@ -56,11 +59,11 @@ export function QrPanel({ activity }: { activity: Activity }) {
           </span>
         </p>
       ) : (
-        <p className="mt-3 text-sm text-[#c9c4bc]">QR นี้ใช้ได้ตลอดช่วงกิจกรรม</p>
+        <p className="mt-3 text-sm text-muted">QR นี้ใช้ได้ตลอดช่วงกิจกรรม</p>
       )}
       <Link
         to={`/sup/a/${activity.id}/qr`}
-        className="pressable mt-3 inline-flex h-11 items-center gap-2 rounded-full border border-white/[0.14] px-[18px] text-sm text-ink"
+        className="pressable mt-3 inline-flex min-h-11 items-center gap-2 rounded-full bg-surface-2 px-5 text-[15px] font-medium text-ink"
       >
         <ArrowsOut size={18} aria-hidden />
         เปิดเต็มจอสำหรับหน้างาน

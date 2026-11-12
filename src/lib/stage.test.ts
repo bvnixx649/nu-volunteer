@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { canEdit, closedAt, daysToSubmit, stage, STAGE_LABEL, submitDeadline } from './stage'
+import { canEdit, closedAt, daysToSubmit, ownsActivity, qrClosed, stage, STAGE_LABEL, submitDeadline } from './stage'
 import type { Activity } from '../data/types'
 
 const H = 3600_000
@@ -55,5 +55,20 @@ describe('canEdit', () => {
     expect(canEdit(act({ closedAt: 1 }))).toBe(true)
     expect(canEdit(act({ submittedAt: 1 }))).toBe(false)
     expect(canEdit(act({ recordedAt: 1 }))).toBe(false)
+  })
+})
+
+describe('qrClosed and ownsActivity', () => {
+  it('closes the QR once the roster is sent or closed', () => {
+    expect(qrClosed(act(), start + H)).toBe(false)
+    expect(qrClosed(act({ submittedAt: 1 }), start + H)).toBe(true)
+    expect(qrClosed(act({ closedAt: 1 }), start + H)).toBe(true)
+    expect(qrClosed(act(), end + 25 * H)).toBe(true)
+  })
+  it('lets admin see every org and others only their own', () => {
+    const a = { orgCode: 'X' }
+    expect(ownsActivity(a, { orgCode: 'X', admin: false })).toBe(true)
+    expect(ownsActivity(a, { orgCode: 'Y', admin: false })).toBe(false)
+    expect(ownsActivity(a, { orgCode: 'Y', admin: true })).toBe(true)
   })
 })

@@ -7,11 +7,12 @@ import type { Activity, Credit, Registration } from '../../data/types'
 import { thDate, thTime } from '../../lib/format'
 import { downloadAdminXlsx, downloadSupXlsx } from '../../lib/excel'
 import { isBottle } from '../../lib/bottle'
-import { rosterRows, type RosterFilter, type RosterRow } from '../../lib/roster'
-import { checkinSummary } from '../../lib/checkin'
-import { canEdit, canEditRoster, closedAt, stage } from '../../lib/stage'
+import { creditWhen, rosterRows, type RosterFilter, type RosterRow } from '../../lib/roster'
+import { checkinParts } from '../../lib/checkin'
+import { canEdit, canEditRoster, closedAt, ownsActivity, qrClosed, stage } from '../../lib/stage'
 import { useDevice } from '../../store'
 import { Button } from '../../ui/Button'
+import { NotYours } from './NotYours'
 import { Roster, Flags } from './Roster'
 import { EditHoursSheet } from './EditHoursSheet'
 import { AddPersonSheet } from './AddPersonSheet'
@@ -25,15 +26,15 @@ import { StageActions } from './StageActions'
 import { StatusTag } from '../../ui/StatusTag'
 
 /** A tappable row inside the settings group: icon, title with a detail line, chevron. */
-function Row({ icon, title, detail, onClick, disabled }: { icon: ReactNode; title: string; detail: string; onClick: () => void; disabled?: boolean }) {
+function Row({ icon, title, detail, onClick, disabled }: { icon: ReactNode; title: string; detail: ReactNode; onClick: () => void; disabled?: boolean }) {
   return (
-    <button type="button" onClick={onClick} disabled={disabled} className="pressable flex min-h-16 w-full items-center gap-3.5 px-4 py-3 text-left disabled:opacity-45">
-      <span className="text-[#c9c4bc]">{icon}</span>
+    <button type="button" onClick={onClick} disabled={disabled} className="pressable flex min-h-[4.5rem] w-full items-center gap-3.5 px-4 py-3.5 text-left disabled:opacity-45">
+      <span className="grid size-10 shrink-0 place-items-center rounded-full bg-surface-2 text-ink">{icon}</span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[15.5px] font-semibold">{title}</span>
-        <span className="num block truncate text-[13px] text-muted">{detail}</span>
+        <span className="block text-base font-semibold">{title}</span>
+        <span className="num mt-0.5 block text-[13.5px] text-muted">{detail}</span>
       </span>
-      <CaretRight size={18} className="shrink-0 text-muted" />
+      <CaretRight size={18} className="shrink-0 text-faint" aria-hidden />
     </button>
   )
 }
@@ -99,7 +100,7 @@ export default function Manage() {
 
   // `?qr=1` (from the live card on the home page) opens the QR as soon as the page has loaded.
   const wantsQr = params.get('qr') === '1'
-  const canQr = !!activity && isLive(activity) && !isBottle(activity)
+  const canQr = !!activity && isLive(activity) && !isBottle(activity) && !qrClosed(activity)
   useEffect(() => {
     if (!wantsQr || !activity) return
     if (canQr) setQrOpen(true)
@@ -109,6 +110,7 @@ export default function Manage() {
   if (!sup) return <Navigate to="/sup/login" replace />
   if (activity === undefined) return null
   if (!activity) return <p className="p-6 text-muted">ไม่พบกิจกรรมนี้</p>
+  if (!ownsActivity(activity, sup)) return <NotYours />
 
   const selected = find(selectedId)
   /** Details and check-in settings lock once the roster is sent; the roster itself stays open to the centre admin until it records it (SPEC 14.1). */
@@ -123,7 +125,7 @@ export default function Manage() {
   /** The QR button is the one orange button only while the activity runs (or on its day). */
   const running = !ended && isLive(activity)
   /** The pull-down reveal, and the button that does the same, work while the activity runs or on its day. */
-  const qrUsable = isLive(activity) && !bottle
+  const qrUsable = isLive(activity) && !bottle && !qrClosed(activity)
   const showQr = () => (qrUsable ? setQrOpen(true) : openFullScreenQr())
   const pick = (r: RosterRow) => {
     setSelectedId(r.studentId)
@@ -151,12 +153,12 @@ export default function Manage() {
   return (
     <PullToQr enabled={qrUsable} open={qrOpen} onOpenChange={setQrOpen} layer={<QrPanel activity={activity} />}>
       <main className="mx-auto max-w-6xl px-5 pb-[calc(2.5rem+env(safe-area-inset-bottom,0px))]">
-        <Link to="/sup" className="pressable -ml-2 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-[15px] text-ink/80">
-          <CaretLeft size={18} /> กิจกรรมทั้งหมด
+        <Link to="/sup" className="pressable -ml-2 inline-flex min-h-11 items-center gap-1 rounded-full px-2 text-muted">
+          <CaretLeft size={20} /> กิจกรรมทั้งหมด
         </Link>
-        <div className="mt-1.5">
+        <div className="mt-2">
           {st === 'live' ? (
-            <p className="num flex items-center gap-2 text-[13px] text-ok">
+            <p className="num flex items-center gap-2 text-[13.5px] font-medium text-ok">
               <span className="live-dot-ok size-2 shrink-0" aria-hidden />
               กำลังดำเนินการ ถึง {thTime(activity.end)} น.
             </p>
@@ -164,38 +166,34 @@ export default function Manage() {
             <StatusTag stage={st} />
           )}
         </div>
-        <h1 className="mt-1.5 text-2xl leading-snug font-semibold">{activity.title}</h1>
-        <p className="num mt-0.5 text-sm text-muted">
+        <h1 className="mt-2 text-[26px] leading-[1.25] font-bold tracking-tight text-balance">{activity.title}</h1>
+        <p className="num mt-1.5 text-[15px] text-muted">
           {thDate(activity.start)} {thTime(activity.start)} ถึง {thTime(activity.end)} น. {activity.place}
         </p>
 
-        <div className="mt-[18px] min-[900px]:grid min-[900px]:grid-cols-2 min-[900px]:items-start min-[900px]:gap-x-6">
+        <div className="mt-5 min-[900px]:grid min-[900px]:grid-cols-2 min-[900px]:items-start min-[900px]:gap-x-6">
           <div>
             <ManageSummary activity={activity} counts={counts} bottle={bottle} onFilter={toRoster} />
 
             {bottle ? (
-              <div className="mt-3.5">
-                <Button size="lg" variant={ended ? 'secondary' : 'primary'} className="w-full" disabled={!rosterOpen} onClick={() => setBottles(true)}>
+              <div className="mt-3">
+                <Button size="lg" variant={ended ? 'secondary' : 'accent'} className="w-full" disabled={!rosterOpen} onClick={() => setBottles(true)}>
                   <Recycle size={22} weight="bold" /> บันทึกขวด
                 </Button>
               </div>
             ) : (
-              <div className="mt-3.5 grid grid-cols-[1fr_auto] gap-2">
-                <button
-                  type="button"
-                  onClick={showQr}
-                  className={`pressable inline-flex min-h-14 items-center justify-center gap-2 rounded-full px-7 text-[17px] font-semibold ${
-                    running ? 'bg-accent-strong text-on-accent shadow-[inset_0_1px_0_rgba(255,255,255,0.22),0_10px_24px_-10px_rgba(232,89,12,0.8)]' : 'bg-surface text-ink ring-1 ring-line'
-                  }`}
-                >
-                  <QrCode size={22} weight="bold" /> แสดง QR
-                </button>
+              <div className="mt-3 grid grid-cols-[1fr_auto] gap-2">
+                {!qrClosed(activity) && (
+                  <Button size="lg" variant={running ? 'accent' : 'secondary'} onClick={showQr}>
+                    <QrCode size={22} weight="bold" /> แสดง QR
+                  </Button>
+                )}
                 <Button size="lg" variant="secondary" className="px-5" disabled={!rosterOpen} onClick={() => setAdding(true)}>
                   <UserPlus size={22} /> เพิ่มรายชื่อ
                 </Button>
               </div>
             )}
-            {!rosterOpen && <p className="mt-3 text-sm text-muted">{sup.admin ? 'บันทึกลงระบบแล้ว แก้ไม่ได้' : 'ส่งรายชื่อแล้ว แก้ไม่ได้'}</p>}
+            {!rosterOpen && <p className="mt-3 px-1 text-sm text-muted">{sup.admin ? 'บันทึกลงระบบแล้ว แก้ไม่ได้' : 'ส่งรายชื่อแล้ว แก้ไม่ได้'}</p>}
 
             <div className="mt-4 flex flex-col gap-4 empty:hidden">
               <StageActions activity={activity} regs={regs} credits={credits} admin={sup.admin} />
@@ -205,9 +203,16 @@ export default function Manage() {
           <div>
             {st === 'live' && <ScanFeed credits={credits} ready={creditsReady} />}
 
-            <h2 className="px-1 pt-[26px] pb-2.5 text-lg font-semibold">การตั้งค่าและเอกสาร</h2>
-            <section className="divide-y divide-white/5 overflow-hidden rounded-[22px] border border-white/[0.06] bg-surface">
-              {!bottle && <Row icon={<GearSix size={22} />} disabled={!editable} onClick={() => setSettings(true)} title="การเช็คชื่อ" detail={checkinSummary(activity)} />}
+            <h2 className="px-1 pt-8 pb-3 text-xl font-semibold">การตั้งค่าและเอกสาร</h2>
+            <section className="divide-y divide-line overflow-hidden rounded-[var(--radius-card)] bg-surface">
+              {!bottle && <Row icon={<GearSix size={22} />} disabled={!editable} onClick={() => setSettings(true)} title="การเช็คชื่อ" detail={
+                    <span className="flex flex-wrap gap-x-3">
+                      {checkinParts(activity).map((t) => (
+                        <span key={t}>{t}</span>
+                      ))}
+                    </span>
+                  }
+                />}
               {editable && <Row icon={<PencilSimple size={22} />} onClick={() => nav(`/sup/edit/${id}`)} title="แก้ไขรายละเอียดกิจกรรม" detail="ชื่อ รูปปก วันเวลา และสถานที่" />}
               <Row icon={<ListChecks size={22} />} onClick={() => nav(`/sup/a/${id}/roster`)} title="ตรวจสอบรายชื่อ" detail={sup.admin ? 'ตารางรายชื่อพร้อมเวลายืนยัน' : 'ตารางเดียวกับไฟล์ Excel'} />
               {started && <Row icon={<FileXls size={22} />} onClick={exportXlsx} title="ดาวน์โหลดไฟล์ Excel" detail={sup.admin ? 'ผู้ได้รับชั่วโมงพร้อมหน่วยงานและหมวด' : 'รายชื่อพร้อมชั่วโมงของแต่ละคน'} />}
@@ -215,19 +220,18 @@ export default function Manage() {
           </div>
         </div>
 
-        <div className="mt-8 grid gap-6 min-[900px]:grid-cols-[1fr_360px]">
+        <div className="mt-9 grid gap-6 min-[900px]:grid-cols-[1fr_360px]">
           <Roster regs={regs} credits={credits} selected={wide ? selectedId : undefined} closed={closed} onSelect={pick} filter={filter} onFilter={setFilter} />
           {wide && (
-            <aside className="sticky top-4 self-start rounded-[var(--radius-card)] bg-surface p-5 shadow-soft">
+            <aside className="sticky top-4 self-start rounded-[var(--radius-card)] bg-surface p-5">
               {selected ? (
                 <div className="flex flex-col gap-3">
                   <p className="text-xl font-semibold">{selected.name}</p>
                   <p className="num text-muted">{selected.studentId}</p>
-                  <p className="num text-4xl font-bold">{selected.credit ? `${selected.credit.hours} ชม.` : 'ยังไม่ได้รับชั่วโมง'}</p>
+                  <p className="num text-4xl font-semibold tracking-tight">{selected.credit ? `${selected.credit.hours} ชม.` : 'ยังไม่ได้รับชั่วโมง'}</p>
                   {selected.credit && (
                     <p className="num text-sm text-muted">
-                      สแกน {thTime(selected.credit.at)} น.
-                      {selected.credit.editedBy && ` แก้โดย ${selected.credit.editedBy}`}
+                      {creditWhen(selected.credit)}
                     </p>
                   )}
                   <div className="flex flex-wrap gap-1.5 empty:hidden">

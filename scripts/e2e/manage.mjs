@@ -10,6 +10,24 @@ export default async function ({ browser, base, load, shot }) {
   const sup = await ctx.newPage()
 
   await sup.goto(`${base}#/sup/login`)
+  // The fixture's blood drive runs 08:00 to 16:00. The latest-scans list only shows while it runs, so make it run now whatever the clock says.
+  await sup.waitForFunction(() => localStorage.getItem('nuv:db'))
+  await sup.evaluate(() => {
+    const db = JSON.parse(localStorage.getItem('nuv:db'))
+    const now = Date.now()
+    Object.assign(db.activities['test-blood'], { start: now - 3600_000, end: now + 3 * 3600_000 })
+    localStorage.setItem('nuv:db', JSON.stringify(db))
+  })
+  await sup.reload()
+  // The submit button is never greyed out: pressed with empty fields it says what is missing.
+  const enter = sup.getByRole('button', { name: 'เข้าใช้งาน' })
+  expect(!(await enter.isDisabled()), 'login button is enabled with empty fields')
+  await enter.click()
+  await sup.getByText('กรอกชื่อผู้ดูแล').waitFor()
+  await sup.getByText('กรอกรหัส', { exact: true }).waitFor()
+  const toStudent = await sup.getByRole('link', { name: 'สำหรับนิสิต' }).boundingBox()
+  expect(toStudent.height >= 44, `student link is ${toStudent.height}px tall`)
+  await shot(sup, 'sup-login')
   await sup.getByLabel('ชื่อผู้ดูแล').fill('พี่เต้')
   await sup.getByLabel('รหัส', { exact: true }).fill('nope')
   await sup.getByRole('button', { name: 'เข้าใช้งาน' }).click()

@@ -32,8 +32,8 @@ export default function SupStats() {
 
   if (!sup) return null
   return (
-    <main className="mx-auto max-w-lg px-4 pt-[calc(1.625rem+env(safe-area-inset-top,0px))] pb-4">
-      <h1 className="rise px-1 text-[26px] font-semibold">สถิติ</h1>
+    <main className="mx-auto max-w-lg px-4 pt-[calc(1.5rem+env(safe-area-inset-top,0px))] pb-4">
+      <h1 className="rise px-1 text-[28px] leading-tight font-bold tracking-tight">สถิติ</h1>
       <OverviewStats o={overview} lead={admin && <TargetCard label={overview.label} count={overview.activities} />}>
         {admin && (
           <>

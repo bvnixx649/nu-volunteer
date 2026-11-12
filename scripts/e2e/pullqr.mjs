@@ -45,7 +45,7 @@ export default async function ({ browser, base, shot }) {
   await page.getByRole('link', { name: 'กิจกรรมทั้งหมด' }).waitFor()
   await page.getByText(/^กำลังดำเนินการ ถึง \d\d:\d\d น\.$/).waitFor()
   const h1 = await page.getByRole('heading', { level: 1 }).evaluate((e) => getComputedStyle(e).fontSize)
-  expect(h1 === '24px', `title is ${h1}`)
+  expect(h1 === '26px', `title is ${h1}`)
   await page.getByText(/^ได้รับชั่วโมงแล้ว จากผู้ลงทะเบียน 20 คน$/).waitFor()
   await page.getByRole('img', { name: /^ได้รับชั่วโมงแล้ว ร้อยละ \d+$/ }).waitFor()
   const tiles = page.locator('section[aria-label="สรุปกิจกรรม"] button')

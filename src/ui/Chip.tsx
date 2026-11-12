@@ -6,8 +6,8 @@ export function Chip({ selected, onClick, children }: { selected?: boolean; onCl
       type="button"
       aria-pressed={selected}
       onClick={onClick}
-      className={`pressable min-h-10 shrink-0 rounded-full px-4 text-[15px] font-medium ring-1 transition-colors ${
-        selected ? 'bg-ink text-bg ring-ink' : 'bg-surface text-ink ring-line'
+      className={`pressable min-h-11 shrink-0 rounded-full px-4 text-[15px] font-medium transition-colors ${
+        selected ? 'bg-ink text-bg' : 'bg-surface-2 text-ink'
       }`}
     >
       {children}
