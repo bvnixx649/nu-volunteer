@@ -4,11 +4,13 @@ import { CaretDown, Check, DotsThree, ImageSquare, MapPin, PencilSimple, Plus } 
 import { toast } from 'sonner'
 import { HOUR_CHIPS } from '../../config'
 import { categoryOf, CATEGORIES, BUILTIN_KEYS } from '../../data/categories'
-import type { CategoryKey, Template } from '../../data/types'
+import { now } from '../../data/api'
+import type { Activity, CategoryKey, Template } from '../../data/types'
 import { checkinSummary } from '../../lib/checkin'
-import { fixDate, isBottleDraft, MAX_DATE, MIN_DATE, toMs, ymd, posterChoices, type Draft } from '../../lib/draft'
+import { fixDate, isBottleDraft, MAX_DATE, MIN_DATE, toMs, ymd, posterChoices, typedNumber, type Draft } from '../../lib/draft'
 import { thDate, thTime } from '../../lib/format'
 import { getFix, type GeoError } from '../../lib/geo'
+import { freeCancelUntil } from '../../lib/student'
 import { resizeToDataUrl } from '../../lib/image'
 import { Button } from '../../ui/Button'
 import { Chip } from '../../ui/Chip'
@@ -21,9 +23,9 @@ export type StepProps = { d: Draft; set: (p: Partial<Draft>) => void; errors: Re
 
 export const TITLES = ['เลือกเทมเพลต', 'รายละเอียด', 'ตรวจและเผยแพร่']
 
-/** A rounded group that holds switches, like the sections of the check-in settings. */
-function Group({ children }: { children: ReactNode }) {
-  return <div className="rounded-[var(--radius-field)] bg-surface px-4 ring-1 ring-line">{children}</div>
+/** A group that holds switches: a flat card on the page, or (`inset`) a darker well when it sits inside a card. */
+function Group({ inset, children }: { inset?: boolean; children: ReactNode }) {
+  return <div className={inset ? 'rounded-[var(--radius-field)] bg-bg px-4' : 'rounded-[var(--radius-card)] bg-surface px-5 py-1'}>{children}</div>
 }
 
 /** Height-animated block for controls that only exist while a switch is on. */
@@ -48,13 +50,13 @@ function Reveal({ show, children }: { show: boolean; children: ReactNode }) {
 /** A card-sized button that opens a block under it. The closed state shows a summary so nothing is hidden blind. */
 function Disclosure({ title, summary, open, onToggle, children }: { title: string; summary: string; open: boolean; onToggle: () => void; children: ReactNode }) {
   return (
-    <section className="rounded-[var(--radius-card)] bg-surface ring-1 ring-line">
-      <button type="button" aria-expanded={open} onClick={onToggle} className="pressable flex w-full items-start gap-3 rounded-[var(--radius-card)] px-5 py-4 text-left">
+    <section className="rounded-[var(--radius-card)] bg-surface">
+      <button type="button" aria-expanded={open} onClick={onToggle} className="pressable flex min-h-16 w-full items-center gap-3 rounded-[var(--radius-card)] px-5 py-4 text-left">
         <span className="min-w-0 flex-1">
-          <span className="block font-semibold">{title}</span>
+          <span className="block text-[17px] font-semibold">{title}</span>
           {!open && <span className="num mt-0.5 line-clamp-2 block text-sm text-muted">{summary}</span>}
         </span>
-        <CaretDown size={20} weight="bold" className={`mt-0.5 shrink-0 text-muted transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
+        <CaretDown size={20} weight="bold" className={`shrink-0 text-muted transition-transform duration-200 ${open ? 'rotate-180' : ''}`} />
       </button>
       <Reveal show={open}>
         <div className="px-5 pb-5">{children}</div>
@@ -63,7 +65,7 @@ function Disclosure({ title, summary, open, onToggle, children }: { title: strin
   )
 }
 
-const num = (s: string) => s.replace(/\D/g, '').slice(0, 4)
+const num = typedNumber
 
 /* Step 1 ------------------------------------------------------------------------------------------ */
 
@@ -85,10 +87,11 @@ function TemplateCard({ t, on, onPick, onMenu }: { t: Template; on: boolean; onP
   const held = useRef(false)
   const stop = () => window.clearTimeout(timer.current)
   return (
-    <div className={`relative overflow-hidden rounded-[var(--radius-card)] bg-surface shadow-soft ring-1 transition-shadow duration-200 ${on ? 'ring-2 ring-accent' : 'ring-line'}`}>
+    <div className={`relative overflow-hidden rounded-[var(--radius-card)] bg-surface ${on ? 'ring-2 ring-ink' : ''}`}>
       <button
         type="button"
         aria-pressed={on}
+        aria-label={t.title}
         onClick={() => {
           if (held.current) held.current = false
           else onPick()
@@ -111,8 +114,8 @@ function TemplateCard({ t, on, onPick, onMenu }: { t: Template; on: boolean; onP
       >
         <img src={t.poster} alt="" draggable={false} className="aspect-[4/3] w-full object-cover" />
         <span className="block py-3 pr-12 pl-3.5">
-          <span className="block truncate font-semibold">{t.title}</span>
-          <span className="num block text-sm text-muted">{t.hours} ชม.</span>
+          <span className="block truncate text-base font-semibold">{t.title}</span>
+          <span className="num block text-[13.5px] text-muted">{t.hours} ชม.</span>
         </span>
       </button>
       <button
@@ -140,12 +143,12 @@ export function StepCategory({ d, templates, onPick, onPickTemplate, onAdd, onMe
               type="button"
               aria-pressed={on}
               onClick={() => onPick(k)}
-              className={`pressable overflow-hidden rounded-[var(--radius-card)] bg-surface text-left shadow-soft ring-1 transition-shadow duration-200 ${on ? 'ring-2 ring-accent' : 'ring-line'}`}
+              className={`pressable overflow-hidden rounded-[var(--radius-card)] bg-surface text-left ${on ? 'ring-2 ring-ink' : ''}`}
             >
               <img src={posterChoices(k)[0]} alt="" className="aspect-[4/3] w-full object-cover" />
               <span className="block px-3.5 py-3">
-                <span className="block font-semibold">{c.label}</span>
-                <span className="num block text-sm text-muted">{c.itemsPerHour ? `สูงสุด ${c.hours} ชม.` : `${c.hours} ชม.`}</span>
+                <span className="block text-base font-semibold">{c.label}</span>
+                <span className="num block text-[13.5px] text-muted">{c.itemsPerHour ? `สูงสุด ${c.hours} ชม.` : `${c.hours} ชม.`}</span>
               </span>
             </button>
           )
@@ -157,14 +160,14 @@ export function StepCategory({ d, templates, onPick, onPickTemplate, onAdd, onMe
       <div className="mt-8 flex flex-col items-center gap-2">
         <button
           type="button"
-          aria-label="เพิ่มกิจกรรม"
+          aria-label="เพิ่มเทมเพลต"
           onClick={onAdd}
-          className="pressable grid size-16 place-items-center rounded-full bg-accent-soft text-accent"
+          className="pressable grid size-16 place-items-center rounded-full bg-surface-2 text-ink"
         >
           <Plus size={28} weight="bold" />
         </button>
-        <span aria-hidden className="text-sm text-muted">
-          เพิ่มกิจกรรม
+        <span aria-hidden className="text-[15px] text-muted">
+          เพิ่มเทมเพลต
         </span>
       </div>
     </>
@@ -174,7 +177,7 @@ export function StepCategory({ d, templates, onPick, onPickTemplate, onAdd, onMe
 /* Step 2 ------------------------------------------------------------------------------------------ */
 
 const areaClass =
-  'min-h-44 w-full resize-none rounded-[var(--radius-field)] bg-surface-2 px-4 py-3 text-[17px] leading-relaxed ring-1 ring-line transition-shadow duration-150 outline-none placeholder:text-muted focus:ring-2 focus:ring-accent'
+  'min-h-44 w-full resize-none rounded-[var(--radius-field)] bg-surface-2 px-4 py-3 text-[17px] leading-relaxed ring-1 ring-transparent transition-shadow duration-150 outline-none placeholder:text-muted focus:ring-2 focus:ring-ink'
 
 function PosterTile({ src, selected, label, onClick }: { src: string; selected: boolean; label: string; onClick: () => void }) {
   return (
@@ -184,11 +187,11 @@ function PosterTile({ src, selected, label, onClick }: { src: string; selected: 
       aria-checked={selected}
       aria-label={label}
       onClick={onClick}
-      className={`pressable relative aspect-[4/3] w-full overflow-hidden rounded-[var(--radius-field)] ring-1 ${selected ? 'ring-2 ring-accent' : 'ring-line'}`}
+      className={`pressable relative aspect-[4/3] w-full overflow-hidden rounded-[var(--radius-field)] bg-surface-2 ${selected ? 'ring-2 ring-ink' : ''}`}
     >
       <img src={src} alt="" className="size-full object-cover" />
       {selected && (
-        <span className="absolute top-2 right-2 grid size-6 place-items-center rounded-full bg-accent-strong text-on-accent">
+        <span className="absolute top-2 right-2 grid size-6 place-items-center rounded-full bg-ink text-bg">
           <Check size={14} weight="bold" />
         </span>
       )}
@@ -224,10 +227,10 @@ function PosterPicker({ d, set }: Pick<StepProps, 'd' | 'set'>) {
         type="button"
         aria-label="เปลี่ยนรูปปก"
         onClick={() => setOpen(true)}
-        className="pressable relative block aspect-[16/9] w-full overflow-hidden rounded-[var(--radius-card)] bg-surface-2 shadow-soft"
+        className="pressable relative block aspect-[16/9] w-full overflow-hidden rounded-[var(--radius-card)] bg-surface-2"
       >
         {d.poster && <img src={d.poster} alt="" className="size-full object-cover" />}
-        <span className="absolute right-3 bottom-3 inline-flex h-9 items-center gap-1.5 rounded-full bg-black/60 px-3.5 text-sm font-medium text-white backdrop-blur-sm">
+        <span className="absolute right-3 bottom-3 inline-flex h-9 items-center gap-1.5 rounded-full bg-black/60 px-3.5 text-sm font-medium text-ink">
           <PencilSimple size={16} weight="bold" /> เปลี่ยนรูป
         </span>
       </button>
@@ -252,7 +255,7 @@ function PosterPicker({ d, set }: Pick<StepProps, 'd' | 'set'>) {
             type="button"
             disabled={busy}
             onClick={() => file.current?.click()}
-            className="pressable flex aspect-[4/3] flex-col items-center justify-center gap-1.5 rounded-[var(--radius-field)] bg-surface font-medium text-muted border-2 border-dashed border-line disabled:opacity-45"
+            className="pressable flex aspect-[4/3] flex-col items-center justify-center gap-1.5 rounded-[var(--radius-field)] bg-surface-2 text-[15px] font-medium text-ink disabled:opacity-45"
           >
             <ImageSquare size={26} />
             {busy ? 'กำลังย่อรูป' : 'อัปโหลดรูป'}
@@ -417,7 +420,7 @@ export function StepDetails({ d, set, errors, advancedOpen, onAdvanced }: StepPr
         <div className="flex flex-col gap-6 pt-1">
           {!bottle && (
             <>
-              <Group>
+              <Group inset>
                 <Switch checked={d.capLimit} onChange={(v) => set({ capLimit: v })} label="จำกัดจำนวน" />
                 <Reveal show={d.capLimit}>
                   <div className="pb-4">
@@ -426,7 +429,7 @@ export function StepDetails({ d, set, errors, advancedOpen, onAdvanced }: StepPr
                 </Reveal>
               </Group>
 
-              <Group>
+              <Group inset>
                 <Switch
                   checked={d.walkIn}
                   onChange={(v) => set({ walkIn: v })}
@@ -435,7 +438,7 @@ export function StepDetails({ d, set, errors, advancedOpen, onAdvanced }: StepPr
                 />
               </Group>
 
-              <Group>
+              <Group inset>
                 <Switch checked={d.scheduled} onChange={toggleScheduled} label="ตั้งเวลาเปิดรับสมัคร" hint={d.scheduled ? undefined : 'ไม่ตั้ง เปิดรับทันทีที่เผยแพร่'} />
                 <Reveal show={d.scheduled}>
                   <div className="flex flex-col gap-4 pb-3">
@@ -466,7 +469,7 @@ export function StepDetails({ d, set, errors, advancedOpen, onAdvanced }: StepPr
 
           <div className="flex flex-col gap-5">
             <Field label="ชื่อผู้ดูแลกิจกรรม" value={d.supName} onChange={(e) => set({ supName: e.target.value })} error={errors.supName} autoComplete="name" />
-            <Field label="เบอร์ติดต่อ" type="tel" inputMode="tel" autoComplete="tel" value={d.phone} onChange={(e) => set({ phone: e.target.value })} />
+            <Field label="เบอร์ติดต่อ" type="tel" inputMode="tel" autoComplete="tel" value={d.phone} onChange={(e) => set({ phone: e.target.value.replace(/[^\d\s-]/g, '') })} />
           </div>
         </div>
       </Disclosure>
@@ -494,20 +497,22 @@ export function StepReview({ d, templateName }: { d: Draft; templateName?: strin
   const bottle = isBottleDraft(d)
   const cancel = Number(d.cancelDays) === 0 ? 'ยกเลิกฟรีถึงวันงาน' : `ยกเลิกฟรีถึง ${d.cancelDays} วันก่อนงาน`
   const contact = [d.supName, d.phone].filter(Boolean).join(' ')
+  /** Publishing after the free-cancel deadline: say so, without blocking. Bottle exchanges take no registrations. */
+  const cancelPassed = !bottle && valid && freeCancelUntil({ start, cancelDays: Number(d.cancelDays) } as Activity) < now()
 
   return (
     <div className="flex flex-col gap-6">
-      <article className="overflow-hidden rounded-[var(--radius-card)] bg-surface shadow-lift" data-testid="preview">
+      <article className="overflow-hidden rounded-[var(--radius-card)] bg-surface" data-testid="preview">
         <div className="relative">
           {d.poster && <img src={d.poster} alt="" className="aspect-[16/9] w-full object-cover" />}
-          <span className="num absolute top-3 right-3 rounded-full bg-surface px-3 py-1 text-[15px] font-semibold shadow-soft">
+          <span className="num absolute top-3 right-3 rounded-full bg-ink px-3 py-1 text-[15px] font-semibold text-bg">
             {bottle ? `สูงสุด ${d.hours} ชม.` : `${d.hours} ชม.`}
           </span>
         </div>
         <div className="px-5 py-4">
-          <h2 className="line-clamp-2 text-xl leading-snug font-bold">{d.title}</h2>
-          <p className="num mt-1.5 text-muted">{when}</p>
-          <p className="mt-0.5 text-muted">{d.place}</p>
+          <h2 className="line-clamp-2 text-xl leading-snug font-semibold text-balance">{d.title}</h2>
+          <p className="num mt-1.5 text-[15px] text-muted">{when}</p>
+          <p className="mt-0.5 text-[15px] text-muted">{d.place}</p>
         </div>
       </article>
 
@@ -557,6 +562,7 @@ export function StepReview({ d, templateName }: { d: Draft; templateName?: strin
           )}
         </SummaryRow>
       </dl>
+      {cancelPassed && <p className="text-[15px] leading-relaxed text-warn">เลยเวลายกเลิกได้ฟรีแล้ว คนที่ลงทะเบียนหลังจากนี้จะยกเลิกแบบไม่เสียสิทธิ์ไม่ได้</p>}
     </div>
   )
 }

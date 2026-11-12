@@ -144,8 +144,8 @@ export function createLocalApi(): Api {
 
         const reg = regs[id]
         if (!reg || reg.cancelledAt) {
+          // A walk-in is not a registration: regCount stays as it is.
           regs[id] = { studentId: id, name, at, walkIn: true }
-          if (activity) activity.regCount = (activity.regCount ?? 0) + 1
         }
         return { ok: true, credit }
       })
@@ -176,7 +176,7 @@ export function createLocalApi(): Api {
       tx((db) => {
         const act = db.activities[a]
         if (db.regs[a]?.[s]) {
-          const wasActive = !db.regs[a][s].cancelledAt
+          const wasActive = !db.regs[a][s].cancelledAt && !db.regs[a][s].walkIn
           delete db.regs[a][s]
           if (act && wasActive) act.regCount = Math.max(0, act.regCount - 1)
         }

@@ -19,12 +19,12 @@ export default async function ({ browser, base, shot }) {
     const w = await page.evaluate(() => document.documentElement.scrollWidth)
     expect(w <= 390, `${label} is ${w}px wide`)
   }
-  const tab = (name) => page.getByRole('navigation', { name: 'เมนูหลัก' }).getByRole('link', { name })
+  const tab = (name) => page.getByRole('navigation', { name: 'เมนูหลัก' }).getByRole('link', { name, exact: true })
   const h1 = async (name) => {
     const h = page.getByRole('heading', { level: 1, name })
     await h.waitFor()
     const size = await h.evaluate((e) => getComputedStyle(e).fontSize)
-    expect(size === '26px', `title "${name}" is ${size}`)
+    expect(size === '28px', `title "${name}" is ${size}`)
   }
 
   // Signed out: a tab sends you to the login page.
@@ -84,8 +84,10 @@ export default async function ({ browser, base, shot }) {
   await h1('สถิติ')
   expect(page.url().endsWith('#/sup/stats'), 'stats tab opens /sup/stats')
   expect((await tab('สถิติ').getAttribute('aria-current')) === 'page', 'stats tab is current')
-  const pill = await tab('สถิติ').locator('span').first().boundingBox()
-  expect(Math.round(pill.width) === 56 && Math.round(pill.height) === 30, `active pill is ${pill.width}x${pill.height}`)
+  // The current tab is white text with a filled icon; there is no pill behind it.
+  await page.waitForTimeout(300) // colour transition
+  expect((await tab('สถิติ').evaluate((e) => getComputedStyle(e).color)) === 'rgb(244, 244, 245)', 'current tab is white')
+  expect((await tab('บัญชี').evaluate((e) => getComputedStyle(e).color)) === 'rgb(161, 161, 170)', 'other tabs are muted')
   await page.getByRole('heading', { name: /^ปีการศึกษา \d{4}$/ }).waitFor()
   await page.getByText(/^1 พ\.ค\. \d{4} ถึง 30 เม\.ย\. \d{4}$/).waitFor()
   await page.getByText('เข้าร่วมจริงเทียบจำนวนที่รับ').waitFor()
@@ -127,15 +129,20 @@ export default async function ({ browser, base, shot }) {
   const out = page.getByRole('button', { name: 'ออกจากระบบ' })
   const outBox = await out.boundingBox()
   expect(outBox.height >= 56 && outBox.width >= 340, `sign-out row is ${outBox.width}x${outBox.height}`)
-  expect((await out.evaluate((e) => getComputedStyle(e).color)) === 'rgb(242, 122, 110)', 'sign-out text is the danger colour')
+  expect((await out.evaluate((e) => getComputedStyle(e).color)) === 'rgb(255, 106, 92)', 'sign-out text is the danger colour')
   const meBody = await page.locator('main').innerText()
   expect(!/[·—]/.test(meBody), 'no middle dot or em-dash on the account page')
   await noOverflow('account')
   await page.waitForTimeout(900)
   await shot(page, 'sup-me', { viewport: true })
 
-  // Sign out: back to the login page, and a tab no longer opens.
+  // Sign out asks first, then goes back to the login page, and a tab no longer opens.
   await out.click()
+  const ask = page.getByRole('dialog', { name: 'ออกจากระบบ' })
+  await ask.waitFor()
+  await page.waitForTimeout(500)
+  await shot(page, 'sup-me-signout', { viewport: true })
+  await ask.getByRole('button', { name: 'ออกจากระบบ' }).click()
   await page.getByLabel('ชื่อผู้ดูแล').waitFor()
   expect(page.url().endsWith('#/sup/login'), `sign-out lands on ${page.url()}`)
   await page.goto(`${base}#/sup/me`)

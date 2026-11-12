@@ -101,7 +101,7 @@ export default async function ({ browser, base, shot }) {
 
   // Hours checks.
   await page.getByLabel('ชั่วโมงต่อคน').fill('100')
-  await page.getByText('ใส่ตัวเลข 1 ถึง 99').waitFor()
+  await page.getByText('ใส่จำนวนเต็ม 1 ถึง 99').waitFor()
   await next()
   await h1('รายละเอียด')
   await page.getByRole('button', { name: '6 ชม.', exact: true }).click()

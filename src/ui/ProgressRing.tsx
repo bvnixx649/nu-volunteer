@@ -15,7 +15,7 @@ export function ProgressRing({ percent, size, stroke = 10, children, label }: { 
   return (
     <div className="relative shrink-0" style={{ width: size, height: size }} role={label ? 'img' : undefined} aria-label={label}>
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} aria-hidden>
-        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="rgba(92,196,141,0.12)" strokeWidth={stroke} />
+        <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--color-ok-soft)" strokeWidth={stroke} />
         <circle
           cx={size / 2}
           cy={size / 2}

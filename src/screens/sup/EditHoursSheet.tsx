@@ -130,7 +130,7 @@ export function EditHoursSheet({ row, activity, by, onClose }: Props) {
             </div>
           )}
 
-          <Button size="lg" className="w-full" disabled={!canSave} loading={busy} onClick={save}>
+          <Button size="lg" variant={credit ? 'primary' : 'accent'} className="w-full" disabled={!canSave} loading={busy} onClick={save}>
             {credit ? 'บันทึก' : hours !== null ? `ให้ ${hours} ชั่วโมง` : 'ให้ชั่วโมง'}
           </Button>
 

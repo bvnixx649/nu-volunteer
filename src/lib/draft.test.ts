@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { CATEGORIES, categoryOf } from '../data/categories'
 import type { Activity } from '../data/types'
 import { thDate } from './format'
-import { applyCategory, applyTemplate, blankDraft, check, draftOf, fixDate, isDirty, toMs, posterChoices, toEdit, toNewActivity, type Draft } from './draft'
+import { applyCategory, applyTemplate, blankDraft, check, draftOf, fixDate, isDirty, toMs, posterChoices, typedNumber, toEdit, toNewActivity, type Draft } from './draft'
 
 const none = new Set<string>()
 const filled = (over: Partial<Draft> = {}): Draft => ({
@@ -16,7 +16,7 @@ const filled = (over: Partial<Draft> = {}): Draft => ({
 describe('applyCategory', () => {
   it('fills every default from the category', () => {
     const d = applyCategory(blankDraft(), 'setup', none)
-    expect(d).toMatchObject({ categoryKey: 'setup', hours: '5', capLimit: true, capacity: '20', walkIn: false, qrMode: 'dynamic', poster: './posters/setup.jpg' })
+    expect(d).toMatchObject({ categoryKey: 'setup', hours: '5', capLimit: true, capacity: '20', walkIn: false, qrMode: 'dynamic', poster: './posters/setup-3.jpg' })
     expect(d.description).toBe(CATEGORIES.setup.description)
   })
   it('leaves touched fields alone when the category changes', () => {
@@ -54,6 +54,15 @@ describe('check', () => {
     const empty = check(2, filled({ hours: '' }))
     expect(empty.ok).toBe(false)
     expect(empty.errors.hours).toBeUndefined()
+  })
+  it('keeps typed numbers as typed and rejects decimals and negatives', () => {
+    expect(typedNumber('2.5')).toBe('2.5')
+    expect(typedNumber('-3')).toBe('-3')
+    for (const v of ['2.5', '-3', '1e2']) {
+      expect(check(2, filled({ hours: v })).errors.hours).toBe('ใส่จำนวนเต็ม 1 ถึง 99')
+      expect(check(2, filled({ capLimit: true, capacity: v })).ok).toBe(false)
+      expect(check(2, filled({ cancelDays: v })).errors.cancelDays).toBe('ใส่จำนวนเต็ม 0 ถึง 14')
+    }
   })
   it('checks capacity only when limited', () => {
     expect(check(2, filled({ capLimit: false, capacity: '' })).ok).toBe(true)

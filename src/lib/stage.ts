@@ -55,3 +55,13 @@ export function canEdit(a: Activity) {
 export function canEditRoster(a: Activity, admin = false) {
   return admin ? !a.recordedAt : canEdit(a)
 }
+
+/** Once the roster is sent or closed nobody can claim hours, so the QR is no longer shown. */
+export function qrClosed(a: Activity, now = serverNow()) {
+  return !canEdit(a) || !!closedAt(a, now)
+}
+
+/** A supervisor sees the activities of their own organisation; the centre admin sees all. */
+export function ownsActivity(a: Pick<Activity, 'orgCode'>, sup: { orgCode: string; admin: boolean }) {
+  return sup.admin || a.orgCode === sup.orgCode
+}

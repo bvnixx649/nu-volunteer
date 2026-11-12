@@ -23,6 +23,7 @@ export function Failure({ reason, student, onRetry, onShowTicket }: Props) {
   const copy = CLAIM_COPY[reason]
   // A phone that has never signed in would land on the supervisors' login at "/", so it goes to welcome instead.
   const home = useDevice((s) => (s.studentId ? '/' : '/welcome'))
+  const known = useDevice((s) => !!s.studentId)
   const already = reason === 'already'
   const Icon = already ? CheckCircle : WarningCircle
   return (
@@ -36,12 +37,13 @@ export function Failure({ reason, student, onRetry, onShowTicket }: Props) {
       <span className={`grid size-14 place-items-center rounded-full ${already ? 'bg-ok-soft text-ok' : 'bg-bad-soft text-bad'}`}>
         <Icon size={30} weight="fill" />
       </span>
-      <h2 className="text-2xl leading-snug font-bold">{copy.title}</h2>
-      {copy.action && <p className="text-lg text-muted">{copy.action}</p>}
+      <h2 className="text-[26px] leading-snug font-bold tracking-tight text-balance">{copy.title}</h2>
+      {copy.action && <p className="text-[17px] text-muted">{copy.action}</p>}
+      {reason === 'expired' && known && <p className="text-[17px] text-muted">เครื่องจำข้อมูลแล้ว สแกนอีกครั้งเพื่อรับชั่วโมงได้ทันที</p>}
       {student && !already && (
-        <p className="num w-full rounded-[var(--radius-field)] bg-surface px-4 py-3">
+        <p className="num w-full rounded-[var(--radius-card)] bg-surface px-4 py-3.5">
           <span className="block font-semibold break-words">{student.name}</span>
-          <span className="text-muted">รหัสนิสิต {student.id}</span>
+          <span className="text-[15px] text-muted">รหัสนิสิต {student.id}</span>
         </p>
       )}
       <div className="mt-4 flex w-full flex-col gap-3">
@@ -50,7 +52,7 @@ export function Failure({ reason, student, onRetry, onShowTicket }: Props) {
             ดูชั่วโมงที่ได้รับ
           </Button>
         ) : RESCAN.has(reason) ? (
-          <LinkButton to="/scan" variant="primary">
+          <LinkButton to="/scan" variant="accent">
             <QrCode size={22} weight="bold" /> สแกน QR ใหม่
           </LinkButton>
         ) : (

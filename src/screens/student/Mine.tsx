@@ -10,16 +10,26 @@ import { phase } from '../../lib/student'
 import { LinkButton } from '../../ui/LinkButton'
 import { Segmented } from '../../ui/Segmented'
 
-function Row({ a, i, to, children }: { a: Activity; i: number; to?: string; children: ReactNode }) {
+/** One activity: thumbnail, a status line, the title and one line of detail. `action` sits under the row, inside the same card. */
+function Row({ a, i, action, children }: { a: Activity; i: number; action?: ReactNode; children: ReactNode }) {
   return (
-    <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1], delay: Math.min(i, 8) * 0.04 }}>
-      <Link to={to ?? `/a/${a.id}`} className="pressable flex gap-4 rounded-[var(--radius-card)] bg-surface p-3 shadow-soft">
-        <img src={a.poster} alt="" loading="lazy" className="size-20 shrink-0 rounded-2xl bg-surface-2 object-cover" />
-        <div className="flex min-w-0 flex-1 flex-col gap-1 py-0.5">{children}</div>
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4, ease: [0.23, 1, 0.32, 1], delay: Math.min(i, 8) * 0.04 }}
+      className="rounded-[var(--radius-card)] bg-surface p-3"
+    >
+      <Link to={`/a/${a.id}`} className="pressable flex items-center gap-3.5">
+        <img src={a.poster} alt="" loading="lazy" className="size-[72px] shrink-0 rounded-[14px] bg-surface-2 object-cover" />
+        <div className="flex min-w-0 flex-1 flex-col gap-0.5 pr-1">{children}</div>
       </Link>
+      {action}
     </motion.div>
   )
 }
+
+const title = 'line-clamp-2 text-[17px] leading-snug font-semibold'
+const meta = 'num truncate text-[13.5px] text-muted'
 
 /** The student's own list: what is coming, and what is done. */
 export default function Mine() {
@@ -42,7 +52,7 @@ export default function Mine() {
 
   return (
     <main className="mx-auto max-w-lg px-5 pt-[calc(1.5rem+env(safe-area-inset-top,0px))]">
-      <h1 className="text-3xl font-bold tracking-tight">กิจกรรมของฉัน</h1>
+      <h1 className="text-[28px] leading-tight font-bold tracking-tight">กิจกรรมของฉัน</h1>
       <div className="mt-5">
         <Segmented
           label="เลือกช่วงเวลา"
@@ -55,31 +65,39 @@ export default function Mine() {
         />
       </div>
 
-      <div className="mt-6 flex flex-col gap-3">
-        {!loaded && <div className="h-28 animate-pulse rounded-[var(--radius-card)] bg-surface" aria-hidden />}
+      <div className="mt-5 flex flex-col gap-3">
+        {!loaded && <div className="h-24 animate-pulse rounded-[var(--radius-card)] bg-surface" aria-hidden />}
         {loaded &&
           tab === 'upcoming' &&
           (upcoming.length ? (
             upcoming.map((a, i) => {
               const live = phase(a, t) === 'live'
               return (
-                <Row key={a.id} a={a} i={i} to={live ? '/scan' : undefined}>
-                  <p className="num text-sm font-semibold text-accent">{live ? 'กำลังดำเนินอยู่' : `${relDay(a.start, t)} ${thTime(a.start)} น.`}</p>
-                  <p className="line-clamp-2 leading-snug font-semibold">{a.title}</p>
-                  {live ? (
-                    <span className="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-accent">
-                      <QrCode size={18} weight="bold" /> แตะเพื่อสแกนรับชั่วโมง
-                    </span>
-                  ) : (
-                    <p className="truncate text-sm text-muted">{a.place || thDate(a.start)}</p>
-                  )}
+                <Row
+                  key={a.id}
+                  a={a}
+                  i={i}
+                  action={
+                    live && (
+                      <LinkButton to="/scan" variant="accent" className="mt-3 w-full">
+                        <QrCode size={22} weight="bold" /> สแกนรับชั่วโมง
+                      </LinkButton>
+                    )
+                  }
+                >
+                  <p className="num flex items-center gap-2 text-[13.5px] font-semibold text-accent">
+                    {live && <span aria-hidden className="live-dot size-2 shrink-0" />}
+                    {live ? 'กำลังดำเนินอยู่' : `${relDay(a.start, t)} ${thTime(a.start)} น.`}
+                  </p>
+                  <p className={title}>{a.title}</p>
+                  <p className={meta}>{a.place || thDate(a.start)}</p>
                 </Row>
               )
             })
           ) : (
-            <div className="rounded-[var(--radius-card)] bg-surface px-6 py-10 text-center shadow-soft">
+            <div className="flex flex-col items-center rounded-[var(--radius-card)] bg-surface px-6 py-10 text-center">
               <p className="text-lg font-semibold">ยังไม่มีกิจกรรมที่ลงทะเบียน</p>
-              <LinkButton to="/" className="mt-6">
+              <LinkButton to="/" variant="primary" className="mt-5">
                 ดูกิจกรรมที่เปิดรับ
               </LinkButton>
             </div>
@@ -89,13 +107,19 @@ export default function Mine() {
           (past.length ? (
             past.map(({ a, credit }, i) => (
               <Row key={a.id} a={a} i={i}>
-                <p className="text-sm text-muted">{thDate(a.start)}</p>
-                <p className="line-clamp-2 leading-snug font-semibold">{a.title}</p>
-                {credit ? <p className="num text-sm font-semibold text-ok">+{fmtHours(credit.hours)} ชั่วโมง{credit.items !== undefined && ` จากแลกขวด ${credit.items} ขวด`}</p> : <p className="text-sm text-muted">ไม่ได้รับชั่วโมง</p>}
+                <p className="num text-[13.5px] text-muted">{thDate(a.start)}</p>
+                <p className={title}>{a.title}</p>
+                {credit ? (
+                  <p className="num text-[13.5px] font-semibold text-ok">
+                    +{fmtHours(credit.hours)} ชั่วโมง{credit.items !== undefined && ` จากแลกขวด ${credit.items} ขวด`}
+                  </p>
+                ) : (
+                  <p className="text-[13.5px] text-muted">ไม่ได้รับชั่วโมง</p>
+                )}
               </Row>
             ))
           ) : (
-            <p className="rounded-[var(--radius-card)] bg-surface px-6 py-10 text-center text-muted shadow-soft">ยังไม่มีกิจกรรมที่ผ่านมา</p>
+            <p className="rounded-[var(--radius-card)] bg-surface px-6 py-10 text-center text-muted">ยังไม่มีกิจกรรมที่ผ่านมา</p>
           ))}
       </div>
     </main>

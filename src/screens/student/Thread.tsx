@@ -61,29 +61,29 @@ export function Thread({ fallback, title, subtitle, intro, empty, messages, quic
     <div className="mx-auto flex h-dvh max-w-lg flex-col">
       <header className="shrink-0 border-b border-line bg-bg px-5 pt-[calc(0.25rem+env(safe-area-inset-top,0px))] pb-3">
         <BackBar fallback={fallback} />
-        <h1 className="mt-1 truncate text-xl font-bold">{title}</h1>
-        {subtitle && <p className="truncate text-sm text-muted">{subtitle}</p>}
+        <h1 className="mt-1 truncate text-xl font-semibold">{title}</h1>
+        {subtitle && <p className="num truncate text-[13.5px] text-muted">{subtitle}</p>}
       </header>
 
       <div ref={list} className="flex-1 overflow-y-auto overscroll-contain px-5 py-4">
-        {intro && <p className="mx-4 mb-4 text-center text-sm text-muted">{intro}</p>}
+        {intro && <p className="mx-4 mb-4 text-center text-[13.5px] text-muted text-balance">{intro}</p>}
         {messages.length === 0 && empty && <p className="mt-10 text-center text-muted">{empty}</p>}
         {messages.map((m, i) => {
           const prev = messages[i - 1]
           const newDay = !prev || new Date(prev.at).toDateString() !== new Date(m.at).toDateString()
           return (
             <div key={m.id}>
-              {newDay && <p className="num my-4 text-center text-xs text-muted">{thDate(m.at)}</p>}
+              {newDay && <p className="num my-4 text-center text-[13px] text-muted">{thDate(m.at)}</p>}
               {m.name && (
-                <p className="mt-3 mb-1 ml-1 text-sm text-muted">
+                <p className="mt-3 mb-1 ml-1 text-[13.5px] text-muted">
                   {m.name}
-                  {m.sup && <span className="font-semibold text-accent"> ผู้ดูแล</span>}
+                  {m.sup && <span className="font-semibold text-ink"> ผู้ดูแล</span>}
                 </p>
               )}
               <div className={`mt-1 flex ${m.mine ? 'justify-end' : ''}`}>
-                <div className={`max-w-[82%] rounded-2xl px-4 py-2.5 break-words whitespace-pre-wrap ${m.mine ? 'rounded-br-md bg-accent-strong text-on-accent' : m.sup ? 'rounded-bl-md bg-accent-soft' : 'rounded-bl-md bg-surface shadow-soft'}`}>
+                <div className={`max-w-[82%] rounded-[20px] px-4 py-2.5 break-words whitespace-pre-wrap ${m.mine ? 'rounded-br-md bg-ink text-bg' : 'rounded-bl-md bg-surface-2'}`}>
                   {m.text}
-                  <p className="num mt-0.5 text-right text-[11px] opacity-70">
+                  <p className="num mt-0.5 text-right text-[12px] opacity-65">
                     {thTime(m.at)}
                     {m.readMark && ' อ่านแล้ว'}
                   </p>
@@ -104,7 +104,7 @@ export function Thread({ fallback, title, subtitle, intro, empty, messages, quic
                 setText(q.text)
                 input.current?.focus()
               }}
-              className="pressable min-h-10 shrink-0 rounded-full bg-surface px-4 text-[15px] font-medium ring-1 ring-line"
+              className="pressable min-h-11 shrink-0 rounded-full bg-surface-2 px-4 text-[15px] font-medium"
             >
               {q.label}
             </button>
@@ -130,9 +130,9 @@ export function Thread({ fallback, title, subtitle, intro, empty, messages, quic
               send()
             }
           }}
-          className="max-h-30 min-h-12 flex-1 resize-none rounded-3xl bg-surface px-4 py-3 ring-1 ring-line outline-none placeholder:text-muted focus:ring-2 focus:ring-accent"
+          className="max-h-30 min-h-12 flex-1 resize-none rounded-[var(--radius-card)] bg-surface-2 px-4 py-3 ring-1 ring-transparent transition-shadow duration-150 outline-none placeholder:text-muted focus:ring-2 focus:ring-ink"
         />
-        <button onClick={send} disabled={!text.trim() || busy} aria-label="ส่ง" className="pressable grid size-12 shrink-0 place-items-center rounded-full bg-accent-strong text-on-accent disabled:opacity-45">
+        <button onClick={send} disabled={!text.trim() || busy} aria-label="ส่ง" className="pressable grid size-12 shrink-0 place-items-center rounded-full bg-ink text-bg disabled:opacity-45 disabled:active:scale-100">
           <PaperPlaneRight size={22} weight="fill" />
         </button>
       </div>

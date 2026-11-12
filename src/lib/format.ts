@@ -72,3 +72,6 @@ export function countdown(ms: number) {
   if (h > 0) return `อีก ${h} ชม. ${m % 60} นาที`
   return `อีก ${m} นาที`
 }
+
+/** First Thai consonant or letter of a name, skipping a leading vowel like เ แ โ ไ ใ, for the round avatar. */
+export const initial = (name: string) => Array.from(name.trim()).find((c) => /[ก-ฮ]|[A-Za-z0-9]/.test(c)) ?? Array.from(name.trim())[0] ?? ''

@@ -51,7 +51,7 @@ export function AddPersonSheet({ open, activity, by, onClose }: { open: boolean;
       <div className="flex flex-col gap-5">
         <Field label="รหัสนิสิต" inputMode="numeric" maxLength={8} value={id} onChange={(e) => setId(e.target.value.replace(/\D/g, ''))} />
         <Field label="ชื่อ-นามสกุล" value={name} disabled={known} onChange={(e) => setName(e.target.value)} hint={known ? 'มีชื่อนี้ในระบบแล้ว' : undefined} />
-        <Button size="lg" className="w-full" disabled={!isStudentId(id) || !cleanName(name)} loading={busy} onClick={save}>
+        <Button size="lg" variant="accent" className="w-full" disabled={!isStudentId(id) || !cleanName(name)} loading={busy} onClick={save}>
           ให้ {activity.hours} ชั่วโมง
         </Button>
       </div>

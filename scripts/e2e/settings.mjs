@@ -33,7 +33,9 @@ export default async function ({ browser, base, shot, mode }) {
   await page.getByRole('button', { name: 'เข้าใช้งาน' }).click()
   await page.getByRole('link', { name: /บริจาคโลหิต/ }).first().click()
   await page.getByRole('heading', { name: /บริจาคโลหิต/ }).waitFor()
-  await page.getByText('QR เปลี่ยนทุก 10 วิ ตรวจตำแหน่ง 150 ม.').waitFor()
+  // The summary row shows the two parts as separate pieces, so a narrow screen wraps between them.
+  const summary = page.getByRole('button', { name: /^การเช็คชื่อ/ })
+  await summary.filter({ hasText: 'QR เปลี่ยนทุก 10 วิ' }).filter({ hasText: 'ตรวจตำแหน่ง 150 ม.' }).waitFor()
   await noOverflow('manage')
   await both('settings-1-manage')
 
@@ -58,7 +60,7 @@ export default async function ({ browser, base, shot, mode }) {
 
   await sheet.getByRole('button', { name: 'บันทึก', exact: true }).click()
   await page.getByRole('dialog').waitFor({ state: 'detached' })
-  await page.getByText('QR เปลี่ยนทุก 15 วิ ตรวจตำแหน่ง 200 ม.').waitFor()
+  await summary.filter({ hasText: 'QR เปลี่ยนทุก 15 วิ' }).filter({ hasText: 'ตรวจตำแหน่ง 200 ม.' }).waitFor()
   await both('settings-4-saved')
 
   // QR screen runs on 15 s.

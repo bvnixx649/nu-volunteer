@@ -2,6 +2,15 @@ import type { Credit, Registration } from '../data/types'
 
 export type RosterFilter = 'all' | 'credited' | 'notScanned' | 'walkIn' | 'flagged'
 
+/** When and by whom a credit was made: "สแกน 09:05 น." or "เพิ่มโดย พี่เต้ 09:05 น.". "แก้โดย" is added only when the hours were edited after. */
+export function creditWhen(c: Pick<Credit, 'method' | 'at' | 'editedBy' | 'editedAt'>): string {
+  const p = (n: number) => String(n).padStart(2, '0')
+  const d = new Date(c.at)
+  const time = `${p(d.getHours())}:${p(d.getMinutes())} น.`
+  const first = c.method === 'manual' ? `เพิ่มโดย ${c.editedBy ?? 'ผู้ดูแล'} ${time}` : `สแกน ${time}`
+  return c.editedAt && c.editedBy ? `${first} แก้โดย ${c.editedBy}` : first
+}
+
 export interface RosterRow {
   studentId: string
   name: string

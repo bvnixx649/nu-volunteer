@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { cleanName, dateTile, daysAway, isStudentId, thDate, thDayMonth, thTime } from './format'
+import { cleanName, dateTile, daysAway, initial, isStudentId, thDate, thDayMonth, thTime } from './format'
 
 describe('format', () => {
   it('accepts only 8-digit student ids', () => {
@@ -38,5 +38,15 @@ describe('daysAway', () => {
     expect(daysAway(new Date(2026, 10, 4, 23).getTime(), now)).toBe('วันนี้')
     expect(daysAway(new Date(2026, 10, 5, 8).getTime(), now)).toBe('พรุ่งนี้')
     expect(daysAway(new Date(2026, 10, 20, 8).getTime(), now)).toBe('อีก 16 วัน')
+  })
+})
+
+describe('initial', () => {
+  it('skips a leading vowel', () => {
+    expect(initial('เอกชัย ใจดี')).toBe('อ')
+    expect(initial('แพรวา')).toBe('พ')
+    expect(initial('สมชาย')).toBe('ส')
+    expect(initial(' john')).toBe('j')
+    expect(initial('')).toBe('')
   })
 })

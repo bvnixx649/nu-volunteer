@@ -3,6 +3,7 @@ import { ImageSquare, PencilSimple } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { HOUR_CHIPS } from '../../config'
 import type { NewTemplate, Template } from '../../data/types'
+import { typedNumber } from '../../lib/draft'
 import { resizeToDataUrl } from '../../lib/image'
 import { Button } from '../../ui/Button'
 import { Chip } from '../../ui/Chip'
@@ -28,7 +29,7 @@ type Form = {
 const blank = (): Form => ({ title: '', poster: '', hours: '3', description: '', capLimit: false, capacity: '30', walkIn: false, qrMode: 'dynamic', qrInterval: 10, locMode: 'on', radius: 150 })
 const formOf = (t: Template): Form => ({ title: t.title, poster: t.poster, hours: String(t.hours), description: t.description, ...t.settings, capacity: String(t.settings.capacity) })
 
-const num = (s: string) => s.replace(/\D/g, '').slice(0, 4)
+const num = typedNumber
 const whole = (s: string) => /^\d+$/.test(s.trim())
 
 function templateErrors(f: Form): Record<string, string> {
@@ -36,13 +37,13 @@ function templateErrors(f: Form): Record<string, string> {
   if (!f.title.trim()) e.title = 'ใส่ชื่อกิจกรรม'
   if (!f.poster) e.poster = 'เลือกรูปปก'
   if (!f.hours.trim()) e.hours = 'ใส่จำนวนชั่วโมง'
-  else if (!whole(f.hours) || +f.hours < 1 || +f.hours > 99) e.hours = 'ใส่ตัวเลข 1 ถึง 99'
-  if (f.capLimit && (!whole(f.capacity) || +f.capacity < 1 || +f.capacity > 9999)) e.capacity = 'ใส่จำนวนคน 1 ถึง 9999'
+  else if (!whole(f.hours) || +f.hours < 1 || +f.hours > 99) e.hours = 'ใส่จำนวนเต็ม 1 ถึง 99'
+  if (f.capLimit && (!whole(f.capacity) || +f.capacity < 1 || +f.capacity > 9999)) e.capacity = 'ใส่จำนวนเต็ม 1 ถึง 9999'
   return e
 }
 
 const areaClass =
-  'min-h-32 w-full resize-none rounded-[var(--radius-field)] bg-surface px-4 py-3 text-[17px] leading-relaxed ring-1 ring-line transition-shadow duration-150 outline-none placeholder:text-muted focus:ring-2 focus:ring-accent'
+  'min-h-32 w-full resize-none rounded-[var(--radius-field)] bg-surface-2 px-4 py-3 text-[17px] leading-relaxed ring-1 ring-transparent transition-shadow duration-150 outline-none placeholder:text-muted focus:ring-2 focus:ring-ink'
 
 type Props = {
   open: boolean
@@ -56,7 +57,7 @@ type Props = {
 /** Create or edit a supervisor-made template. The body remounts per template so the form starts from the right values. */
 export function TemplateForm({ open, onClose, editing, who, onSave }: Props) {
   return (
-    <Sheet open={open} onClose={onClose} title={editing ? 'แก้ไขเทมเพลต' : 'เพิ่มกิจกรรม'}>
+    <Sheet open={open} onClose={onClose} title={editing ? 'แก้ไขเทมเพลต' : 'เพิ่มเทมเพลต'}>
       <Body key={editing?.id ?? 'new'} editing={editing} who={who} onSave={onSave} />
     </Sheet>
   )
@@ -120,17 +121,17 @@ function Body({ editing, who, onSave }: Pick<Props, 'editing' | 'who' | 'onSave'
           aria-invalid={!!errors.poster || undefined}
           disabled={photoBusy}
           onClick={() => file.current?.click()}
-          className={`pressable relative block aspect-[16/9] w-full overflow-hidden rounded-[var(--radius-card)] bg-surface-2 ${f.poster ? 'shadow-soft' : 'border-2 border-dashed border-line'} ${errors.poster ? 'ring-2 ring-bad' : ''}`}
+          className={`pressable relative block aspect-[16/9] w-full overflow-hidden rounded-[var(--radius-card)] bg-surface-2 ${errors.poster ? 'ring-2 ring-bad' : ''}`}
         >
           {f.poster ? (
             <>
               <img src={f.poster} alt="" className="size-full object-cover" />
-              <span className="absolute right-3 bottom-3 inline-flex h-9 items-center gap-1.5 rounded-full bg-black/60 px-3.5 text-sm font-medium text-white backdrop-blur-sm">
+              <span className="absolute right-3 bottom-3 inline-flex h-9 items-center gap-1.5 rounded-full bg-black/60 px-3.5 text-sm font-medium text-ink">
                 <PencilSimple size={16} weight="bold" /> เปลี่ยนรูป
               </span>
             </>
           ) : (
-            <span className="flex size-full flex-col items-center justify-center gap-1.5 font-medium text-muted">
+            <span className="flex size-full flex-col items-center justify-center gap-1.5 text-[15px] font-medium text-ink">
               <ImageSquare size={28} />
               {photoBusy ? 'กำลังย่อรูป' : 'อัปโหลดรูป'}
             </span>
@@ -162,7 +163,7 @@ function Body({ editing, who, onSave }: Pick<Props, 'editing' | 'who' | 'onSave'
 
       <div className="flex flex-col gap-4">
         <h3 className="text-lg font-semibold">ตั้งค่าเพิ่มเติม</h3>
-        <div className="rounded-[var(--radius-field)] bg-surface px-4 ring-1 ring-line">
+        <div className="rounded-[var(--radius-field)] bg-bg px-4">
           <Switch checked={f.capLimit} onChange={(v) => set({ capLimit: v })} label="จำกัดจำนวน" />
           {f.capLimit && (
             <div className="pb-4">
@@ -170,7 +171,7 @@ function Body({ editing, who, onSave }: Pick<Props, 'editing' | 'who' | 'onSave'
             </div>
           )}
         </div>
-        <div className="rounded-[var(--radius-field)] bg-surface px-4 ring-1 ring-line">
+        <div className="rounded-[var(--radius-field)] bg-bg px-4">
           <Switch checked={f.walkIn} onChange={(v) => set({ walkIn: v })} label="รับผู้ไม่ได้ลงทะเบียน" hint={f.walkIn ? undefined : 'สแกนได้เฉพาะผู้ลงทะเบียน'} />
         </div>
         <CheckinFields
@@ -180,8 +181,8 @@ function Body({ editing, who, onSave }: Pick<Props, 'editing' | 'who' | 'onSave'
         />
       </div>
 
-      <Button size="lg" className="w-full" loading={busy} onClick={save}>
-        {editing ? 'บันทึก' : 'บันทึกเทมเพลต'}
+      <Button size="lg" className="w-full" loading={busy} disabled={photoBusy} onClick={save}>
+        {photoBusy ? 'กำลังอัปโหลดรูป' : 'บันทึกเทมเพลต'}
       </Button>
     </div>
   )

@@ -14,6 +14,7 @@ export default async function ({ browser, base, load, shot: rawShot }) {
     await rawShot(page, name)
   }
   const { makeToken } = await load('/src/lib/qr.ts')
+  const { MESSAGES_ON } = await load('/src/config.ts')
   const ctx = await browser.newContext({
     viewport: { width: 390, height: 844 },
     colorScheme: 'dark',
@@ -66,7 +67,7 @@ export default async function ({ browser, base, load, shot: rawShot }) {
 
   // A student page without an identity goes to welcome, and comes back after.
   await page.goto(`${base}#/mine`)
-  await page.getByRole('heading', { name: 'เก็บชั่วโมงจิตอาสา' }).waitFor()
+  await page.getByRole('heading', { name: /ไม่พลาดกิจกรรมจิตอาสา/ }).waitFor()
   await page.getByLabel('รหัสนิสิต').fill('65010077')
   await page.getByLabel('ชื่อ-นามสกุล').fill(name)
   await noOverflow('welcome')
@@ -78,7 +79,9 @@ export default async function ({ browser, base, load, shot: rawShot }) {
   // Home: greeting, live card with scan button, category filter.
   await page.getByRole('link', { name: 'หน้าแรก' }).click()
   await page.getByRole('heading', { name: 'สวัสดี ณัฐวุฒิพงศ์' }).waitFor()
-  await page.getByRole('link', { name: 'สแกนรับชั่วโมง' }).waitFor()
+  // The tab bar has its own scan button, so the card is found by its region.
+  const liveCard = page.getByRole('region', { name: 'กิจกรรมที่กำลังดำเนินอยู่' })
+  await liveCard.getByRole('link', { name: 'สแกนรับชั่วโมง' }).waitFor()
   await page.getByRole('link', { name: /จัดสถานที่ต้อนรับนิสิตใหม่/ }).waitFor()
   await noOverflow('home')
   await shot(page, 'student-1-home')
@@ -96,6 +99,13 @@ export default async function ({ browser, base, load, shot: rawShot }) {
   await page.getByRole('heading', { name: /^เปิดรับสมัคร/ }).waitFor()
   await page.waitForTimeout(800)
   await shot(page, 'student-1b-home-list')
+  // Calendar view and back.
+  await page.getByRole('button', { name: 'ดูเป็นปฏิทิน' }).click()
+  await page.getByText('แตะวันที่ที่มีจุดเพื่อดูกิจกรรม').waitFor()
+  await noOverflow('home calendar')
+  await shot(page, 'student-1c-home-calendar')
+  await page.getByRole('button', { name: 'ดูเป็นรายการ' }).click()
+  await page.getByRole('heading', { name: /^เปิดรับสมัคร/ }).waitFor()
   const text = await page.locator('main').innerText()
   expect(!/[·—]/.test(text), 'no middle dot or em-dash on screen')
 
@@ -105,15 +115,47 @@ export default async function ({ browser, base, load, shot: rawShot }) {
   await page.getByText('เหลือ 2 ที่').first().waitFor()
   await noOverflow('detail')
   await shot(page, 'student-2-detail')
+  await rawShot(page, 'student-2a-detail-screen', { viewport: true })
+  // The seat line is said once on the page.
+  const detailText = await page.locator('main').innerText()
+  expect(detailText.split('ลงทะเบียนแล้ว 8 จาก 10 คน').length === 2, 'seat line appears once on the detail page')
+  // Private messages are off until supervisors can read them: no way in from the detail page.
+  expect((await page.getByRole('button', { name: 'ส่งข้อความถึงผู้ดูแลกิจกรรม' }).count()) === (MESSAGES_ON ? 1 : 0), 'message button follows MESSAGES_ON')
+  expect(MESSAGES_ON || (await page.getByText('ห้องแชทกิจกรรม').count()) === 0, 'no chat room row while messages are off')
   await page.getByRole('button', { name: 'ลงทะเบียน', exact: true }).click()
   await page.getByRole('button', { name: 'ยืนยันลงทะเบียน' }).waitFor()
   await shot(page, 'student-3-register-sheet')
   await page.getByRole('button', { name: 'ยืนยันลงทะเบียน' }).click()
-  await page.getByRole('button', { name: 'ลงทะเบียนแล้ว' }).waitFor()
+  // Registered: the bar says so and its one button cancels.
+  await page.getByText(/^ลงทะเบียนแล้ว \d/).waitFor()
+  await page.getByRole('button', { name: 'ยกเลิก', exact: true }).waitFor()
+  await page.waitForTimeout(600)
+  await rawShot(page, 'student-3b-detail-registered', { viewport: true })
+  await page.getByRole('button', { name: 'ยกเลิก', exact: true }).click()
+  await page.getByRole('button', { name: 'ยกเลิกการลงทะเบียน' }).waitFor()
+  await shot(page, 'student-3c-cancel-sheet')
+  await page.getByRole('button', { name: 'ไม่ยกเลิก' }).click()
+  await page.getByRole('dialog').waitFor({ state: 'detached' })
+
+  // A live activity that takes unregistered students: the bar's one button scans.
+  await page.goto(`${base}#/a/test-blood`)
+  await page.getByRole('link', { name: 'สแกนรับชั่วโมง' }).waitFor()
+  await noOverflow('detail live')
+  await page.waitForTimeout(600)
+  await rawShot(page, 'student-2b-detail-live', { viewport: true })
+
+  // Register for the live activity behind the UI so the list below has a live row.
+  await page.evaluate((n) => {
+    const db = JSON.parse(localStorage.getItem('nuv:db'))
+    ;(db.regs['test-blood'] ??= {})['65010077'] = { studentId: '65010077', name: n, at: Date.now() - 86_400_000 }
+    localStorage.setItem('nuv:db', JSON.stringify(db))
+  }, name)
 
   // It shows up under my activities, and a notice was written.
   await page.goto(`${base}#/mine`)
+  await page.reload()
   await page.getByRole('link', { name: /จัดสถานที่ต้อนรับนิสิตใหม่/ }).waitFor()
+  await page.locator('main').getByRole('link', { name: 'สแกนรับชั่วโมง' }).waitFor()
   await noOverflow('mine')
   await shot(page, 'student-4-mine')
   await page.getByRole('link', { name: /แจ้งเตือน/ }).click()
@@ -157,9 +199,40 @@ export default async function ({ browser, base, load, shot: rawShot }) {
   // Home again with hours: the total, per-category bar and legend show, and the scan card is gone.
   await page.goto(`${base}#/`)
   await page.getByText('จาก 1 กิจกรรม').waitFor()
-  expect((await page.getByRole('link', { name: 'สแกนรับชั่วโมง' }).count()) === 0, 'no scan card after the hours are in')
+  expect((await page.getByRole('region', { name: 'กิจกรรมที่กำลังดำเนินอยู่' }).count()) === 0, 'no scan card after the hours are in')
   await noOverflow('home with hours')
   await shot(page, 'student-6b-home-hours')
+
+  // Load failed: the message has a retry button, and pressing it brings the list back.
+  await page.evaluate(async (b) => {
+    const { useMine } = await import(`${new URL(b).pathname}src/data/mine.ts`)
+    useMine.setState({ failed: true })
+  }, base)
+  await page.getByText('โหลดกิจกรรมไม่ได้').waitFor()
+  await shot(page, 'student-1d-home-failed')
+  await page.getByRole('button', { name: 'ลองอีกครั้ง' }).click()
+  await page.getByText('โหลดกิจกรรมไม่ได้').waitFor({ state: 'detached' })
+  await page.getByRole('link', { name: /จัดสถานที่ต้อนรับนิสิตใหม่/ }).waitFor()
+
+  // The activity with hours moved to the past list.
+  await page.goto(`${base}#/mine`)
+  await page.getByRole('radio', { name: 'ที่ผ่านมา' }).click()
+  await page.getByText('+6 ชั่วโมง').waitFor()
+  await noOverflow('mine past')
+  await shot(page, 'student-4b-mine-past')
+
+  // Notification settings.
+  await page.goto(`${base}#/settings/notify`)
+  await page.getByRole('switch', { name: 'แจ้งเตือนบนเครื่อง' }).waitFor()
+  expect((await page.getByRole('switch', { name: 'ข้อความจากผู้ดูแล' }).count()) === (MESSAGES_ON ? 1 : 0), 'message switch follows MESSAGES_ON')
+  await noOverflow('notify settings')
+  await shot(page, 'student-9-notify')
+
+  // No camera in this browser: the scan page says how to scan instead.
+  await page.goto(`${base}#/scan`)
+  await page.getByRole('heading', { name: /เปิดกล้องไม่ได้|สแกนด้วยกล้องมือถือ/ }).waitFor()
+  await noOverflow('scan without a camera')
+  await shot(page, 'student-10-scan-no-camera')
 
   // Chat rooms open only for activities with chat; the private thread always works for a registered student.
   await page.goto(`${base}#/a/test-later/dm`)

@@ -3,9 +3,15 @@ import { Button } from '../../ui/Button'
 import { Field } from '../../ui/Field'
 import { cleanName, isStudentId } from '../../lib/format'
 
-type Props = { onSubmit: (id: string, name: string) => Promise<void> | void; initialId?: string; submitLabel?: string }
+type Props = {
+  onSubmit: (id: string, name: string) => Promise<void> | void
+  initialId?: string
+  submitLabel?: string
+  /** Orange when the button receives hours, white when it only signs in. */
+  variant?: 'accent' | 'primary'
+}
 
-export function IdentityForm({ onSubmit, initialId = '', submitLabel = 'รับชั่วโมง' }: Props) {
+export function IdentityForm({ onSubmit, initialId = '', submitLabel = 'รับชั่วโมง', variant = 'accent' }: Props) {
   const [id, setId] = useState(initialId)
   const [name, setName] = useState('')
   const [tried, setTried] = useState(false)
@@ -48,7 +54,7 @@ export function IdentityForm({ onSubmit, initialId = '', submitLabel = 'รั�
         error={nameError}
       />
       <p className="text-sm text-muted">เครื่องนี้จะจำข้อมูลไว้</p>
-      <Button size="lg" type="submit" loading={busy} className="mt-2 w-full">
+      <Button size="lg" type="submit" variant={variant} loading={busy} className="mt-2 w-full">
         {submitLabel}
       </Button>
     </form>

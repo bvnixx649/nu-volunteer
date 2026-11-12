@@ -12,12 +12,12 @@ import { Sheet } from '../../ui/Sheet'
 type Props = { activity: Activity; regs: Registration[]; credits: Credit[]; admin?: boolean }
 
 const stamp = (ms: number) => `${thDate(ms)} ${thTime(ms)} น.`
-const card = 'rounded-[var(--radius-card)] bg-surface p-5 shadow-soft'
+const card = 'rounded-[var(--radius-card)] bg-surface p-5'
 
 function Stat({ value, label }: { value: number; label: string }) {
   return (
     <div className="rounded-[var(--radius-field)] bg-surface-2 px-4 py-3.5">
-      <p className="num text-4xl leading-none font-bold tracking-tight">{value}</p>
+      <p className="num text-4xl leading-none font-semibold tracking-tight">{value}</p>
       <p className="mt-1.5 text-sm text-muted">{label}</p>
     </div>
   )

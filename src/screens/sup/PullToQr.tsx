@@ -9,7 +9,7 @@ const THRESHOLD = 110
 const EASE = 'cubic-bezier(0.32,0.72,0,1)'
 
 /**
- * Wallet-style reveal. The page is a sheet lying over a dark layer that holds the QR. Pulling the page down from
+ * Wallet-style reveal. The page is a sheet lying over a layer one surface step lighter that holds the QR. Pulling the page down from
  * the top slides the sheet and brings the layer up behind it; letting go past 110 px parks the sheet at 440 px with
  * page scrolling locked. The handle, a drag upward or Escape puts it back. `open` is controlled, so a button or a
  * link (`?qr=1`) can open it too. Only transform and opacity are animated, with plain CSS transitions so it plays
@@ -60,10 +60,9 @@ export function PullToQr({
     const s = sheet.current
     if (!s) return
     const prog = Math.min(1, y / QR_OPEN)
-    s.style.transition = dragging ? 'none' : `transform 460ms ${EASE}, border-radius 300ms ease, box-shadow 300ms ease`
+    s.style.transition = dragging ? 'none' : `transform 460ms ${EASE}, border-radius 300ms ease`
     s.style.transform = y > 0 ? `translate3d(0,${y}px,0)` : ''
     s.style.borderRadius = y > 2 ? '28px 28px 0 0' : '0'
-    s.style.boxShadow = y > 2 ? '0 -18px 40px -10px rgba(0,0,0,0.75)' : 'none'
     const d = dark.current
     if (d) {
       d.style.transition = dragging ? 'none' : `opacity 300ms ease, transform 460ms ${EASE}`
@@ -216,7 +215,7 @@ export function PullToQr({
   return (
     <div className="relative">
       {enabled && layerOn && (
-        <div className="fixed inset-0 z-0 bg-[#0c0b0a]" inert={!open} data-qr-layer>
+        <div className="fixed inset-0 z-0 bg-surface" inert={!open} data-qr-layer>
           <div ref={dark} className="flex h-[470px] origin-top flex-col items-center" style={{ opacity: 0.15, transform: 'scale(0.92)' }}>
             {layer}
           </div>
@@ -225,13 +224,13 @@ export function PullToQr({
       <div ref={sheet} className="relative z-10 min-h-dvh bg-bg" data-qr-sheet>
         {enabled &&
           (open ? (
-            <button type="button" onClick={() => onOpenChange(false)} aria-label="ซ่อน QR" className="pressable grid h-[34px] w-full place-items-center">
-              <span className="block h-[5px] w-10 rounded-full bg-white/25" />
+            <button type="button" onClick={() => onOpenChange(false)} aria-label="ซ่อน QR" className="pressable relative grid h-[34px] w-full place-items-center after:absolute after:inset-x-0 after:top-1/2 after:h-11 after:-translate-y-1/2">
+              <span className="block h-[5px] w-10 rounded-full bg-surface-3" />
             </button>
           ) : (
             <div
               ref={hint}
-              className="flex h-[34px] items-center justify-center gap-1.5 text-[12.5px] text-muted"
+              className="flex h-[34px] items-center justify-center gap-1.5 text-[13px] text-muted"
               style={{ opacity: 0.55, boxSizing: 'content-box', paddingTop: 'env(safe-area-inset-top,0px)' }}
             >
               <ArrowDown size={14} weight="bold" aria-hidden style={{ transform: armed ? 'rotate(180deg)' : 'none', transition: 'transform 200ms ease' }} />

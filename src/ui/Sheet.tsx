@@ -35,7 +35,7 @@ export function Sheet({ open, onClose, title, children }: Props) {
             role="dialog"
             aria-modal="true"
             aria-label={title}
-            className="relative flex max-h-[92dvh] w-full max-w-lg flex-col rounded-t-[var(--radius-sheet)] bg-surface shadow-lift"
+            className="relative flex max-h-[92dvh] w-full max-w-lg flex-col rounded-t-[var(--radius-sheet)] bg-surface"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
@@ -48,13 +48,13 @@ export function Sheet({ open, onClose, title, children }: Props) {
             onDragEnd={onDragEnd}
           >
             <div
-              className="flex cursor-grab touch-none justify-center pt-3 pb-2"
+              className="flex cursor-grab touch-none justify-center pt-2.5 pb-3"
               onPointerDown={(e) => drag.start(e)}
             >
-              <span className="h-1.5 w-10 rounded-full bg-line" />
+              <span className="h-[5px] w-10 rounded-full bg-surface-3" />
             </div>
-            <h2 className="px-6 pb-3 text-xl font-semibold">{title}</h2>
-            <div className="overflow-y-auto overscroll-contain px-6 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">{children}</div>
+            <h2 className="px-5 pb-4 text-xl leading-snug font-semibold text-balance">{title}</h2>
+            <div className="overflow-y-auto overscroll-contain px-5 pb-[calc(1.5rem+env(safe-area-inset-bottom,0px))]">{children}</div>
           </motion.section>
         </div>
       )}

@@ -6,6 +6,7 @@ import { countInMonth, dayKey, onDay, stagesByDay, TH_MONTHS } from '../../lib/h
 import { stage } from '../../lib/stage'
 import { StatusTag } from '../../ui/StatusTag'
 import { OverviewCalendar } from './home/OverviewCalendar'
+import { CARD } from './home/parts'
 import { useSupActivities } from './home/useSupActivities'
 
 /** Calendar tab: a month with a dot on each day an activity starts, and the list of the picked day. */
@@ -26,8 +27,8 @@ export default function SupCalendar() {
   const dayDate = day ? new Date(`${day}T00:00:00`) : undefined
 
   return (
-    <main className="mx-auto max-w-lg px-4 pt-[calc(1.625rem+env(safe-area-inset-top,0px))] pb-4">
-      <h1 className="rise px-1 text-[26px] font-semibold">ปฏิทิน</h1>
+    <main className="mx-auto max-w-lg px-4 pt-[calc(1.5rem+env(safe-area-inset-top,0px))] pb-4">
+      <h1 className="rise px-1 text-[28px] leading-tight font-bold tracking-tight">ปฏิทิน</h1>
 
       <div className="mt-4">
         <OverviewCalendar
@@ -47,20 +48,20 @@ export default function SupCalendar() {
 
       {dayDate ? (
         <>
-          <div className="flex items-baseline justify-between px-1 pt-[22px] pb-2.5">
-            <h2 className="text-[17px] font-semibold">
+          <div className="flex items-baseline justify-between gap-3 px-1 pt-7 pb-3">
+            <h2 className="text-xl font-semibold">
               วันที่ {dayDate.getDate()} {TH_MONTHS[dayDate.getMonth()]} {dayDate.getFullYear() + 543}
             </h2>
-            <span className="num text-[13px] text-muted">{dayList.length} กิจกรรม</span>
+            <span className="num shrink-0 text-[13.5px] text-muted">{dayList.length} กิจกรรม</span>
           </div>
-          <ul className="overflow-hidden rounded-[22px] border border-white/[0.06] bg-surface">
+          <ul className={CARD}>
             {dayList.map((a, i) => (
-              <li key={a.id} className={i ? 'border-t border-white/5' : ''}>
-                <Link to={`/sup/a/${a.id}`} className="pressable flex items-center gap-3 px-3.5 py-3">
-                  <img src={a.poster} alt="" loading="lazy" className="size-12 shrink-0 rounded-xl bg-surface-2 object-cover" />
+              <li key={a.id} className={i ? 'border-t border-line' : ''}>
+                <Link to={`/sup/a/${a.id}`} className="pressable flex items-center gap-3.5 p-3.5">
+                  <img src={a.poster} alt="" loading="lazy" className="size-12 shrink-0 rounded-[14px] bg-surface-2 object-cover" />
                   <span className="min-w-0 flex-1">
-                    <span className="line-clamp-2 text-[15.5px] leading-snug font-semibold">{a.title}</span>
-                    <span className="num block text-[13px] text-muted">
+                    <span className="line-clamp-2 text-base leading-snug font-semibold">{a.title}</span>
+                    <span className="num mt-0.5 block text-[13.5px] text-muted">
                       {thTime(a.start)} ถึง {thTime(a.end)} น.
                     </span>
                   </span>
@@ -71,7 +72,7 @@ export default function SupCalendar() {
           </ul>
         </>
       ) : (
-        <p className="mt-[22px] rounded-[22px] border border-white/[0.06] bg-surface px-4 py-[22px] text-center text-sm text-muted">แตะวันที่มีจุดเพื่อดูกิจกรรม</p>
+        <p className={`${CARD} mt-4 px-5 py-6 text-center text-[15px] text-muted`}>แตะวันที่มีจุดเพื่อดูกิจกรรม</p>
       )}
     </main>
   )

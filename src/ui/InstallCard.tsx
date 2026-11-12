@@ -6,14 +6,14 @@ import { Button } from './Button'
 import { Sheet } from './Sheet'
 
 const Step = ({ n, icon, title, children }: { n?: number; icon: React.ReactNode; title: string; children?: React.ReactNode }) => (
-  <div className="flex gap-4">
+  <div className="flex items-center gap-4">
     <span className="grid size-11 shrink-0 place-items-center rounded-full bg-surface-2">{icon}</span>
     <div>
       <p className="font-semibold">
         {n && <span className="num mr-1.5 text-muted">{n}.</span>}
         {title}
       </p>
-      {children && <p className="text-sm text-muted">{children}</p>}
+      {children && <p className="text-[13.5px] text-muted">{children}</p>}
     </div>
   </div>
 )
@@ -31,10 +31,10 @@ export function InstallCard() {
 
   return (
     <>
-      <section className="flex items-center gap-4 rounded-[var(--radius-card)] bg-surface p-4 shadow-soft">
+      <section className="flex items-center gap-4 rounded-[var(--radius-card)] bg-surface p-4">
         <div className="min-w-0 flex-1">
           <p className="font-semibold">ติดตั้งแอปลงเครื่อง</p>
-          <p className="text-sm text-muted">เปิดจากหน้าจอโฮม</p>
+          <p className="text-[13.5px] text-muted">เปิดจากหน้าจอโฮม</p>
         </div>
         <Button onClick={install}>ติดตั้ง</Button>
       </section>

@@ -24,23 +24,23 @@ export function neighbours(list: Credit[], own: Credit) {
 }
 
 function RosterRow({ n, c, own }: { n: number; c: Credit; own?: boolean }) {
-  const grid = 'grid grid-cols-[34px_82px_minmax(0,1fr)_44px] items-center gap-x-2 text-sm'
+  const grid = 'grid grid-cols-[30px_82px_minmax(0,1fr)_44px] items-center gap-x-2 text-[14px]'
   const cells = (
     <>
-      <span className={`num ${own ? 'text-accent' : ''}`}>{n}</span>
+      <span className={`num ${own ? 'text-accent-ink' : ''}`}>{n}</span>
       <span className="num">{c.studentId}</span>
       <span className="truncate">{c.name}</span>
-      <span className={`num text-right ${own ? 'text-accent' : ''}`}>{thTime(c.at)}</span>
+      <span className={`num text-right ${own ? 'text-accent-ink' : ''}`}>{thTime(c.at)}</span>
     </>
   )
-  if (!own) return <li className={`${grid} border-t border-white/5 px-[18px] py-[11px] text-muted`}>{cells}</li>
+  if (!own) return <li className={`${grid} border-t border-line px-[18px] py-3 text-muted`}>{cells}</li>
   return (
     <motion.li
       data-own
       initial={{ opacity: 0, x: -18 }}
       animate={{ opacity: 1, x: 0 }}
       transition={{ duration: 0.6, delay: 1.2, ease: [0.23, 1, 0.32, 1] }}
-      className={`${grid} mx-2 mt-0.5 rounded-[14px] bg-[rgba(242,112,42,0.14)] px-2.5 py-[11px] font-semibold shadow-[inset_0_0_0_1px_rgba(242,112,42,0.35)]`}
+      className={`${grid} mx-2 rounded-[14px] bg-accent-soft px-2.5 py-3 font-semibold`}
     >
       {cells}
     </motion.li>
@@ -92,19 +92,13 @@ export function Success({ credit, title, activityId }: { credit: Credit; title: 
   return (
     <div className="flex flex-col pb-4">
       <div className="stamp-hero relative mx-auto mt-6 size-[228px]">
-        <div aria-hidden className="stamp-glow pointer-events-none absolute -inset-[70px] rounded-full bg-[radial-gradient(closest-side,rgba(92,196,141,0.30),rgba(92,196,141,0))]" />
+        <div aria-hidden className="stamp-glow pointer-events-none absolute -inset-[70px] rounded-full bg-[radial-gradient(closest-side,color-mix(in_srgb,var(--color-ok)_28%,transparent),transparent)]" />
         <svg className="stamp-ring absolute inset-0" width="228" height="228" viewBox="0 0 228 228" aria-hidden>
-          <defs>
-            <linearGradient id="ring-green" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0" stopColor="#7fd8a6" />
-              <stop offset="1" stopColor="#3fae74" />
-            </linearGradient>
-          </defs>
-          <circle cx="114" cy="114" r="96" fill="none" stroke="rgba(92,196,141,0.12)" strokeWidth="14" />
-          <circle className="stamp-arc" cx="114" cy="114" r="96" fill="none" stroke="url(#ring-green)" strokeWidth="14" strokeLinecap="round" transform="rotate(-90 114 114)" />
+          <circle cx="114" cy="114" r="96" fill="none" stroke="var(--color-ok-soft)" strokeWidth="14" />
+          <circle className="stamp-arc" cx="114" cy="114" r="96" fill="none" stroke="var(--color-ok)" strokeWidth="14" strokeLinecap="round" transform="rotate(-90 114 114)" />
         </svg>
         <div className="absolute inset-x-0 top-[60px] h-20 text-center leading-[80px]">
-          <span className="relative inline-block text-[84px] font-semibold tracking-[-0.04em]">
+          <span className="relative inline-block text-[84px] font-semibold tracking-tight">
             <span aria-hidden className="absolute top-0 right-full pr-0.5 text-[44px] font-medium text-ok">
               +
             </span>
@@ -115,30 +109,30 @@ export function Success({ credit, title, activityId }: { credit: Credit; title: 
       </div>
 
       <div className="mt-[18px] flex justify-center">
-        <span className="stamp-badge inline-flex h-9 items-center gap-2 rounded-full bg-[rgba(92,196,141,0.14)] pr-3.5 pl-2.5 text-[15px] font-semibold text-ok">
+        <span className="stamp-badge inline-flex h-9 items-center gap-2 rounded-full bg-ok-soft pr-3.5 pl-2.5 text-[15px] font-semibold text-ok">
           <CheckCircle size={20} weight="fill" />
           บันทึกชั่วโมงแล้ว
         </span>
       </div>
 
       <motion.div {...later(900)} className="px-4 pt-3.5 text-center">
-        {title && <h1 className="line-clamp-2 text-[22px] leading-[1.35] font-semibold break-words">{title}</h1>}
-        <p className="num mt-1 text-sm text-muted">
+        {title && <h1 className="line-clamp-2 text-[22px] leading-[1.35] font-semibold text-balance break-words">{title}</h1>}
+        <p className="num mt-1 text-[13.5px] text-muted">
           {thDate(credit.at)} เวลา {thTime(credit.at)} น.
         </p>
       </motion.div>
 
-      <motion.section {...later(980)} className="mt-[22px] rounded-[28px] border border-white/[0.06] bg-white/[0.03] p-1.5" aria-label="ชื่อและชั่วโมงสะสม">
-        <div className="flex items-center gap-3 rounded-[22px] bg-gradient-to-b from-[#25221f] to-[#1c1a18] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
-          <img src={`${import.meta.env.BASE_URL}nu-emblem.png`} alt="ตรามหาวิทยาลัยนเรศวร" className="size-11 shrink-0 rounded-full bg-white p-[3px]" />
+      <motion.section {...later(980)} className="mt-6" aria-label="ชื่อและชั่วโมงสะสม">
+        <div className="flex items-center gap-3 rounded-[var(--radius-card)] bg-surface p-4">
+          <img src={`${import.meta.env.BASE_URL}nu-emblem.png`} alt="ตรามหาวิทยาลัยนเรศวร" width={44} height={44} className="size-11 shrink-0" />
           <div className="min-w-0 flex-1">
-            <h2 className="text-base font-semibold break-words">{credit.name}</h2>
-            <p className="num text-[13px] text-muted">{credit.studentId}</p>
+            <h2 className="text-base leading-snug font-semibold break-words">{credit.name}</h2>
+            <p className="num text-[13.5px] text-muted">{credit.studentId}</p>
           </div>
           {total !== null && (
             <div className="shrink-0 text-right" style={{ opacity: total ? 1 : 0 }} aria-hidden={!total}>
-              <p className="text-xs text-muted">ชั่วโมงสะสม</p>
-              <p className="text-[28px] leading-[1.1] font-semibold tracking-[-0.03em]">
+              <p className="text-[13px] text-muted">ชั่วโมงสะสม</p>
+              <p className="text-[28px] leading-[1.1] font-semibold tracking-tight">
                 {total ? <CountUp value={total.to} from={total.from} delay={total.delay} duration={0.9} /> : <span className="num">0</span>}
               </p>
             </div>
@@ -146,10 +140,10 @@ export function Success({ credit, title, activityId }: { credit: Credit; title: 
         </div>
       </motion.section>
 
-      <motion.section {...later(1060)} className="mt-3 overflow-hidden rounded-3xl border border-white/[0.06] bg-[#1c1b19] pt-4 pb-1.5" aria-label="รายชื่อในงาน">
-        <div className="flex items-baseline justify-between px-[18px] pb-2.5">
-          <h2 className="text-[15px] font-semibold">รายชื่อในงาน</h2>
-          <p className="text-[13px] text-muted">
+      <motion.section {...later(1060)} className="mt-3 overflow-hidden rounded-[var(--radius-card)] bg-surface pt-4 pb-2" aria-label="รายชื่อในงาน">
+        <div className="flex items-baseline justify-between px-[18px] pb-3">
+          <h2 className="text-base font-semibold">รายชื่อในงาน</h2>
+          <p className="text-[13.5px] text-muted">
             <span className="num">{people}</span> คน
           </p>
         </div>
@@ -161,7 +155,7 @@ export function Success({ credit, title, activityId }: { credit: Credit; title: 
         </ul>
       </motion.section>
 
-      <motion.div {...later(1140)} className="flex flex-col gap-1.5 pt-[22px]">
+      <motion.div {...later(1140)} className="flex flex-col gap-1 pt-6">
         <LinkButton to="/" variant="primary" className="w-full">
           เสร็จสิ้น
         </LinkButton>

@@ -16,14 +16,14 @@ export function LiveFeed({ credits }: { credits: Credit[] }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, transition: { duration: 0.15 } }}
             transition={{ type: 'spring', duration: 0.5, bounce: 0.15 }}
-            className="flex items-center justify-between gap-4 rounded-2xl bg-[#f4f2ef] px-5 py-4"
+            className="flex items-center justify-between gap-4 rounded-2xl bg-ink px-5 py-4"
           >
             <span className="truncate text-xl font-semibold">{c.name}</span>
-            <span className="num shrink-0 text-lg text-[#6b6862]">{thTime(c.at)} น.</span>
+            <span className="num shrink-0 text-lg text-bg/60">{thTime(c.at)} น.</span>
           </motion.li>
         ))}
       </AnimatePresence>
-      {!latest.length && <li className="rounded-2xl bg-[#f4f2ef] px-5 py-6 text-lg text-[#6b6862]">ยังไม่มีผู้สแกน</li>}
+      {!latest.length && <li className="rounded-2xl bg-ink px-5 py-6 text-lg text-bg/60">ยังไม่มีผู้สแกน</li>}
     </ul>
   )
 }

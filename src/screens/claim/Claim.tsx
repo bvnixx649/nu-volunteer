@@ -192,16 +192,16 @@ export default function Claim() {
   return (
     <main className="mx-auto flex min-h-dvh max-w-md flex-col overflow-x-clip px-5 pt-[calc(1.25rem+env(safe-area-inset-top,0px))] pb-[calc(2rem+env(safe-area-inset-bottom,0px))]">
       {payload && view.kind !== 'success' && view.kind !== 'pending' && (
-        <header className="mb-8 flex items-center gap-4 rounded-[var(--radius-card)] bg-surface p-4 shadow-soft">
+        <header className="mb-8 flex items-center gap-4 rounded-[var(--radius-card)] bg-surface p-4">
           <div className="min-w-0 flex-1">
-            <p className="text-sm text-muted">กำลังรับชั่วโมงจาก</p>
+            <p className="text-[13.5px] text-muted">กำลังรับชั่วโมงจาก</p>
             {title === undefined ? (
               <span className="mt-1 block h-5 w-48 max-w-full animate-pulse rounded-full bg-surface-2" />
             ) : (
-              <p className="line-clamp-2 font-semibold">{title || 'กิจกรรมจิตอาสา'}</p>
+              <p className="line-clamp-2 leading-snug font-semibold">{title || 'กิจกรรมจิตอาสา'}</p>
             )}
           </div>
-          <p className="num shrink-0 rounded-full bg-accent-soft px-3 py-1.5 font-bold text-accent">{payload.h} ชม.</p>
+          <p className="num shrink-0 rounded-full bg-accent-soft px-3 py-1.5 font-semibold text-accent-ink">{payload.h} ชม.</p>
         </header>
       )}
 
@@ -217,10 +217,11 @@ export default function Claim() {
 
           {view.kind === 'confirm' && (
             <div className="flex flex-col gap-4">
-              <h1 className="text-2xl font-bold">ใช่ {view.student.name} ไหม</h1>
-              <p className="text-muted">พบรหัส {view.student.id} ในระบบ</p>
+              <h1 className="text-[28px] leading-tight font-bold tracking-tight">ใช่ {view.student.name} ไหม</h1>
+              <p className="num text-muted">พบรหัส {view.student.id} ในระบบ</p>
               <Button
                 size="lg"
+                variant="accent"
                 className="mt-4 w-full"
                 onClick={() => {
                   setStudent(view.student.id)

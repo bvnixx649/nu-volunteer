@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { checkinOf, checkinSummary } from './checkin'
+import { checkinOf, checkinParts, checkinSummary } from './checkin'
 
 describe('checkinOf', () => {
   it('fills the new fields on data saved before they existed', () => {
@@ -20,5 +20,11 @@ describe('checkinSummary', () => {
   })
   it('describes a static QR without location', () => {
     expect(checkinSummary({ qrMode: 'static', locMode: 'off' })).toBe('QR แบบพิมพ์ ไม่ตรวจตำแหน่ง')
+  })
+})
+
+describe('checkinParts', () => {
+  it('gives the two facts apart', () => {
+    expect(checkinParts({ qrMode: 'dynamic', qrInterval: 10, locMode: 'on', radius: 150 })).toEqual(['QR เปลี่ยนทุก 10 วิ', 'ตรวจตำแหน่ง 150 ม.'])
   })
 })

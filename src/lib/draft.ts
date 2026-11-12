@@ -191,6 +191,8 @@ export interface Check {
   missing: Record<string, string>
 }
 
+/** Keeps what the supervisor typed (up to 6 characters) so "2.5" or "-3" stays visible and check() rejects it, instead of turning into another number. */
+export const typedNumber = (s: string) => s.slice(0, 6)
 const whole = (s: string) => /^\d+$/.test(s.trim())
 const isUrl = (s: string) => {
   try {
@@ -240,21 +242,21 @@ export function check(step: number, d: Draft): Check {
   if (!Number.isNaN(s) && !Number.isNaN(e) && e <= s) bad('endT', 'เวลาจบต้องหลังเวลาเริ่ม')
 
   if (!d.hours.trim()) need('hours', false, bottle ? 'ใส่ชั่วโมงสูงสุด' : 'ใส่จำนวนชั่วโมง')
-  else if (!whole(d.hours) || +d.hours < 1 || +d.hours > 99) bad('hours', 'ใส่ตัวเลข 1 ถึง 99')
+  else if (!whole(d.hours) || +d.hours < 1 || +d.hours > 99) bad('hours', 'ใส่จำนวนเต็ม 1 ถึง 99')
   if (bottle) {
     if (!d.itemsPerHour.trim()) need('itemsPerHour', false, 'ใส่จำนวนขวด')
-    else if (!whole(d.itemsPerHour) || +d.itemsPerHour < 1 || +d.itemsPerHour > 999) bad('itemsPerHour', 'ใส่ตัวเลข 1 ถึง 999')
+    else if (!whole(d.itemsPerHour) || +d.itemsPerHour < 1 || +d.itemsPerHour > 999) bad('itemsPerHour', 'ใส่จำนวนเต็ม 1 ถึง 999')
   } else {
     if (d.capLimit) {
       if (!d.capacity.trim()) need('capacity', false, 'ใส่จำนวนคน')
-      else if (!whole(d.capacity) || +d.capacity < 1 || +d.capacity > 9999) bad('capacity', 'ใส่จำนวนคน 1 ถึง 9999')
+      else if (!whole(d.capacity) || +d.capacity < 1 || +d.capacity > 9999) bad('capacity', 'ใส่จำนวนเต็ม 1 ถึง 9999')
     }
     if (d.scheduled) {
       const o = toMs(d.openDate, d.openT)
       if (Number.isNaN(o)) need('openDate', false, 'ใส่วันและเวลาเปิดรับ')
       else if (o >= toMs(d.date, d.startT)) bad('openDate', 'เวลาเปิดรับต้องก่อนเวลาเริ่มกิจกรรม')
     }
-    if (!whole(d.cancelDays) || +d.cancelDays > 14) bad('cancelDays', 'ใส่ตัวเลข 0 ถึง 14')
+    if (!whole(d.cancelDays) || +d.cancelDays > 14) bad('cancelDays', 'ใส่จำนวนเต็ม 0 ถึง 14')
   }
   need('supName', d.supName.trim().length > 0, 'ใส่ชื่อผู้ดูแล')
   if (d.chatEnabled && d.openChatUrl.trim() && !isUrl(d.openChatUrl.trim())) bad('openChatUrl', 'ลิงก์ต้องขึ้นต้นด้วย https://')

@@ -13,7 +13,7 @@ export function Checking({ stage }: { stage: Stage }) {
         {[0, 1].map((i) => (
           <motion.span
             key={i}
-            className="absolute inset-0 rounded-full bg-accent/15"
+            className="absolute inset-0 rounded-full bg-accent-soft"
             initial={{ scale: 0.6, opacity: 0.9 }}
             animate={{ scale: 1.4, opacity: 0 }}
             transition={{ duration: 1.6, repeat: Infinity, delay: i * 0.8, ease: 'easeOut' }}
@@ -21,7 +21,7 @@ export function Checking({ stage }: { stage: Stage }) {
         ))}
         <motion.span
           key={stage}
-          className="relative grid size-16 place-items-center rounded-full bg-accent-strong text-on-accent shadow-soft"
+          className="relative grid size-16 place-items-center rounded-full bg-accent-strong text-on-accent"
           initial={{ scale: 0.85, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: 'spring', duration: 0.4, bounce: 0.25 }}
