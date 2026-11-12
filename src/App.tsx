@@ -20,6 +20,7 @@ const Login = lazy(() => import('./screens/sup/Login'))
 const SupHome = lazy(() => import('./screens/sup/SupHome'))
 const SupShell = lazy(() => import('./screens/sup/SupShell'))
 const SupCalendar = lazy(() => import('./screens/sup/SupCalendar'))
+const SupList = lazy(() => import('./screens/sup/SupList'))
 const SupStats = lazy(() => import('./screens/sup/SupStats'))
 const SupMe = lazy(() => import('./screens/sup/SupMe'))
 const Manage = lazy(() => import('./screens/sup/Manage'))
@@ -72,6 +73,7 @@ export default function App() {
             <Route path="/sup/login" element={<Login />} />
             <Route element={<SupShell />}>
               <Route path="/sup" element={<SupHome />} />
+              <Route path="/sup/list" element={<SupList />} />
               <Route path="/sup/calendar" element={<SupCalendar />} />
               <Route path="/sup/stats" element={<SupStats />} />
               <Route path="/sup/me" element={<SupMe />} />

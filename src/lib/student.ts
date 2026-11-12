@@ -33,13 +33,12 @@ export const freeCancelUntil = (a: Activity) => a.start - (a.cancelDays ?? CANCE
 
 // Home feed ------------------------------------------------------------------------------------
 
-export type When = 'all' | 'today' | 'tomorrow' | 'week' | 'weekend' | 'month'
+export type When = 'all' | 'today' | 'week' | 'weekend' | 'month'
 
 export const WHEN: { key: When; label: string }[] = [
-  { key: 'all', label: 'ทุกวัน' },
+  { key: 'all', label: 'ทั้งหมด' },
   { key: 'today', label: 'วันนี้' },
-  { key: 'tomorrow', label: 'พรุ่งนี้' },
-  { key: 'week', label: '7 วันนี้' },
+  { key: 'week', label: 'อาทิตย์นี้' },
   { key: 'weekend', label: 'เสาร์อาทิตย์' },
   { key: 'month', label: 'เดือนนี้' },
 ]
@@ -50,7 +49,6 @@ export function matchWhen(start: number, when: When, now: number) {
   d0.setHours(0, 0, 0, 0)
   const day = Math.floor((start - d0.getTime()) / DAY)
   if (when === 'today') return day === 0
-  if (when === 'tomorrow') return day === 1
   if (when === 'week') return day >= 0 && day < 7
   if (when === 'weekend') {
     const w = new Date(start).getDay()

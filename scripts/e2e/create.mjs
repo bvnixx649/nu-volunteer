@@ -37,11 +37,11 @@ export default async function ({ browser, base, shot }) {
 
   // Closing with nothing entered leaves at once; closing after picking a template asks first.
   await page.goto(`${base}#/sup/new`)
-  await h1('เลือกเทมเพลต')
+  await h1('เลือกประเภทกิจกรรม')
   await page.getByRole('button', { name: 'ปิด' }).click()
   await page.waitForURL(/#\/sup$/)
   await page.goto(`${base}#/sup/new`)
-  await h1('เลือกเทมเพลต')
+  await h1('เลือกประเภทกิจกรรม')
   expect((await page.getByRole('button', { name: /แลกขวด/ }).count()) === 1, 'bottle template is offered')
   expect((await page.getByRole('button', { name: /เก็บขวด/ }).count()) === 0, 'old bottle name is gone')
   await snap('1-template')
@@ -160,7 +160,7 @@ export default async function ({ browser, base, shot }) {
 
   // The phone number is remembered for the next activity, and the saved draft is gone.
   await page.goto(`${base}#/sup/new`)
-  await h1('เลือกเทมเพลต')
+  await h1('เลือกประเภทกิจกรรม')
   await page.getByRole('button', { name: /จัดสถานที่/ }).click()
   await h1('รายละเอียด')
   await page.getByRole('button', { name: /ตั้งค่าเพิ่มเติม/ }).click()

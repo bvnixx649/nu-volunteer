@@ -77,7 +77,6 @@ describe('home feed', () => {
   })
   it('matches day filters', () => {
     expect(matchWhen(NOW + 3 * H, 'today', NOW)).toBe(true)
-    expect(matchWhen(NOW + DAY, 'tomorrow', NOW)).toBe(true)
     expect(matchWhen(NOW + 8 * DAY, 'week', NOW)).toBe(false)
   })
 })

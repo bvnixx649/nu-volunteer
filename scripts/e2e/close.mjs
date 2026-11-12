@@ -45,7 +45,7 @@ export default async function ({ browser, base, shot }) {
   await both('close-2-confirm')
   await sheet.getByRole('button', { name: 'ปิดรายชื่อ', exact: true }).click()
   await page.getByRole('dialog').waitFor({ state: 'detached' })
-  await page.getByText('รอส่งรายชื่อ', { exact: true }).waitFor()
+  await page.getByText('ยังไม่ส่งรายชื่อ', { exact: true }).waitFor()
   await page.getByText(/ส่งรายชื่อให้ศูนย์จิตอาสาภายใน/).waitFor()
   await page.getByText('ไม่เข้าร่วม', { exact: true }).waitFor()
   expect((await page.getByText('ไม่เข้าร่วม', { exact: true }).count()) === 1, 'exactly one no-show flag')

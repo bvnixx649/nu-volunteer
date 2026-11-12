@@ -1,4 +1,4 @@
-import { Link, NavLink } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import type { Icon } from '@phosphor-icons/react'
 
 export interface TabItem {
@@ -9,6 +9,8 @@ export interface TabItem {
   end?: boolean
   /** Unread count shown on the icon, hidden at 0. */
   badge?: number
+  /** Other paths this tab stands for, so it stays highlighted on a page opened from it that has no tab of its own. */
+  also?: string[]
 }
 
 /** The one thing people open the app to do. Sits raised in the middle of the bar, between the second and third tab. */
@@ -20,19 +22,21 @@ export interface TabAction {
   tone?: 'accent' | 'ink'
 }
 
-function Tab({ to, label, Icon, end, badge = 0 }: TabItem) {
+function Tab({ to, label, Icon, end, badge = 0, also }: TabItem) {
+  const { pathname } = useLocation()
+  const stands = !!also?.some((p) => pathname === p || pathname.startsWith(`${p}/`))
   return (
     <NavLink
       to={to}
       end={end}
       className={({ isActive }) =>
-        `pressable flex min-h-16 flex-col items-center justify-center gap-[3px] text-[11px] font-semibold transition-colors duration-150 ${isActive ? 'text-ink' : 'text-muted'}`
+        `pressable flex min-h-16 flex-col items-center justify-center gap-[3px] text-[11px] font-semibold transition-colors duration-150 ${isActive || stands ? 'text-ink' : 'text-muted'}`
       }
     >
       {({ isActive }) => (
         <>
           <span className="relative">
-            <Icon size={24} weight={isActive ? 'fill' : 'regular'} />
+            <Icon size={24} weight={isActive || stands ? 'fill' : 'regular'} />
             {badge > 0 && (
               <span className="num absolute -top-1.5 -right-2.5 grid h-[18px] min-w-[18px] place-items-center rounded-full bg-accent-strong px-1 text-[11px] leading-none font-semibold text-on-accent ring-2 ring-surface">
                 {badge > 9 ? '9+' : badge}
@@ -52,7 +56,10 @@ export function TabBar({ tabs, action }: { tabs: TabItem[]; action?: TabAction }
   const left = action ? tabs.slice(0, half) : tabs
   const right = action ? tabs.slice(half) : []
   return (
-    <nav aria-label="เมนูหลัก" className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-[rgb(23_23_26/0.8)] pb-[env(safe-area-inset-bottom,0px)] backdrop-blur-[20px] backdrop-saturate-[1.8]">
+    <nav
+      aria-label="เมนูหลัก"
+      className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-[rgb(23_23_26/0.8)] pb-[env(safe-area-inset-bottom,0px)] backdrop-blur-[20px] backdrop-saturate-[1.8]"
+    >
       <ul className={`mx-auto grid max-w-lg px-1 ${action ? 'grid-cols-5' : 'grid-cols-4'}`}>
         {left.map((t) => (
           <li key={t.to}>
