@@ -32,7 +32,7 @@ export const STAGE_LABEL: Record<Stage, string> = {
   open: 'เปิดรับสมัคร',
   live: 'กำลังดำเนินการ',
   closing: 'รอตรวจสอบ',
-  submit: 'รอส่งรายชื่อ',
+  submit: 'ยังไม่ส่งรายชื่อ',
   waiting: 'ส่งรายชื่อแล้ว',
   done: 'บันทึกแล้ว',
 }

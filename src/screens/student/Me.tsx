@@ -24,7 +24,11 @@ const TONES = {
 
 /** Same shape as StatusTag, for states that are not activity stages. */
 function Pill({ tone, children }: { tone: keyof typeof TONES; children: ReactNode }) {
-  return <span className={`num inline-flex w-fit shrink-0 items-center rounded-full px-2.5 py-1 text-[12.5px] leading-none font-semibold whitespace-nowrap ${TONES[tone]}`}>{children}</span>
+  return (
+    <span className={`num inline-flex w-fit shrink-0 items-center rounded-full px-2.5 py-1 text-[12.5px] leading-none font-semibold whitespace-nowrap ${TONES[tone]}`}>
+      {children}
+    </span>
+  )
 }
 
 function Menu({ icon, label, hint, onClick, danger }: { icon: ReactNode; label: string; hint?: string; onClick: () => void; danger?: boolean }) {
@@ -112,7 +116,7 @@ export default function Me() {
                     </div>
                     <div className="flex shrink-0 flex-col items-end gap-2">
                       <p className="num text-lg leading-none font-semibold">+{fmtHours(c.hours)}</p>
-                      {a?.recordedAt ? <Pill tone="ok">บันทึกลงระบบแล้ว</Pill> : a?.submittedAt ? <Pill tone="warn">รอศูนย์บันทึก</Pill> : <Pill tone="neutral">รอส่งรายชื่อ</Pill>}
+                      {a?.recordedAt ? <Pill tone="ok">บันทึกแล้ว</Pill> : a?.submittedAt ? <Pill tone="warn">รอบันทึกชั่วโมง</Pill> : <Pill tone="neutral">รอผู้จัดยืนยัน</Pill>}
                     </div>
                   </Link>
                 </li>

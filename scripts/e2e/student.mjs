@@ -55,7 +55,11 @@ export default async function ({ browser, base, load, shot: rawShot }) {
       regCount: 8,
       creditCount: 0,
     }
-    const people = [['65020001', 'สมชาย ใจดี'], ['65020002', 'สมหญิง รักเรียน'], ['65020003', 'ธนากร แสงทอง']]
+    const people = [
+      ['65020001', 'สมชาย ใจดี'],
+      ['65020002', 'สมหญิง รักเรียน'],
+      ['65020003', 'ธนากร แสงทอง'],
+    ]
     db.credits['test-blood'] = Object.fromEntries(
       people.map(([id, n], i) => [id, { studentId: id, name: n, hours: 6, fullHours: 6, at: Date.now() - (30 - i * 10) * 60_000, method: 'qr', flags: [] }]),
     )
@@ -90,12 +94,12 @@ export default async function ({ browser, base, load, shot: rawShot }) {
   await page.getByRole('button', { name: 'แลกขวด', exact: true }).click()
   await page.getByText('ไม่พบกิจกรรมตามตัวกรอง').waitFor()
   await page.getByRole('button', { name: 'ทุกหมวด', exact: true }).click()
-  // Day filter: nothing starts tomorrow, the activity five days out is inside 7 days.
-  await page.getByRole('radio', { name: 'พรุ่งนี้' }).click()
+  // Day filter: the activity five days out is inside this week, not today.
+  await page.getByRole('radio', { name: 'วันนี้' }).click()
   await page.getByText('ไม่พบกิจกรรมตามตัวกรอง').waitFor()
-  await page.getByRole('radio', { name: '7 วัน' }).click()
+  await page.getByRole('radio', { name: 'อาทิตย์นี้' }).click()
   await page.getByRole('link', { name: /จัดสถานที่ต้อนรับนิสิตใหม่/ }).waitFor()
-  await page.getByRole('radio', { name: 'ทุกวัน' }).click()
+  await page.getByRole('radio', { name: 'ทั้งหมด' }).click()
   await page.getByRole('heading', { name: /^เปิดรับสมัคร/ }).waitFor()
   await page.waitForTimeout(800)
   await shot(page, 'student-1b-home-list')

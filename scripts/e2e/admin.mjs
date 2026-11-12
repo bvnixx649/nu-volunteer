@@ -1,6 +1,7 @@
-// Centre admin (NUADMIN, dark, 390x844): the home sections and their order, the yearly target card with the org and category
-// breakdowns on the stats tab, the manage page of a sent roster (edit hours still open, admin Excel, "บันทึกลงระบบแล้ว" flow with the
-// 'recorded' notices and the student's own page), and a plain supervisor (NUVOL69) who sees none of it.
+// Centre admin (NUADMIN, dark, 390x844): the home sections and their order (pinned first, then the rosters to record, the to-do list, the organisations
+// that have not sent, then what is coming), the recorded rosters on the list tab, the yearly target card with the org and category breakdowns on
+// the statistics page (opened from the account), the manage page of a sent roster (edit hours still open, admin Excel, "บันทึกลงระบบแล้ว" flow
+// with the 'recorded' notices and the student's own page), and a plain supervisor (NUVOL69) who sees none of it.
 // Screenshots: scripts/e2e/out/admin-home.png, admin-home-lower.png, admin-stats.png, admin-stats-lower.png, admin-manage-waiting.png, admin-record-sheet.png.
 import { unzipSync, strFromU8 } from 'fflate'
 import { readFileSync } from 'node:fs'
@@ -75,15 +76,14 @@ export default async function ({ browser, base, shot }) {
 
   // ---------- Home ----------
   await loginAsSup(page, 'NUADMIN', 'พี่ศูนย์')
-  const wanted = ['รอบันทึกลงระบบ', 'รอดำเนินการ', 'หน่วยงานที่ยังไม่ส่งรายชื่อ', 'กิจกรรมที่จะจัดขึ้น', 'บันทึกแล้ว']
-  await page.getByRole('heading', { level: 2, name: /^บันทึกแล้ว/ }).waitFor()
+  const wanted = ['รอบันทึกลงระบบ', 'ต้องดำเนินการ', 'หน่วยงานที่ยังไม่ส่งรายชื่อ', 'จะจัดขึ้น']
+  await page.getByRole('heading', { level: 2, name: /^ต้องดำเนินการ/ }).waitFor()
   const heads = (await page.locator('main h2').allInnerTexts()).map((t) => t.replace(/\s+/g, ' ').trim())
   const order = wanted.map((w) => heads.findIndex((h) => h.startsWith(w)))
   expect(order.every((i) => i >= 0) && order.every((v, k) => k === 0 || v > order[k - 1]), `home sections ${JSON.stringify(heads)}`)
   expect(heads[order[0]] === 'รอบันทึกลงระบบ 2', `waiting heading: ${heads[order[0]]}`)
-  expect(heads[order[1]] === 'รอดำเนินการ 3', `own to-do heading: ${heads[order[1]]}`)
+  expect(heads[order[1]] === 'ต้องดำเนินการ 3', `own to-do heading: ${heads[order[1]]}`)
   expect(heads[order[2]] === 'หน่วยงานที่ยังไม่ส่งรายชื่อ 1', `unsent heading: ${heads[order[2]]}`)
-  expect(heads[order[4]] === 'บันทึกแล้ว 1', `folded heading: ${heads[order[4]]}`)
 
   const section = (name) => page.locator('section', { has: page.getByRole('heading', { level: 2, name: new RegExp(`^${name}`) }) })
   const rows = async (name) => section(name).locator('li').allInnerTexts()
@@ -98,38 +98,44 @@ export default async function ({ browser, base, shot }) {
   const link = section('รอบันทึกลงระบบ').getByRole('link', { name: /จัดเวทีงานปฐมนิเทศ/ })
   expect((await link.getAttribute('href')).endsWith('/sup/a/adm-wait2'), 'waiting row links to the manage page')
   const thumb = await link.locator('img').boundingBox()
-  expect(Math.round(thumb.width) === 64 && Math.round(thumb.height) === 64, `poster is ${thumb.width}x${thumb.height}`)
+  expect(Math.round(thumb.width) === 56 && Math.round(thumb.height) === 56, `poster is ${thumb.width}x${thumb.height}`)
 
   // Own to-do: the centre's activities under either of its codes (NUADMIN, and NUVOL69 which shares its name).
-  const own = await rows('รอดำเนินการ')
+  const own = await rows('ต้องดำเนินการ')
   expect(own.length === 3 && own.some((r) => r.includes('ประชุมสรุปงานศูนย์จิตอาสา')) && own.some((r) => r.includes('ปลูกป่าชายเลน')) && own.some((r) => r.includes('เก็บขยะริมแม่น้ำน่าน')), `own to-do: ${JSON.stringify(own)}`)
 
   // Other orgs that have not sent, the late one in red.
   const unsent = (await rows('หน่วยงานที่ยังไม่ส่งรายชื่อ')).map(clean)
   expect(unsent.length === 1 && unsent[0].includes('ค่ายอาสาพัฒนาชุมชน'), `unsent: ${JSON.stringify(unsent)}`)
-  expect(unsent[0].includes('คณะวิศวกรรมศาสตร์') && unsent[0].includes('เลยกำหนดส่งแล้ว') && unsent[0].includes('รอส่งรายชื่อ'), `unsent row 1: ${unsent[0]}`)
+  expect(unsent[0].includes('คณะวิศวกรรมศาสตร์') && unsent[0].includes('เลยกำหนดส่งแล้ว') && unsent[0].includes('ยังไม่ส่งรายชื่อ'), `unsent row 1: ${unsent[0]}`)
   const late = await section('หน่วยงานที่ยังไม่ส่งรายชื่อ').getByText('เลยกำหนดส่งแล้ว').evaluate((e) => getComputedStyle(e).color)
   expect(late === 'rgb(255, 106, 92)', `late text colour ${late}`)
 
-  // The folded group holds only recorded ones.
-  const fold = page.getByRole('button', { name: /^บันทึกแล้ว/ })
-  expect((await fold.getAttribute('aria-expanded')) === 'false', 'recorded group starts folded')
-  expect((await page.getByText('แลกขวดเพื่อโลกสีเขียว').count()) === 0, 'recorded titles are hidden while folded')
+  // Recorded rosters are not on the home; they are on the list tab.
+  expect((await page.getByText('แลกขวดเพื่อโลกสีเขียว').count()) === 0, 'recorded activities are not on the home')
   expect((await page.getByRole('button', { name: /^ส่งรายชื่อแล้ว/ }).count()) === 0, 'no supervisor-style sent group for the admin')
 
   await noOverflow('admin home')
   await page.waitForTimeout(1000)
   await shot(page, 'admin-home', { viewport: true })
-  await fold.click()
-  await page.getByText('แลกขวดเพื่อโลกสีเขียว').waitFor()
   await page.evaluate(() => scrollTo(0, document.body.scrollHeight))
   await page.waitForTimeout(500)
   await noOverflow('admin home scrolled')
   await shot(page, 'admin-home-lower', { viewport: true })
   await page.evaluate(() => scrollTo(0, 0))
 
+  // The list tab: every organisation's ended activities, the recorded ones under their filter, with the organisation on each row.
+  await tab('รายการ').click()
+  await page.getByRole('heading', { level: 1, name: 'รายการ' }).waitFor()
+  await page.getByRole('radio', { name: 'บันทึกแล้ว' }).click()
+  const recorded = page.getByRole('link', { name: /แลกขวดเพื่อโลกสีเขียว/ })
+  await recorded.getByText('บันทึกแล้ว', { exact: true }).waitFor()
+  expect((await recorded.innerText()).includes('คณะวิศวกรรมศาสตร์') || (await recorded.innerText()).includes('คณะวิทยาศาสตร์'), 'the list shows the organisation')
+  await page.getByRole('radio', { name: 'ทั้งหมด' }).click()
+  await recorded.waitFor()
+
   // ---------- Stats ----------
-  await tab('สถิติ').click()
+  await page.goto(`${base}#/sup/stats`)
   await page.getByRole('heading', { level: 1, name: 'สถิติ' }).waitFor()
   const target = page.getByRole('region', { name: 'เป้าหมายปีการศึกษา' })
   await target.waitFor()
@@ -267,10 +273,12 @@ export default async function ({ browser, base, shot }) {
   expect(first && first.title === 'บันทึกชั่วโมงลงระบบแล้ว' && first.body === 'จัดเวทีงานปฐมนิเทศ 5 ชั่วโมง' && first.read === false, `notice: ${JSON.stringify(first)}`)
   expect(notices.find((n) => n.studentId === '65010002').body === 'จัดเวทีงานปฐมนิเทศ 2 ชั่วโมง', 'the edited hours are in the second notice')
 
-  // Home: the recorded activity left the waiting list and joined the folded group.
+  // Home: the recorded activity left the waiting list. On the list tab it shows under the recorded filter, with the one that was recorded before.
   await page.goto(`${base}#/sup`)
   await page.getByRole('heading', { level: 2, name: 'รอบันทึกลงระบบ 1' }).waitFor()
-  await page.getByRole('heading', { level: 2, name: /^บันทึกแล้ว 2$/ }).waitFor()
+  await page.goto(`${base}#/sup/list`)
+  await page.getByRole('radio', { name: 'บันทึกแล้ว' }).click()
+  expect((await page.locator('main a[href*="/sup/a/"]').count()) === 2, 'two recorded activities on the list')
 
   // ---------- The student's own page ----------
   await page.evaluate(() => {
@@ -281,7 +289,7 @@ export default async function ({ browser, base, shot }) {
   await page.goto(`${base}#/me`)
   await page.reload()
   const history = page.locator('li', { hasText: 'จัดเวทีงานปฐมนิเทศ' })
-  await history.getByText('บันทึกลงระบบแล้ว', { exact: true }).waitFor()
+  await history.getByText('บันทึกแล้ว', { exact: true }).waitFor()
   await page.goto(`${base}#/inbox`)
   await page.getByText('บันทึกชั่วโมงลงระบบแล้ว').first().waitFor()
   expect(((await db()).notices.filter((n) => n.kind === 'recorded' && n.activityId === 'adm-wait2')).length === 2, 'the student side does not add a second notice')
@@ -296,11 +304,11 @@ export default async function ({ browser, base, shot }) {
   await page.goto(`${base}#/sup/login`)
   await page.reload()
   await loginAsSup(page)
-  await page.getByRole('heading', { level: 2, name: /^ส่งรายชื่อแล้ว/ }).waitFor()
+  await page.getByRole('searchbox').waitFor()
   const plain = (await page.locator('main h2').allInnerTexts()).join(' | ')
   for (const w of ['รอบันทึกลงระบบ', 'หน่วยงานที่ยังไม่ส่งรายชื่อ', 'บันทึกแล้ว']) expect(!plain.includes(w), `a supervisor sees "${w}": ${plain}`)
   expect((await page.getByText('คณะวิทยาศาสตร์').count()) === 0, 'a supervisor does not see other orgs')
-  await tab('สถิติ').click()
+  await page.goto(`${base}#/sup/stats`)
   await page.getByRole('heading', { level: 2, name: /^ปีการศึกษา \d{4}$/ }).waitFor()
   for (const w of ['เป้าหมายปีการศึกษา', 'แยกตามหน่วยงาน', 'แยกตามหมวด']) expect((await page.getByText(w).count()) === 0, `a supervisor sees "${w}" on the stats tab`)
   // A sent roster stays locked and keeps the old note for the supervisor.

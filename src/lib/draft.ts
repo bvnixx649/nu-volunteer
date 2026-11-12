@@ -1,6 +1,6 @@
 import { CANCEL_DAYS, QR_INTERVAL_DEFAULT, RADIUS_DEFAULT } from '../config'
 import { categoryOf } from '../data/categories'
-import type { Activity, ActivityEdit, CategoryKey, LocMode, NewActivity, QrMode, Template } from '../data/types'
+import type { Activity, ActivityEdit, CategoryKey, LocMode, NewActivity, NewTemplate, QrMode, Template } from '../data/types'
 
 /** Everything the create and edit flow holds while the supervisor types. Numbers stay strings until they are checked. */
 export interface Draft {
@@ -82,7 +82,7 @@ export function blankDraft(supName = '', phone = ''): Draft {
 export function applyCategory(d: Draft, key: CategoryKey, touched: ReadonlySet<string>): Draft {
   const c = categoryOf(key)
   const defaults: Pick<Draft, DefaultKey> = {
-    poster: posterChoices(key)[0],
+    poster: posterChoices(key)[0] ?? '',
     description: c.description,
     hours: String(c.hours),
     itemsPerHour: c.itemsPerHour ? String(c.itemsPerHour) : '',
@@ -205,6 +205,9 @@ const isUrl = (s: string) => {
 /** Bottle exchange: no registration, no QR, no location. The desk adds people by hand. */
 export const isBottleDraft = (d: Pick<Draft, 'categoryKey'>) => d.categoryKey === 'bottle'
 
+/** A one-off activity from the "กำหนดเอง" card: no built-in category and no template. Stored as "อื่น ๆ" without a templateId. */
+export const isCustomDraft = (d: Pick<Draft, 'categoryKey' | 'templateId'>) => d.categoryKey === 'other' && !d.templateId
+
 /** Fields that live inside the collapsed "ตั้งค่าเพิ่มเติม" section. */
 export const ADVANCED_FIELDS = ['capacity', 'openDate', 'cancelDays', 'supName', 'openChatUrl']
 
@@ -259,6 +262,7 @@ export function check(step: number, d: Draft): Check {
     if (!whole(d.cancelDays) || +d.cancelDays > 14) bad('cancelDays', 'ใส่จำนวนเต็ม 0 ถึง 14')
   }
   need('supName', d.supName.trim().length > 0, 'ใส่ชื่อผู้ดูแล')
+  if (isCustomDraft(d)) need('poster', !!d.poster, 'เลือกรูปปก')
   if (d.chatEnabled && d.openChatUrl.trim() && !isUrl(d.openChatUrl.trim())) bad('openChatUrl', 'ลิงก์ต้องขึ้นต้นด้วย https://')
   return { ok, errors, missing }
 }
@@ -295,6 +299,27 @@ export function toNewActivity(d: Draft, who: { orgCode: string; orgName: string 
     opensAt: open,
     cancelDays: Number(d.cancelDays),
     hideUntilOpen: d.scheduled && !bottle && d.hideUntilOpen ? true : undefined,
+  }
+}
+
+/** The template a custom draft saves as when the "บันทึกเทมเพลต" switch is on. Same fields TemplateForm writes. */
+export function toNewTemplate(d: Draft, who: { orgCode: string; name: string }): NewTemplate {
+  return {
+    orgCode: who.orgCode,
+    title: d.title.trim(),
+    poster: d.poster,
+    description: d.description.trim(),
+    hours: Number(d.hours),
+    settings: {
+      capLimit: d.capLimit,
+      capacity: Number(d.capacity) > 0 ? Number(d.capacity) : 30,
+      walkIn: d.walkIn,
+      qrMode: d.qrMode,
+      qrInterval: d.qrInterval,
+      locMode: d.locMode,
+      radius: d.radius,
+    },
+    createdBy: who.name,
   }
 }
 

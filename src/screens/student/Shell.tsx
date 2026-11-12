@@ -1,5 +1,5 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom'
-import { Bell, House, QrCode, Ticket, UserCircle } from '@phosphor-icons/react'
+import { Bell, CalendarCheck, House, QrCode, UserCircle } from '@phosphor-icons/react'
 import { useMine, useMineSync } from '../../data/mine'
 import { useDevice } from '../../store'
 import { TabBar, type TabAction, type TabItem } from '../../ui/TabBar'
@@ -18,7 +18,7 @@ export function RequireStudent() {
 
 const TABS: TabItem[] = [
   { to: '/', label: 'หน้าแรก', Icon: House, end: true },
-  { to: '/mine', label: 'ของฉัน', Icon: Ticket },
+  { to: '/mine', label: 'ของฉัน', Icon: CalendarCheck },
   { to: '/inbox', label: 'แจ้งเตือน', Icon: Bell },
   { to: '/me', label: 'โปรไฟล์', Icon: UserCircle },
 ]

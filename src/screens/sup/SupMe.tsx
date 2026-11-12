@@ -1,18 +1,24 @@
-import { useState, type CSSProperties } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { SignOut } from '@phosphor-icons/react'
+import { useMemo, useState, type CSSProperties } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
+import { CaretRight, SignOut } from '@phosphor-icons/react'
+import { yearOverview } from '../../lib/home'
 import { useDevice } from '../../store'
 import { Button } from '../../ui/Button'
 import { InstallCard } from '../../ui/InstallCard'
 import { Sheet } from '../../ui/Sheet'
+import { CARD } from './home/parts'
+import { useSupActivities } from './home/useSupActivities'
 
 const delay = (ms: number) => ({ '--d': `${ms}ms` }) as CSSProperties
+const n = (v: number) => v.toLocaleString('th-TH')
 
-/** Account tab: who is signed in, installing the app, and signing out. */
+/** Account tab: who is signed in, the headline statistics of the year, installing the app, and signing out. */
 export default function SupMe() {
   const sup = useDevice((s) => s.sup)
   const clearSup = useDevice((s) => s.clearSup)
   const nav = useNavigate()
+  const { mine, now } = useSupActivities()
+  const overview = useMemo(() => yearOverview(mine, now), [mine, now])
   const [confirm, setConfirm] = useState(false)
   if (!sup) return null
 
@@ -27,12 +33,28 @@ export default function SupMe() {
         {sup.admin && <span className="mt-3.5 inline-block rounded-full bg-surface-2 px-3 py-1.5 text-[13px] leading-none font-medium text-ink">เห็นกิจกรรมทุกหน่วยงาน</span>}
       </section>
 
-      <div className="rise mt-4" style={delay(80)}>
+      <section aria-label="สถิติ" className={`rise mt-4 ${CARD}`} style={delay(80)}>
+        <div className="flex items-baseline justify-between gap-3 px-5 pt-5">
+          <h2 className="text-[17px] font-semibold">สถิติ</h2>
+          <p className="num text-[13.5px] text-muted">ปีการศึกษา {overview.label}</p>
+        </div>
+        <div className="num grid grid-cols-3 gap-2 px-4 pt-4 pb-3">
+          <Headline value={n(overview.activities)} label="กิจกรรม" />
+          <Headline value={n(overview.people)} label="ผู้ได้รับชั่วโมง" />
+          <Headline value={overview.kpi === null ? '-' : `${overview.kpi}%`} label="เข้าร่วมจริง" />
+        </div>
+        <Link to="/sup/stats" className="pressable flex min-h-14 items-center justify-between border-t border-line px-5 text-base font-semibold">
+          ดูสถิติทั้งหมด
+          <CaretRight size={18} className="text-faint" aria-hidden />
+        </Link>
+      </section>
+
+      <div className="rise mt-4" style={delay(120)}>
         <InstallCard />
       </div>
 
       {/* The rise animation sits on a wrapper: an animated transform would hide the press feedback of the button itself. */}
-      <div className="rise mt-4" style={delay(120)}>
+      <div className="rise mt-4" style={delay(160)}>
         <button
           type="button"
           onClick={() => setConfirm(true)}
@@ -63,5 +85,15 @@ export default function SupMe() {
         </div>
       </Sheet>
     </main>
+  )
+}
+
+/** One headline number of the year: large figure, small label under it. */
+function Headline({ value, label }: { value: string; label: string }) {
+  return (
+    <div className="rounded-[14px] bg-surface-2 px-3 py-2.5">
+      <p className="text-2xl leading-tight font-semibold tracking-tight">{value}</p>
+      <p className="text-[13px] text-muted">{label}</p>
+    </div>
   )
 }

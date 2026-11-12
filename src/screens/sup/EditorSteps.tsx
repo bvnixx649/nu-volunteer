@@ -7,7 +7,7 @@ import { categoryOf, CATEGORIES, BUILTIN_KEYS } from '../../data/categories'
 import { now } from '../../data/api'
 import type { Activity, CategoryKey, Template } from '../../data/types'
 import { checkinSummary } from '../../lib/checkin'
-import { fixDate, isBottleDraft, MAX_DATE, MIN_DATE, toMs, ymd, posterChoices, typedNumber, type Draft } from '../../lib/draft'
+import { fixDate, isBottleDraft, isCustomDraft, MAX_DATE, MIN_DATE, toMs, ymd, posterChoices, typedNumber, type Draft } from '../../lib/draft'
 import { thDate, thTime } from '../../lib/format'
 import { getFix, type GeoError } from '../../lib/geo'
 import { freeCancelUntil } from '../../lib/student'
@@ -21,7 +21,7 @@ import { CheckinFields, type CheckinDraft } from './CheckinFields'
 
 export type StepProps = { d: Draft; set: (p: Partial<Draft>) => void; errors: Record<string, string> }
 
-export const TITLES = ['เลือกเทมเพลต', 'รายละเอียด', 'ตรวจและเผยแพร่']
+export const TITLES = ['เลือกประเภทกิจกรรม', 'รายละเอียด', 'ตรวจและเผยแพร่']
 
 /** A group that holds switches: a flat card on the page, or (`inset`) a darker well when it sits inside a card. */
 function Group({ inset, children }: { inset?: boolean; children: ReactNode }) {
@@ -74,7 +74,8 @@ type CategoryProps = {
   templates: Template[]
   onPick: (k: CategoryKey) => void
   onPickTemplate: (t: Template) => void
-  onAdd: () => void
+  /** Starts a blank one-off activity. */
+  onCustom: () => void
   /** Opens the edit and delete choices for a custom template. */
   onMenu: (t: Template) => void
 }
@@ -118,59 +119,54 @@ function TemplateCard({ t, on, onPick, onMenu }: { t: Template; on: boolean; onP
           <span className="num block text-[13.5px] text-muted">{t.hours} ชม.</span>
         </span>
       </button>
-      <button
-        type="button"
-        aria-label={`ตัวเลือกของ ${t.title}`}
-        onClick={onMenu}
-        className="pressable absolute right-0 bottom-0 grid size-12 place-items-center text-muted"
-      >
+      <button type="button" aria-label={`ตัวเลือกของ ${t.title}`} onClick={onMenu} className="pressable absolute right-0 bottom-0 grid size-12 place-items-center text-muted">
         <DotsThree size={26} weight="bold" />
       </button>
     </div>
   )
 }
 
-export function StepCategory({ d, templates, onPick, onPickTemplate, onAdd, onMenu }: CategoryProps) {
+export function StepCategory({ d, templates, onPick, onPickTemplate, onCustom, onMenu }: CategoryProps) {
+  const custom = isCustomDraft(d)
   return (
-    <>
-      <div className="grid grid-cols-2 gap-3">
-        {BUILTIN_KEYS.map((k) => {
-          const c = CATEGORIES[k]
-          const on = d.categoryKey === k
-          return (
-            <button
-              key={k}
-              type="button"
-              aria-pressed={on}
-              onClick={() => onPick(k)}
-              className={`pressable overflow-hidden rounded-[var(--radius-card)] bg-surface text-left ${on ? 'ring-2 ring-ink' : ''}`}
-            >
-              <img src={posterChoices(k)[0]} alt="" className="aspect-[4/3] w-full object-cover" />
-              <span className="block px-3.5 py-3">
-                <span className="block text-base font-semibold">{c.label}</span>
-                <span className="num block text-[13.5px] text-muted">{c.itemsPerHour ? `สูงสุด ${c.hours} ชม.` : `${c.hours} ชม.`}</span>
-              </span>
-            </button>
-          )
-        })}
-        {templates.map((t) => (
-          <TemplateCard key={t.id} t={t} on={d.templateId === t.id} onPick={() => onPickTemplate(t)} onMenu={() => onMenu(t)} />
-        ))}
-      </div>
-      <div className="mt-8 flex flex-col items-center gap-2">
-        <button
-          type="button"
-          aria-label="เพิ่มเทมเพลต"
-          onClick={onAdd}
-          className="pressable grid size-16 place-items-center rounded-full bg-surface-2 text-ink"
-        >
+    <div className="grid grid-cols-2 gap-3">
+      {BUILTIN_KEYS.map((k) => {
+        const c = CATEGORIES[k]
+        const on = d.categoryKey === k
+        return (
+          <button
+            key={k}
+            type="button"
+            aria-pressed={on}
+            onClick={() => onPick(k)}
+            className={`pressable overflow-hidden rounded-[var(--radius-card)] bg-surface text-left ${on ? 'ring-2 ring-ink' : ''}`}
+          >
+            <img src={posterChoices(k)[0]} alt="" className="aspect-[4/3] w-full object-cover" />
+            <span className="block px-3.5 py-3">
+              <span className="block text-base font-semibold">{c.label}</span>
+              <span className="num block text-[13.5px] text-muted">{c.itemsPerHour ? `สูงสุด ${c.hours} ชม.` : `${c.hours} ชม.`}</span>
+            </span>
+          </button>
+        )
+      })}
+      {templates.map((t) => (
+        <TemplateCard key={t.id} t={t} on={d.templateId === t.id} onPick={() => onPickTemplate(t)} onMenu={() => onMenu(t)} />
+      ))}
+      <button
+        type="button"
+        aria-pressed={custom}
+        onClick={onCustom}
+        className={`pressable overflow-hidden rounded-[var(--radius-card)] bg-surface text-left ${custom ? 'ring-2 ring-ink' : ''}`}
+      >
+        <span className="grid aspect-[4/3] w-full place-items-center bg-surface-2 text-ink">
           <Plus size={28} weight="bold" />
-        </button>
-        <span aria-hidden className="text-[15px] text-muted">
-          เพิ่มเทมเพลต
         </span>
-      </div>
-    </>
+        <span className="block px-3.5 py-3">
+          <span className="block text-base font-semibold">กำหนดเอง</span>
+          <span className="block text-[13.5px] text-muted">กิจกรรมใหม่ที่ไม่มีในรายการ</span>
+        </span>
+      </button>
+    </div>
   )
 }
 
@@ -200,7 +196,7 @@ function PosterTile({ src, selected, label, onClick }: { src: string; selected: 
 }
 
 /** The cover photo, large. Tapping it opens the template photos and the upload button. */
-function PosterPicker({ d, set }: Pick<StepProps, 'd' | 'set'>) {
+function PosterPicker({ d, set, error }: Pick<StepProps, 'd' | 'set'> & { error?: string }) {
   const file = useRef<HTMLInputElement>(null)
   const [open, setOpen] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -234,6 +230,7 @@ function PosterPicker({ d, set }: Pick<StepProps, 'd' | 'set'>) {
           <PencilSimple size={16} weight="bold" /> เปลี่ยนรูป
         </span>
       </button>
+      {error && <p className="text-sm text-bad">{error}</p>}
       <input ref={file} type="file" accept="image/*" hidden data-testid="poster-file" onChange={(e) => upload(e.target.files?.[0])} />
 
       <Sheet open={open} onClose={() => setOpen(false)} title="รูปปก">
@@ -319,7 +316,7 @@ export function StepDetails({ d, set, errors, advancedOpen, onAdvanced }: StepPr
 
   return (
     <div className="flex flex-col gap-6">
-      <PosterPicker d={d} set={set} />
+      <PosterPicker d={d} set={set} error={errors.poster} />
 
       <Field label="ชื่อกิจกรรม" value={d.title} onChange={(e) => set({ title: e.target.value })} error={errors.title} autoComplete="off" />
 
@@ -345,24 +342,27 @@ export function StepDetails({ d, set, errors, advancedOpen, onAdvanced }: StepPr
       </div>
 
       {bottle ? (
-        <div className="grid grid-cols-2 items-start gap-3">
+        <div className="flex flex-col gap-5">
+          <div className="grid grid-cols-2 items-start gap-3">
+            <Field
+              label="จำนวนขวด"
+              type="number"
+              inputMode="numeric"
+              min={1}
+              className="min-w-0"
+              value={d.itemsPerHour}
+              onChange={(e) => set({ itemsPerHour: num(e.target.value) })}
+              error={errors.itemsPerHour}
+            />
+            {/* The data model only stores bottles per one hour, so this stays fixed at 1. */}
+            <Field label="ชั่วโมงที่ได้" type="number" inputMode="numeric" className="min-w-0 opacity-60" value={1} readOnly disabled />
+          </div>
           <Field
-            label="กี่ขวดได้ 1 ชั่วโมง"
-            type="number"
-            inputMode="numeric"
-            min={1}
-            className="min-w-0"
-            value={d.itemsPerHour}
-            onChange={(e) => set({ itemsPerHour: num(e.target.value) })}
-            error={errors.itemsPerHour}
-          />
-          <Field
-            label="ชั่วโมงสูงสุดต่อคน"
+            label="สูงสุดต่อคน (ชั่วโมง)"
             type="number"
             inputMode="numeric"
             min={1}
             max={99}
-            className="min-w-0"
             value={d.hours}
             onChange={(e) => set({ hours: num(e.target.value) })}
             error={errors.hours}
@@ -370,16 +370,7 @@ export function StepDetails({ d, set, errors, advancedOpen, onAdvanced }: StepPr
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          <Field
-            label="ชั่วโมงต่อคน"
-            type="number"
-            inputMode="numeric"
-            min={1}
-            max={99}
-            value={d.hours}
-            onChange={(e) => set({ hours: num(e.target.value) })}
-            error={errors.hours}
-          />
+          <Field label="ชั่วโมงต่อคน" type="number" inputMode="numeric" min={1} max={99} value={d.hours} onChange={(e) => set({ hours: num(e.target.value) })} error={errors.hours} />
           <div className="flex flex-wrap gap-2">
             {HOUR_CHIPS.map((n) => (
               <Chip key={n} selected={d.hours === String(n)} onClick={() => set({ hours: String(n) })}>
@@ -424,18 +415,21 @@ export function StepDetails({ d, set, errors, advancedOpen, onAdvanced }: StepPr
                 <Switch checked={d.capLimit} onChange={(v) => set({ capLimit: v })} label="จำกัดจำนวน" />
                 <Reveal show={d.capLimit}>
                   <div className="pb-4">
-                    <Field label="รับได้กี่คน" type="number" inputMode="numeric" min={1} value={d.capacity} onChange={(e) => set({ capacity: num(e.target.value) })} error={errors.capacity} />
+                    <Field
+                      label="รับได้กี่คน"
+                      type="number"
+                      inputMode="numeric"
+                      min={1}
+                      value={d.capacity}
+                      onChange={(e) => set({ capacity: num(e.target.value) })}
+                      error={errors.capacity}
+                    />
                   </div>
                 </Reveal>
               </Group>
 
               <Group inset>
-                <Switch
-                  checked={d.walkIn}
-                  onChange={(v) => set({ walkIn: v })}
-                  label="รับผู้ไม่ได้ลงทะเบียน"
-                  hint={d.walkIn ? undefined : 'สแกนได้เฉพาะผู้ลงทะเบียน'}
-                />
+                <Switch checked={d.walkIn} onChange={(v) => set({ walkIn: v })} label="รับผู้ไม่ได้ลงทะเบียน" hint={d.walkIn ? undefined : 'สแกนได้เฉพาะผู้ลงทะเบียน'} />
               </Group>
 
               <Group inset>
@@ -443,7 +437,16 @@ export function StepDetails({ d, set, errors, advancedOpen, onAdvanced }: StepPr
                 <Reveal show={d.scheduled}>
                   <div className="flex flex-col gap-4 pb-3">
                     <div className="grid grid-cols-2 items-start gap-3">
-                      <Field label="วันที่เปิดรับ" type="date" min={MIN_DATE} max={MAX_DATE} className="min-w-0" value={d.openDate} onChange={(e) => set({ openDate: fixDate(e.target.value) })} error={errors.openDate} />
+                      <Field
+                        label="วันที่เปิดรับ"
+                        type="date"
+                        min={MIN_DATE}
+                        max={MAX_DATE}
+                        className="min-w-0"
+                        value={d.openDate}
+                        onChange={(e) => set({ openDate: fixDate(e.target.value) })}
+                        error={errors.openDate}
+                      />
                       <Field label="เวลาเปิดรับ" type="time" className="min-w-0" value={d.openT} onChange={(e) => set({ openT: e.target.value })} />
                     </div>
                     <Switch checked={d.hideUntilOpen} onChange={(v) => set({ hideUntilOpen: v })} label="ซ่อนจนถึงเวลาเปิดรับ" />
@@ -488,7 +491,8 @@ function SummaryRow({ label, children }: { label: string; children: ReactNode })
   )
 }
 
-export function StepReview({ d, templateName }: { d: Draft; templateName?: string }) {
+/** `saveTpl` is only passed for a new "กำหนดเอง" activity: the switch that also saves a template. */
+export function StepReview({ d, templateName, saveTpl }: { d: Draft; templateName?: string; saveTpl?: { on: boolean; onChange: (v: boolean) => void } }) {
   const start = toMs(d.date, d.startT)
   const end = toMs(d.date, d.endT)
   const open = d.scheduled ? toMs(d.openDate, d.openT) : NaN
@@ -505,9 +509,7 @@ export function StepReview({ d, templateName }: { d: Draft; templateName?: strin
       <article className="overflow-hidden rounded-[var(--radius-card)] bg-surface" data-testid="preview">
         <div className="relative">
           {d.poster && <img src={d.poster} alt="" className="aspect-[16/9] w-full object-cover" />}
-          <span className="num absolute top-3 right-3 rounded-full bg-ink px-3 py-1 text-[15px] font-semibold text-bg">
-            {bottle ? `สูงสุด ${d.hours} ชม.` : `${d.hours} ชม.`}
-          </span>
+          <span className="num absolute top-3 right-3 rounded-full bg-ink px-3 py-1 text-[15px] font-semibold text-bg">{bottle ? `สูงสุด ${d.hours} ชม.` : `${d.hours} ชม.`}</span>
         </div>
         <div className="px-5 py-4">
           <h2 className="line-clamp-2 text-xl leading-snug font-semibold text-balance">{d.title}</h2>
@@ -517,7 +519,8 @@ export function StepReview({ d, templateName }: { d: Draft; templateName?: strin
       </article>
 
       <dl className="divide-y divide-line">
-        <SummaryRow label="เทมเพลต">{d.categoryKey ? categoryOf(d.categoryKey).label : ''}
+        <SummaryRow label="เทมเพลต">
+          {d.categoryKey ? (isCustomDraft(d) ? 'กำหนดเอง' : categoryOf(d.categoryKey).label) : ''}
           {templateName && (
             <>
               <br />
@@ -563,6 +566,11 @@ export function StepReview({ d, templateName }: { d: Draft; templateName?: strin
         </SummaryRow>
       </dl>
       {cancelPassed && <p className="text-[15px] leading-relaxed text-warn">เลยเวลายกเลิกได้ฟรีแล้ว คนที่ลงทะเบียนหลังจากนี้จะยกเลิกแบบไม่เสียสิทธิ์ไม่ได้</p>}
+      {saveTpl && (
+        <Group>
+          <Switch checked={saveTpl.on} onChange={saveTpl.onChange} label="บันทึกเป็นเทมเพลต" hint="ใช้ซ้ำได้ในครั้งถัดไป" />
+        </Group>
+      )}
     </div>
   )
 }

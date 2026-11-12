@@ -18,8 +18,7 @@ export function visibleTo(list: Activity[], sup: { admin: boolean; orgCode: stri
   return list.filter((a) => sup.admin || a.orgCode === sup.orgCode)
 }
 
-export const liveNow = (list: Activity[], now: number) =>
-  list.filter((a) => stage(a, now) === 'live').sort((a, b) => a.start - b.start)
+export const liveNow = (list: Activity[], now: number) => list.filter((a) => stage(a, now) === 'live').sort((a, b) => a.start - b.start)
 
 /** Rank in the one list: needs action first, then upcoming, then sent. Live ones have their own card. */
 const RANK: Partial<Record<Stage, number>> = { closing: 0, submit: 0, scheduled: 1, open: 1, waiting: 2, done: 2 }
@@ -84,23 +83,84 @@ export function groupActivities(list: Activity[], now: number): Groups {
   return g
 }
 
-/** The nearest this many upcoming activities are shown as big poster cards; the rest are compact rows. */
-export const BIG_UPCOMING = 3
-
-export interface UpcomingSplit {
-  /** With nothing live, the nearest upcoming activity is the hero card at the top and is not repeated below. */
-  hero?: Activity
-  big: Activity[]
-  small: Activity[]
-}
-
-/** Splits the upcoming list (already in start order) into the hero card, the big poster cards and the compact rows. */
-export function splitUpcoming(upcoming: Activity[], hasLive: boolean): UpcomingSplit {
-  const rest = hasLive ? upcoming : upcoming.slice(1)
-  return { hero: hasLive ? undefined : upcoming[0], big: rest.slice(0, BIG_UPCOMING), small: rest.slice(BIG_UPCOMING) }
-}
-
 const n = (v: number) => v.toLocaleString('th-TH')
+
+/** The chips above the supervisor home: everything, what needs action, or what is coming. */
+export type HomeFilter = 'all' | 'todo' | 'upcoming'
+
+/** The sections of the supervisor home, each already searched and with pinned activities taken out of the rest. */
+export interface HomeSections {
+  /** Running now. Always shown first, whatever the chip. */
+  live: Activity[]
+  /** Pinned on this device and not running, sent or recorded. */
+  pinned: Activity[]
+  /** Centre admin only: rosters sent by organisations, waiting for the centre to record them. */
+  waiting: Activity[]
+  /** Ended and still to do (the supervisor's own list, or the centre's own for the admin). */
+  todo: Activity[]
+  /** Centre admin only: other organisations' ended activities without a roster yet. */
+  unsent: Activity[]
+  /** Not started yet. */
+  upcoming: Activity[]
+}
+
+/**
+ * The supervisor home in sections. `query` matches the title, and for the centre admin also the organisation name.
+ * A pinned activity shows only under "ปักหมุด". `list` is already the signed-in person's own activities (all of them for the admin).
+ */
+export function homeSections(list: Activity[], sup: { admin: boolean; orgName: string; orgCode: string }, now: number, pinIds: readonly string[], query: string): HomeSections {
+  const q = query.trim().toLowerCase()
+  const hit = (a: Activity) => !q || a.title.toLowerCase().includes(q) || (sup.admin && a.org.toLowerCase().includes(q))
+  const pinned = new Set(pinIds)
+  const free = (a: Activity) => !pinned.has(a.id) && hit(a)
+  const adm = sup.admin ? adminGroups(list, sup, now) : undefined
+  const { todo, upcoming } = adm ?? groupActivities(orderedActivities(list, now), now)
+  const pinnedList = orderedActivities(list, now).filter((a) => {
+    const s = stage(a, now)
+    return pinned.has(a.id) && s !== 'waiting' && s !== 'done' && hit(a)
+  })
+  return {
+    live: liveNow(list, now).filter(hit),
+    pinned: pinnedList,
+    waiting: (adm?.waiting ?? []).filter(free),
+    todo: todo.filter(free),
+    unsent: (adm?.unsent ?? []).filter(free),
+    upcoming: upcoming.filter(free),
+  }
+}
+
+/** The line under an ended activity's title on the list tab: people credited and the hours each one got. */
+export const endedLine = (a: Pick<Activity, 'creditCount' | 'hours'>) => `${n(a.creditCount)} คน ${fmtHours(a.hours)} ชั่วโมงต่อคน`
+
+/** The list tab's filter: every ended activity, the rosters sent and not yet recorded, or the recorded ones. */
+export type ListFilter = 'all' | 'waiting' | 'recorded'
+
+/** Stages after the event, when the roster is being checked, sent, waiting for the centre, or recorded. */
+const ENDED: Stage[] = ['closing', 'submit', 'waiting', 'done']
+
+export interface EndedMonth {
+  /** Stable key, year and month. */
+  key: string
+  /** Buddhist-era month heading, for example "พฤศจิกายน 2569". */
+  label: string
+  /** Newest first. */
+  items: Activity[]
+}
+
+/** Ended activities for the list tab, newest first, grouped under the month they start in. */
+export function endedMonths(list: Activity[], now: number, filter: ListFilter): EndedMonth[] {
+  const keep = (s: Stage) => (filter === 'all' ? ENDED.includes(s) : filter === 'waiting' ? s === 'waiting' : s === 'done')
+  const items = list.filter((a) => keep(stage(a, now))).sort((a, b) => b.start - a.start)
+  const months = new Map<string, EndedMonth>()
+  for (const a of items) {
+    const d = new Date(a.start)
+    const key = `${d.getFullYear()}-${d.getMonth()}`
+    const m = months.get(key) ?? { key, label: `${TH_MONTHS[d.getMonth()]} ${d.getFullYear() + 543}`, items: [] }
+    m.items.push(a)
+    months.set(key, m)
+  }
+  return [...months.values()]
+}
 
 /** The one short muted line beside a row's status tag. */
 export function rowSub(a: Activity, s: Stage, now: number): string {
@@ -118,30 +178,6 @@ export function rowSub(a: Activity, s: Stage, now: number): string {
       return a.opensAt ? `เปิดรับ ${thDayMonth(a.opensAt)} ${thTime(a.opensAt)} น.` : 'ยังไม่เปิดรับ'
     default:
       return `ส่งแล้ว ${thDate(a.submittedAt ?? a.recordedAt ?? a.end)}`
-  }
-}
-
-export interface RegInfo {
-  /** Left text under a poster card. */
-  text: string
-  /** Right text: seats left, the bottle cap or how many are taken. */
-  side?: string
-  /** 0 to 1 share of the seats taken; only when the activity limits its numbers and is open. */
-  fill?: number
-}
-
-/** What a poster card says about registration: seat bar and seats left, a head count, the bottle rate, or when it opens. */
-export function regInfo(a: Activity, now: number): RegInfo {
-  if (a.itemsPerHour) return { text: `${a.itemsPerHour} ขวด = 1 ชั่วโมง`, side: `สูงสุด ${fmtHours(a.hours)} ชั่วโมง` }
-  const limited = a.capLimit && a.capacity > 0
-  if (stage(a, now) === 'scheduled' && a.opensAt)
-    return { text: `เปิดรับ ${thDayMonth(a.opensAt)} ${thTime(a.opensAt)} น.`, side: limited ? `รับ ${n(a.capacity)} คน` : undefined }
-  if (!limited) return { text: `ลงทะเบียนแล้ว ${n(a.regCount)} คน` }
-  const left = Math.max(0, a.capacity - a.regCount)
-  return {
-    text: `ลงทะเบียนแล้ว ${n(a.regCount)} จาก ${n(a.capacity)} คน`,
-    side: left ? `เหลือ ${n(left)} ที่` : 'เต็มแล้ว',
-    fill: Math.min(1, a.regCount / a.capacity),
   }
 }
 

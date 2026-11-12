@@ -32,11 +32,11 @@ export default async function ({ browser, base, shot }) {
 
   // Create from the template: bottle rule fields, no QR or registration settings.
   await page.goto(`${base}#/sup/new`)
-  await h1('เลือกเทมเพลต')
+  await h1('เลือกประเภทกิจกรรม')
   await page.getByRole('button', { name: /แลกขวด/ }).click()
   await h1('รายละเอียด')
-  expect((await page.getByLabel('กี่ขวดได้ 1 ชั่วโมง').inputValue()) === '20', 'default 20 bottles per hour')
-  expect((await page.getByLabel('ชั่วโมงสูงสุดต่อคน').inputValue()) === '5', 'default 5 hours at most')
+  expect((await page.getByLabel('จำนวนขวด').inputValue()) === '20', 'default 20 bottles per hour')
+  expect((await page.getByLabel('สูงสุดต่อคน').inputValue()) === '5', 'default 5 hours at most')
   const today = await page.evaluate(() => {
     const d = new Date()
     const p = (n) => String(n).padStart(2, '0')
@@ -63,7 +63,10 @@ export default async function ({ browser, base, shot }) {
   await page.waitForURL(/#\/sup\/a\/[0-9a-z]{10}$/)
   const id = page.url().split('/').pop()
   const stored = await page.evaluate((i) => JSON.parse(localStorage.getItem('nuv:db')).activities[i], id)
-  expect(stored.categoryKey === 'bottle' && stored.itemsPerHour === 20 && stored.hours === 5 && stored.walkIn === true && stored.capLimit === false, `stored: ${JSON.stringify(stored)}`)
+  expect(
+    stored.categoryKey === 'bottle' && stored.itemsPerHour === 20 && stored.hours === 5 && stored.walkIn === true && stored.capLimit === false,
+    `stored: ${JSON.stringify(stored)}`,
+  )
 
   // Manage: the desk button replaces the QR button.
   await page.getByRole('heading', { name: 'แลกขวดพลาสติกเป็นชั่วโมงจิตอาสา' }).waitFor()
@@ -76,7 +79,7 @@ export default async function ({ browser, base, shot }) {
   const sheet = page.getByRole('dialog', { name: 'บันทึกขวด' })
   await sheet.getByLabel('รหัสนิสิต').fill('65010123')
   await sheet.getByLabel('ชื่อ-นามสกุล').fill('สมศรี รักษ์โลก')
-  expect((await sheet.getByRole('button', { name: 'บันทึก', exact: true }).isDisabled()), 'save needs the bottle count')
+  expect(await sheet.getByRole('button', { name: 'บันทึก', exact: true }).isDisabled(), 'save needs the bottle count')
   await sheet.getByRole('button', { name: '+20' }).click()
   await sheet.getByRole('button', { name: '+20' }).click()
   await sheet.getByLabel('จำนวนขวด').fill('45')
@@ -116,7 +119,11 @@ export default async function ({ browser, base, shot }) {
   await page.getByLabel('รหัสนิสิต').fill('65010123')
   await page.getByLabel('ชื่อ-นามสกุล').fill('สมศรี รักษ์โลก')
   await page.getByRole('button', { name: 'เริ่มใช้งาน' }).click()
-  await page.getByRole('button', { name: /ใช่/ }).first().click().catch(() => {})
+  await page
+    .getByRole('button', { name: /ใช่/ })
+    .first()
+    .click()
+    .catch(() => {})
   await page.goto(`${base}#/a/${id}`)
   await page.getByRole('heading', { name: 'แลกขวดพลาสติกเป็นชั่วโมงจิตอาสา' }).waitFor()
   await page.getByText('20 ขวด = 1 ชั่วโมง ได้สูงสุด 5 ชั่วโมง').waitFor()

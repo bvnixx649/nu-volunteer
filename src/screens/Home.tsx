@@ -32,10 +32,9 @@ const useUi = create<UiState & { set: (p: Partial<UiState>) => void }>((set) => 
 
 /** The day filter of SPEC 5.3. The longer filters in lib/student stay available to other callers. */
 const DAYS: { value: When; label: string }[] = [
-  { value: 'all', label: 'ทุกวัน' },
+  { value: 'all', label: 'ทั้งหมด' },
   { value: 'today', label: 'วันนี้' },
-  { value: 'tomorrow', label: 'พรุ่งนี้' },
-  { value: 'week', label: '7 วัน' },
+  { value: 'week', label: 'อาทิตย์นี้' },
 ]
 
 /** The hours bar: the category with the most hours is orange, the rest step down through the neutrals. */
@@ -194,7 +193,10 @@ export default function Home() {
             </div>
           </div>
           {a.categoryKey === 'bottle' ? (
-            <Link to={`/a/${a.id}`} className="pressable mt-4 flex min-h-14 w-full items-center justify-center rounded-full bg-bg/10 px-7 text-[17px] font-semibold whitespace-nowrap">
+            <Link
+              to={`/a/${a.id}`}
+              className="pressable mt-4 flex min-h-14 w-full items-center justify-center rounded-full bg-bg/10 px-7 text-[17px] font-semibold whitespace-nowrap"
+            >
               ดูจุดรับขวด
             </Link>
           ) : (

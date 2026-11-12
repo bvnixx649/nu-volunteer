@@ -5,7 +5,22 @@ import { CaretLeft, X } from '@phosphor-icons/react'
 import { toast } from 'sonner'
 import { api } from '../../data/api'
 import type { Activity, CategoryKey, NewTemplate, Template } from '../../data/types'
-import { ADVANCED_FIELDS, applyCategory, applyTemplate, blankDraft, check, DEFAULT_KEYS, draftOf, isDirty, STEP_COUNT, toEdit, toNewActivity, type Draft } from '../../lib/draft'
+import {
+  ADVANCED_FIELDS,
+  applyCategory,
+  applyTemplate,
+  blankDraft,
+  check,
+  DEFAULT_KEYS,
+  draftOf,
+  isCustomDraft,
+  isDirty,
+  STEP_COUNT,
+  toEdit,
+  toNewActivity,
+  toNewTemplate,
+  type Draft,
+} from '../../lib/draft'
 import { canEdit, ownsActivity } from '../../lib/stage'
 import { useDevice, type SupSession } from '../../store'
 import { Button } from '../../ui/Button'
@@ -89,11 +104,16 @@ function Flow({ sup, saved }: { sup: SupSession; saved: Activity | null }) {
   const [form, setForm] = useState<{ open: boolean; editing: Template | null }>({ open: false, editing: null })
   const [menuFor, setMenuFor] = useState<Template | null>(null)
   const [deleting, setDeleting] = useState<Template | null>(null)
+  /** For a new "กำหนดเอง" activity: also save a template from its fields when published. */
+  const [saveTpl, setSaveTpl] = useState(false)
 
   useEffect(() => {
     if (edit) return
     let live = true
-    api.listTemplates(sup.orgCode).then((l) => live && setTemplates(l), () => {})
+    api.listTemplates(sup.orgCode).then(
+      (l) => live && setTemplates(l),
+      () => {},
+    )
     return () => {
       live = false
     }
@@ -176,6 +196,14 @@ function Flow({ sup, saved }: { sup: SupSession; saved: Activity | null }) {
       } else {
         const id = await api.createActivity(toNewActivity(draft, { orgCode: sup.orgCode, orgName: sup.orgName }))
         writeDraft(null)
+        // The activity is already published, so a failed template save must not look like a failed publish.
+        if (saveTpl && isCustomDraft(draft)) {
+          try {
+            await api.createTemplate(toNewTemplate(draft, { orgCode: sup.orgCode, name: sup.name }))
+          } catch {
+            toast.error('เผยแพร่แล้ว แต่บันทึกเทมเพลตไม่ได้')
+          }
+        }
         toast.success('เผยแพร่กิจกรรมแล้ว')
         nav(`/sup/a/${id}`, { replace: true })
       }
@@ -206,17 +234,14 @@ function Flow({ sup, saved }: { sup: SupSession; saved: Activity | null }) {
   const canBack = edit ? step > 2 : step > 1
 
   const body = [
-    <StepCategory
-      key={1}
-      d={draft}
-      templates={templates}
-      onPick={pick}
-      onPickTemplate={pickTemplate}
-      onAdd={() => setForm({ open: true, editing: null })}
-      onMenu={setMenuFor}
-    />,
+    <StepCategory key={1} d={draft} templates={templates} onPick={pick} onPickTemplate={pickTemplate} onCustom={() => pick('other')} onMenu={setMenuFor} />,
     <StepDetails key={2} d={draft} set={set} errors={shown} advancedOpen={advancedOpen} onAdvanced={setAdvancedOpen} />,
-    <StepReview key={3} d={draft} templateName={templates.find((t) => t.id === draft.templateId)?.title} />,
+    <StepReview
+      key={3}
+      d={draft}
+      templateName={templates.find((t) => t.id === draft.templateId)?.title}
+      saveTpl={!edit && isCustomDraft(draft) ? { on: saveTpl, onChange: setSaveTpl } : undefined}
+    />,
   ][step - 1]
 
   return (
@@ -241,22 +266,16 @@ function Flow({ sup, saved }: { sup: SupSession; saved: Activity | null }) {
 
       <main className="flex-1 px-5 pt-5 pb-8">
         <AnimatePresence mode="wait" initial={false} custom={dir}>
-          <motion.div
-            key={step}
-            custom={dir}
-            variants={slide}
-            initial="enter"
-            animate="center"
-            exit="exit"
-            transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}
-          >
+          <motion.div key={step} custom={dir} variants={slide} initial="enter" animate="center" exit="exit" transition={{ duration: 0.2, ease: [0.23, 1, 0.32, 1] }}>
             <h1 className="mb-6 text-[28px] leading-tight font-bold tracking-tight">{TITLES[step - 1]}</h1>
             {body}
           </motion.div>
         </AnimatePresence>
       </main>
 
-      <footer className={`sticky bottom-0 z-10 gap-3 border-t border-line bg-bg px-5 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] ${canBack || step > 1 || draft.categoryKey ? 'flex' : 'hidden'}`}>
+      <footer
+        className={`sticky bottom-0 z-10 gap-3 border-t border-line bg-bg px-5 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] ${canBack || step > 1 || draft.categoryKey ? 'flex' : 'hidden'}`}
+      >
         {canBack && (
           <Button size="lg" variant="secondary" onClick={back} disabled={busy}>
             <CaretLeft size={20} weight="bold" /> ย้อนกลับ
@@ -269,7 +288,13 @@ function Flow({ sup, saved }: { sup: SupSession; saved: Activity | null }) {
         )}
       </footer>
 
-      <TemplateForm open={form.open} onClose={() => setForm((f) => ({ ...f, open: false }))} editing={form.editing} who={{ orgCode: sup.orgCode, name: sup.name }} onSave={saveTemplate} />
+      <TemplateForm
+        open={form.open}
+        onClose={() => setForm((f) => ({ ...f, open: false }))}
+        editing={form.editing}
+        who={{ orgCode: sup.orgCode, name: sup.name }}
+        onSave={saveTemplate}
+      />
 
       <Sheet open={menuFor !== null} onClose={() => setMenuFor(null)} title={menuFor?.title ?? 'เทมเพลต'}>
         <div className="flex flex-col gap-3">

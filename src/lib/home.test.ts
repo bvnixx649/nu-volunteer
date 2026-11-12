@@ -1,5 +1,30 @@
 import { describe, expect, it } from 'vitest'
-import { activityYear, adminGroups, breakdownIds, categoryBreakdown, deadlineSub, orgBreakdown, busyDays, countInMonth, dayKey, fillBasis, fillPercent, groupActivities, liveNow, monthGrid, onDay, orderedActivities, regInfo, rowSub, splitUpcoming, stagesByDay, visibleTo, yearOverview, yearStats } from './home'
+import {
+  activityYear,
+  adminGroups,
+  breakdownIds,
+  categoryBreakdown,
+  deadlineSub,
+  endedLine,
+  endedMonths,
+  homeSections,
+  orgBreakdown,
+  busyDays,
+  countInMonth,
+  dayKey,
+  fillBasis,
+  fillPercent,
+  groupActivities,
+  liveNow,
+  monthGrid,
+  onDay,
+  orderedActivities,
+  rowSub,
+  stagesByDay,
+  visibleTo,
+  yearOverview,
+  yearStats,
+} from './home'
 import type { Activity } from '../data/types'
 
 const H = 3600_000
@@ -107,8 +132,7 @@ describe('home helpers', () => {
 
   describe('turn-up percentage and overview', () => {
     const now = new Date(2026, 10, 4, 12).getTime() // 4 Nov 2026, in the 2569 year
-    const at = (m: number, d: number, extra: Partial<Activity> = {}) =>
-      act({ start: new Date(2026, m, d, 9).getTime(), end: new Date(2026, m, d, 15).getTime(), ...extra })
+    const at = (m: number, d: number, extra: Partial<Activity> = {}) => act({ start: new Date(2026, m, d, 9).getTime(), end: new Date(2026, m, d, 15).getTime(), ...extra })
 
     it('uses only ended activities that limit their numbers', () => {
       const full = at(8, 1, { capLimit: true, capacity: 100, creditCount: 80, regCount: 90 })
@@ -143,44 +167,7 @@ describe('home helpers', () => {
   })
 })
 
-describe('upcoming split', () => {
-  const up = (i: number) => act({ id: `u${i}`, start: t0 + i * DAY, end: t0 + i * DAY + H })
-  const five = [1, 2, 3, 4, 5].map(up)
-
-  it('makes the nearest the hero when nothing is live, and does not repeat it', () => {
-    const s = splitUpcoming(five, false)
-    expect(s.hero).toBe(five[0])
-    expect(s.big).toEqual(five.slice(1, 4))
-    expect(s.small).toEqual([five[4]])
-  })
-
-  it('has no hero while something is live: three big cards then rows', () => {
-    const s = splitUpcoming(five, true)
-    expect(s.hero).toBeUndefined()
-    expect(s.big).toEqual(five.slice(0, 3))
-    expect(s.small).toEqual(five.slice(3))
-  })
-
-  it('copes with nothing upcoming', () => {
-    expect(splitUpcoming([], false)).toEqual({ hero: undefined, big: [], small: [] })
-  })
-})
-
-describe('poster card texts', () => {
-  it('says seats and what is left, or full', () => {
-    const a = act({ start: t0 + DAY, end: t0 + DAY + H, capLimit: true, capacity: 300, regCount: 182 })
-    expect(regInfo(a, t0)).toEqual({ text: 'ลงทะเบียนแล้ว 182 จาก 300 คน', side: 'เหลือ 118 ที่', fill: 182 / 300 })
-    expect(regInfo({ ...a, regCount: 300 }, t0).side).toBe('เต็มแล้ว')
-  })
-
-  it('gives a head count without a limit, the rate for bottles, and the opening time before it opens', () => {
-    const open = act({ start: t0 + DAY, end: t0 + DAY + H, regCount: 12 })
-    expect(regInfo(open, t0)).toEqual({ text: 'ลงทะเบียนแล้ว 12 คน' })
-    expect(regInfo({ ...open, itemsPerHour: 10, hours: 3 }, t0)).toEqual({ text: '10 ขวด = 1 ชั่วโมง', side: 'สูงสุด 3 ชั่วโมง' })
-    const soon = act({ start: t0 + 9 * DAY, end: t0 + 9 * DAY + H, opensAt: new Date(2026, 10, 25, 9).getTime(), capLimit: true, capacity: 40 })
-    expect(regInfo(soon, t0)).toEqual({ text: 'เปิดรับ 25 พ.ย. 09:00 น.', side: 'รับ 40 คน' })
-  })
-
+describe('row texts', () => {
   it('writes one short line per row stage', () => {
     const ended = act({ start: t0 - 5 * H, end: t0 - H, creditCount: 36 })
     expect(rowSub(ended, 'closing', t0)).toBe('ได้รับชั่วโมง 36 คน')
@@ -284,5 +271,97 @@ describe('admin stats breakdowns', () => {
       { key: 'blood', label: 'บริจาคโลหิต', activities: 3, hours: 132 },
       { key: 'setup', label: 'จัดสถานที่', activities: 1, hours: 20 },
     ])
+  })
+})
+
+describe('supervisor home sections', () => {
+  const sup = { admin: false, orgName: 'ชมรม', orgCode: 'ME' }
+  const adminSup = { admin: true, orgName: 'ศูนย์', orgCode: 'ADM' }
+  const titled = (title: string, extra: Partial<Activity> = {}) => act({ title, org: 'ชมรม', ...extra })
+  const closing = titled('เก็บขยะ', { start: t0 - 5 * H, end: t0 - H })
+  const soon = titled('ปลูกต้นไม้', { start: t0 + DAY, end: t0 + DAY + H })
+  const later = titled('บริจาคโลหิต', { start: t0 + 3 * DAY, end: t0 + 3 * DAY + H })
+  const live = titled('กำลังจัด', { start: t0 - H, end: t0 + H })
+  const sent = titled('ส่งแล้ว', { end: t0 - 3 * DAY, start: t0 - 3 * DAY - H, submittedAt: 1 })
+
+  it('splits the list, with live first and the todo group before upcoming', () => {
+    const s = homeSections([closing, soon, later, live, sent], sup, t0, [], '')
+    expect(s.live).toEqual([live])
+    expect(s.todo).toEqual([closing])
+    expect(s.upcoming).toEqual([soon, later])
+    expect(s.pinned).toEqual([])
+    expect(s.waiting).toEqual([])
+    expect(s.unsent).toEqual([])
+  })
+
+  it('moves a pinned activity to the pinned section only', () => {
+    const s = homeSections([closing, soon, later], sup, t0, [later.id, closing.id], '')
+    expect(s.pinned).toEqual([closing, later])
+    expect(s.todo).toEqual([])
+    expect(s.upcoming).toEqual([soon])
+  })
+
+  it('never pins a sent or recorded activity, nor a live one', () => {
+    const recorded = titled('บันทึกแล้ว', { end: t0 - 9 * DAY, start: t0 - 9 * DAY - H, recordedAt: 1 })
+    const s = homeSections([sent, recorded, live], sup, t0, [sent.id, recorded.id, live.id], '')
+    expect(s.pinned).toEqual([])
+    expect(s.live).toEqual([live])
+  })
+
+  it('searches by title, and by organisation name only for the admin', () => {
+    const other = titled('ต้นไม้ของอีกหน่วย', { org: 'คณะ ก', start: t0 + 2 * DAY, end: t0 + 2 * DAY + H })
+    expect(homeSections([soon, other], sup, t0, [], 'ต้นไม้').upcoming).toEqual([soon, other])
+    expect(homeSections([soon, other], sup, t0, [], 'คณะ').upcoming).toEqual([])
+    const ownOnly = { ...other, org: 'ชมรม' }
+    expect(homeSections([soon, ownOnly], adminSup, t0, [], 'คณะ ก').upcoming).toEqual([])
+    expect(homeSections([soon, other], { ...adminSup }, t0, [], '  คณะ  ').upcoming).toEqual([other])
+  })
+
+  it('keeps the live card under any search that matches it', () => {
+    expect(homeSections([live], sup, t0, [], 'ไม่มี').live).toEqual([])
+    expect(homeSections([live], sup, t0, [], 'กำลัง').live).toEqual([live])
+  })
+
+  it('gives the admin the waiting and unsent sections, oldest roster first and own todo', () => {
+    const waitA = titled('รอบันทึก A', { orgCode: 'A', org: 'คณะ ก', end: t0 - 9 * DAY, start: t0 - 9 * DAY - H, closedAt: 1, submittedAt: 100 })
+    const otherEnded = titled('หน่วย B ยังไม่ส่ง', { orgCode: 'B', org: 'คณะ ข', start: t0 - 2 * DAY, end: t0 - 2 * DAY + H })
+    const ownClosing = { ...closing, orgCode: 'ADM', org: 'ศูนย์' }
+    const s = homeSections([ownClosing, waitA, otherEnded, soon], adminSup, t0, [], '')
+    expect(s.waiting).toEqual([waitA])
+    expect(s.todo).toEqual([ownClosing])
+    expect(s.unsent).toEqual([otherEnded])
+    expect(s.upcoming).toEqual([soon])
+  })
+})
+
+describe('list tab', () => {
+  const at = (day: number, extra: Partial<Activity> = {}) => act({ start: new Date(2026, 9, day, 9).getTime(), end: new Date(2026, 9, day, 12).getTime(), ...extra })
+  const nov = act({ start: new Date(2026, 10, 3, 9).getTime(), end: new Date(2026, 10, 3, 12).getTime(), submittedAt: 1 })
+  const octA = at(29, { recordedAt: 2 })
+  const octB = at(6, { recordedAt: 3 })
+  const octC = at(18, { closedAt: 1, submittedAt: 4 })
+  const future = act({ start: t0 + 9 * DAY, end: t0 + 9 * DAY + H })
+  const now = new Date(2026, 10, 20).getTime()
+  const sup = [nov, octA, octB, octC, future]
+
+  it('lists ended activities newest first, grouped by month in Buddhist years', () => {
+    const groups = endedMonths(sup, now, 'all')
+    expect(groups.map((g) => g.label)).toEqual(['พฤศจิกายน 2569', 'ตุลาคม 2569'])
+    expect(groups[1].items).toEqual([octA, octC, octB])
+    expect(groups[0].items).toEqual([nov])
+  })
+
+  it('filters to rosters waiting for the centre, or recorded ones', () => {
+    expect(endedMonths(sup, now, 'waiting').flatMap((g) => g.items)).toEqual([nov, octC])
+    expect(endedMonths(sup, now, 'recorded').flatMap((g) => g.items)).toEqual([octA, octB])
+  })
+
+  it('is empty when nothing has ended', () => {
+    expect(endedMonths([future], now, 'all')).toEqual([])
+  })
+
+  it('says people and hours per person in one line', () => {
+    expect(endedLine({ creditCount: 36, hours: 3 })).toBe('36 คน 3 ชั่วโมงต่อคน')
+    expect(endedLine({ creditCount: 0, hours: 1.5 })).toBe('0 คน 1.5 ชั่วโมงต่อคน')
   })
 })

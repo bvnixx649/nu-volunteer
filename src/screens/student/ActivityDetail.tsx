@@ -174,11 +174,11 @@ export default function ActivityDetail() {
   const status = credit
     ? bottle
       ? a.recordedAt
-        ? 'บันทึกลงระบบแล้ว'
+        ? 'บันทึกแล้ว'
         : `แลก ${credit.items ?? 0} ขวด`
       : a.recordedAt
-        ? 'บันทึกลงระบบแล้ว'
-        : 'รอศูนย์บันทึก'
+        ? 'บันทึกแล้ว'
+        : 'รอบันทึกชั่วโมง'
     : ph === 'ended'
       ? 'กิจกรรมจบแล้ว'
       : bottle
@@ -349,9 +349,7 @@ export default function ActivityDetail() {
           )}
 
           <section className="mt-9">
-            <h2 className="text-xl font-semibold">
-              ประกาศจากผู้ดูแล {notes.length > 0 && <span className="num font-medium text-muted">{notes.length}</span>}
-            </h2>
+            <h2 className="text-xl font-semibold">ประกาศจากผู้ดูแล {notes.length > 0 && <span className="num font-medium text-muted">{notes.length}</span>}</h2>
             {notes.length === 0 ? (
               <p className="mt-2 text-muted">ยังไม่มีประกาศ</p>
             ) : (
@@ -378,7 +376,9 @@ export default function ActivityDetail() {
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-line bg-bg">
         <div className="mx-auto flex max-w-lg items-center gap-4 px-5 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))]">
           <div className="flex min-h-14 min-w-0 flex-1 flex-col justify-center">
-            <p className="num text-[22px] leading-tight font-semibold tracking-tight">{credit ? `ได้รับ ${fmtHours(credit.hours)} ชม.` : bottle ? `สูงสุด ${fmtHours(a.hours)} ชม.` : `+${fmtHours(a.hours)} ชม.`}</p>
+            <p className="num text-[22px] leading-tight font-semibold tracking-tight">
+              {credit ? `ได้รับ ${fmtHours(credit.hours)} ชม.` : bottle ? `สูงสุด ${fmtHours(a.hours)} ชม.` : `+${fmtHours(a.hours)} ชม.`}
+            </p>
             <p className="num text-[13.5px] leading-snug text-muted">{status}</p>
           </div>
           {credit ? (
@@ -471,14 +471,20 @@ export default function ActivityDetail() {
                     <p className="font-semibold">มีเหตุสุดวิสัย เช่น ป่วยหรืออุบัติเหตุ</p>
                     <p className="text-[13.5px] text-muted">ส่งข้อความถึงผู้ดูแลเพื่อขอคืนสิทธิ์</p>
                   </div>
-                  <button onClick={() => nav(`/a/${a.id}/dm`)} aria-label="ส่งข้อความถึงผู้ดูแลกิจกรรม" className="pressable grid size-11 shrink-0 place-items-center rounded-full bg-surface-3">
+                  <button
+                    onClick={() => nav(`/a/${a.id}/dm`)}
+                    aria-label="ส่งข้อความถึงผู้ดูแลกิจกรรม"
+                    className="pressable grid size-11 shrink-0 place-items-center rounded-full bg-surface-3"
+                  >
                     <ChatTeardropText size={20} weight="fill" />
                   </button>
                 </div>
               )}
             </>
           ) : (
-            <p className="num text-muted">ยังยกเลิกได้ฟรีถึง {thDate(freeUntil)} {thTime(freeUntil)} น. ที่นั่งจะเปิดให้ผู้อื่น</p>
+            <p className="num text-muted">
+              ยังยกเลิกได้ฟรีถึง {thDate(freeUntil)} {thTime(freeUntil)} น. ที่นั่งจะเปิดให้ผู้อื่น
+            </p>
           )}
           <Button size="lg" variant="danger" className="mt-3 w-full" loading={busy} onClick={cancel}>
             {late ? 'ยกเลิกและหักสิทธิ์' : 'ยกเลิกการลงทะเบียน'}
